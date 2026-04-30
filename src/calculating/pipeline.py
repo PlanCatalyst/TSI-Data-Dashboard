@@ -4,14 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from .aggregate import (
-    compute_domain_scores,
-    compute_sector_scores,
-    compute_subsector_scores,
-)
 from .factory import IndicatorScorerFactory
-from .hierarchy import INDICATORS, SERIES_CODE_TO_FILENAME
 from .pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
+from .pillar_taxonomy import series_code_to_filename
 
 
 def score_indicators(interim_path: Path) -> pd.DataFrame:
@@ -39,9 +34,10 @@ def score_indicators(interim_path: Path) -> pd.DataFrame:
 def write_indicator_files(scored_df: pd.DataFrame, validated_dir: Path) -> None:
     indicators_dir = validated_dir / "indicatorscores"
     indicators_dir.mkdir(parents=True, exist_ok=True)
+    filename_map = series_code_to_filename()
 
     for series_code, group in scored_df.groupby("series_code", dropna=False):
-        filename = SERIES_CODE_TO_FILENAME.get(series_code)
+        filename = filename_map.get(series_code)
         if not filename:
             continue
         out_path = indicators_dir / filename
@@ -63,42 +59,7 @@ def run_pipeline(
     # Per-indicator files.
     write_indicator_files(scored_df, validated_dir)
 
-    # Phase 2 – composites using aggregate rows only.
-    subsector_scores = compute_subsector_scores(scored_df)
-    sector_scores = compute_sector_scores(subsector_scores)
-    domain_scores = compute_domain_scores(sector_scores)
-
-    # Flag composites that land exactly at 0.0 (all contributing scores at floor).
-    subsector_scores["floored_to_zero"] = subsector_scores["subsector_score"].eq(0.0)
-    sector_scores["floored_to_zero"] = sector_scores["sector_score"].eq(0.0)
-    domain_scores["floored_to_zero"] = domain_scores["domain_score"].eq(0.0)
-
-    # Sort outputs for deterministic, human-friendly ordering.
-    # (We sort before dropping redundant columns so order is stable.)
-    subsector_scores = subsector_scores.sort_values(
-        by=["country_name", "year", "domain_id", "sector_id", "subsector_id"],
-        kind="mergesort",
-    )
-    sector_scores = sector_scores.sort_values(
-        by=["country_name", "year", "domain_id", "sector_id"],
-        kind="mergesort",
-    )
-    domain_scores = domain_scores.sort_values(
-        by=["country_name", "year", "domain_id"],
-        kind="mergesort",
-    )
-
-    # Drop redundant hierarchy columns in outputs.
-    # - `subsector_id` already encodes domain+sector.
-    # - `sector_id` already encodes domain.
-    subsector_scores = subsector_scores.drop(columns=["domain_id", "sector_id"], errors="ignore")
-    sector_scores = sector_scores.drop(columns=["domain_id"], errors="ignore")
-
-    subsector_scores.to_csv(validated_dir / "subsectorscores.csv", index=False)
-    sector_scores.to_csv(validated_dir / "sectorscores.csv", index=False)
-    domain_scores.to_csv(validated_dir / "domainscores.csv", index=False)
-
-    # Phase 3 - pillar-oriented aggregation for the frontend taxonomy.
+    # Phase 2 - pillar-oriented aggregation for the frontend taxonomy.
     # Emitted in pipeline ("higher = more need") orientation; the publish step
     # inverts before sending JSON. See indicators/SCORING_AUDIT.md.
     subdomain_scores = compute_subdomain_scores(scored_df)
