@@ -46,25 +46,24 @@ then processes and publishes only when updates exist.
 ## Platform and Stack
 
 - **Cloud:** Azure Blob Storage, Azure Functions, Azure Container Instances,
-  Azure Container Registry, Logic Apps
+Azure Container Registry, Logic Apps
 - **Backend:** Python data pipeline
 - **Frontend:** React dashboard embedded in Wix
 - **Data sources:** UN SDG, World Bank, ND-GAIN, and additional indexed sources
 
-## Team Scope
+## Team
 
-This work is cross-functional across data engineering, frontend integration,
-source coverage, and cloud operations, with a shared focus on reliable delivery.
+This project is built by the Tehos Organization at Western University.
 
-Primary contributors:
-
-- PM: Thomas Llamzon
-- Co-PM (Azure/platform): Anthony Lam
-- Frontend design: Adeline
-- Frontend + backend integration: Christina
-- Data cleaning + backend pipeline: Tyler
-- Source coverage: Caroline
-- Projections research: Kayden
+- **Project Managers:**
+  - **Thomas Llamzon**: Project architecture + data pipeline
+  - **Anthony Lam**: Cloud design + automation
+- **Developers:**
+  - **Adeline Lue Sang**: Frontend design + backend integration
+  - **Christina Wong**: Backend integration
+  - **Tyler Asai**: Data cleaning + data pipeline
+  - **Caroline Shen**: Data fetching + error handling
+  - **Kayden Jaffer**: Projections research
 
 ## Documentation
 
