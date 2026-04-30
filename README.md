@@ -1,104 +1,77 @@
 # PlanCatalyst Data Dashboard
 
-## Project Purpose
+## What This Project Is
 
-This repository builds a contract-driven data pipeline and frontend data layer for
-the PlanCatalyst dashboard. The end product is a React frontend embedded in Wix
-that reads versioned JSON from Azure Blob:
+PlanCatalyst is a country-level decision-support dashboard for global development.
+It helps teams quickly identify where need is highest and where investments can
+have the most practical impact.
 
-- `meta.json`
-- `countries.json`
-- `timeseries.json`
+This repository contains the full data platform behind that dashboard:
 
-The JSON contract is authoritative in `docs/data-contract.md`.
+- ingestion from external data sources
+- cleaning and transformation logic
+- scoring and aggregation across the 7-pillar model
+- automated cloud publishing for the dashboard experience
 
-## Product Scope
+Organizations often have fragmented datasets across health, agriculture, climate,
+infrastructure, and socio-economic indicators. This project turns that fragmented
+data into one reliable, comparable, country-level view that can be explored by
+non-technical users in the dashboard.
 
-- Audience: PlanCatalyst staff and clients.
-- Core question answered: where development vulnerability is highest by country,
-pillar, and indicator.
-- Data cadence: biannual (not real-time).
-- MVP: historical series only (projections remain disabled in contract metadata).
+## What We Built
 
-## Architecture Summary
+- **A repeatable data pipeline** that fetches, cleans, and scores indicator data
+  from multiple global sources.
+- **A cloud publishing workflow** on Azure that pushes processed outputs for the
+  dashboard to consume.
+- **A frontend-ready data layer** that allows the React dashboard (embedded in
+  Wix) to load consistent, versioned data snapshots.
+- **An operational model** with validation and guardrails so bad runs do not
+  overwrite known-good outputs.
 
-```
-fetch -> clean -> score/aggregate/project -> publish -> Azure Blob (/v1) -> React frontend -> Wix iframe
-```
+## Architecture Overview
 
-Data sources currently in use:
+The system is built as an automated Azure flow: scheduled trigger -> function
+orchestration -> containerized pipeline -> blob publishing -> dashboard load.
 
-- UN SDG API
-- World Bank API
-- ND-GAIN ZIP export
+![Azure architecture for PlanCatalyst pipeline](./Azure-Arch.png)
 
-Known source gaps are tracked in `indicators/SCORING_AUDIT.md` and
-`TEAM-TASKS.md`.
+## Data Flow
 
-## Contract-First Invariants
+At a high level, the pipeline runs on a schedule, checks for new upstream data,
+then processes and publishes only when updates exist.
 
-1. Frontend consumes only published JSON, never pipeline internals.
-2. `iso3` is the canonical join key across payloads.
-3. Missing values are `null` (never omitted or replaced with sentinel values).
-4. Frontend-facing scores are `higher_is_better`.
-5. Breaking contract changes require version bump (`/v1` -> `/v2`).
+![Pipeline data flow from trigger to publish](./Data-Flow.png)
 
-## Quickstart
+## Platform and Stack
 
-1. Create environment and install dependencies.
-2. Install pre-commit hooks (blocks accidental secret commits):
+- **Cloud:** Azure Blob Storage, Azure Functions, Azure Container Instances,
+  Azure Container Registry, Logic Apps
+- **Backend:** Python data pipeline
+- **Frontend:** React dashboard embedded in Wix
+- **Data sources:** UN SDG, World Bank, ND-GAIN, and additional indexed sources
 
-```zsh
-pip install pre-commit
-pre-commit install
-```
+## Team Scope
 
-3. Create `.env` from `.env.example` (never commit `.env`). Provision the
-   Azure service principal in the **PlanCatalyst-owned tenant**, never in a
-   contributor's personal Azure subscription.
-4. Configure `src/config/settings.yaml` for your environment.
-5. Run the full pipeline:
+This work is cross-functional across data engineering, frontend integration,
+source coverage, and cloud operations, with a shared focus on reliable delivery.
 
-```zsh
-python3 -m src.pipeline.run_pipeline
-```
-
-## Smoke Run Checklist
-
-After a run, confirm:
-
-1. Cleaned data exists under `data/clean/`.
-2. Scored outputs exist under `data/interim/validated/`.
-3. Publish step emits contract-valid JSON at target `/v1/` location.
-4. Validation passes against `docs/data-contract.md` rules.
-5. Frontend can fetch the three files from Blob without local overrides.
-
-## Team and Ownership
-
-Execution plan and owner-specific deliverables are in `TEAM-TASKS.md`.
-
-Primary owners:
+Primary contributors:
 
 - PM: Thomas Llamzon
 - Co-PM (Azure/platform): Anthony Lam
 - Frontend design: Adeline
-- Frontend + backend/API integration: Christina
-- Data cleaning + backend pipeline co-owner: Tyler
+- Frontend + backend integration: Christina
+- Data cleaning + backend pipeline: Tyler
 - Source coverage: Caroline
-- Projections research (data science): Kayden
+- Projections research: Kayden
 
-## Key Project Documents
+## Documentation
 
-- `docs/data-contract.md` - authoritative JSON contract
-- `docs/PRINCIPLES.md` - mission, locked decisions, AI autonomy rules
-- `HANDOFF.md` - project context and migration decisions
-- `TEAM-TASKS.md` - May execution plan by owner
+- `HANDOFF.md` - project context and implementation history
+- `TEAM-TASKS.md` - current execution plan and ownership
+- `docs/PRINCIPLES.md` - project mission and operating constraints
+- `docs/data-contract.md` - technical backend/frontend payload specification
 - `indicators/indicators.yaml` - indicator taxonomy and metadata
-- `indicators/SCORING_AUDIT.md` - scoring direction and implementation gaps
-
-## AI Agent Skills
-
-Project-scoped skills for Claude Code / Cursor agents live in
-`.claude/skills/` (mirrored at `.cursor/skills/`). Agents should start with
-the `plancatalyst-orientation` skill. See `.claude/skills/README.md`.
+- `indicators/SCORING_AUDIT.md` - scoring-direction audit and current gaps
 
