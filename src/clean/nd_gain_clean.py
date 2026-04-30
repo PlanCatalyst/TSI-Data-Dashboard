@@ -1,0 +1,79 @@
+
+from typing import Dict, Any, List
+import pandas as pd
+from pathlib import Path
+from src.pipeline.utils import ensure_dir
+from src.pipeline.terminal_output import TerminalOutput
+
+from src.clean.base_clean import DataCleaner
+
+class NDGAINCleaner(DataCleaner):
+    """
+    Clean ND-GAIN data
+    """
+    
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__(config)
+
+    def save_interim(self, df: pd.DataFrame, out_path: Path) -> None:
+        """
+        Saves the tidy DataFrame as a CSV file.
+        """
+        ensure_dir(out_path.parent)
+        df.to_csv(out_path, index=False)
+
+    def clean_data(self, indicator_data: List[Dict[str, Any]]) -> pd.DataFrame:
+            """
+            NOTE: from nd_gain_fetch.py 
+
+            Convert ND-GAIN raw data to a structured, tidy DataFrame.
+            Transforms wide format (years as columns) to long format (year as a column).
+            
+            Args:
+                indicator_data (List[Dict[str, Any]]): Raw data from ZIP file as list of dictionaries
+                
+            Returns:
+                pd.DataFrame: Tidy DataFrame with columns: country_code, country_name, indicator, year, value
+            """
+            if not indicator_data:
+                TerminalOutput.info("No indicator data found", indent=1)
+                return pd.DataFrame()
+            
+            # Convert list of dicts back to DataFrame
+            raw_data = pd.DataFrame(indicator_data)
+            
+            # Identify year columns (numeric columns representing years)
+            year_columns = [col for col in raw_data.columns 
+                        if col not in ['ISO3', 'Name', 'indicator'] and str(col).isdigit()]
+            
+            # Melt the DataFrame from wide to long format
+            df_long = raw_data.melt(
+                id_vars=['ISO3', 'Name', 'indicator'],
+                value_vars=year_columns,
+                var_name='year',
+                value_name='value'
+            )
+            
+            # Rename columns to match standard schema
+            df_long = df_long.rename(columns={
+                'ISO3': 'country_code',
+                'Name': 'country_name'
+            })
+            
+            # Convert data types
+            df_long['year'] = pd.to_numeric(df_long['year'], errors='coerce').astype('Int64')
+            df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
+            
+            # Remove rows with missing values
+            df_long = df_long.dropna(subset=['value'])
+            
+            # Sort by country, indicator, and year
+            df_long = df_long.sort_values(['country_code', 'indicator', 'year']).reset_index(drop=True)
+            
+            # Reorder columns for consistency with other clients
+            df_long = df_long[['country_code', 'country_name', 'indicator', 'year', 'value']]
+            
+            TerminalOutput.summary("  Extracted", f"{len(df_long)} rows")
+            TerminalOutput.complete("Converted to DataFrame")
+
+            return df_long
