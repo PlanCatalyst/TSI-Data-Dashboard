@@ -15,10 +15,10 @@ This module exposes lookup tables so `pillar_aggregate.py` can roll indicator
 scores up to subdomain and pillar without caring which naming world it started
 in.
 
-The SDG indicators are bridged automatically via
-`hierarchy.INDICATORS[series_code].indicator_id == yaml.id`. Non-SDG indicators
-(GII, ND-GAIN composite, MPI, State Capacity, Concessionality, population
-density) have no SDG id and must be bridged through the explicit
+The SDG indicators are bridged automatically through `SDG_ID_TO_SERIES_CODE`.
+Non-SDG indicators (GII, ND-GAIN composite, MPI, State Capacity,
+Concessionality, population density) have no SDG id and must be bridged through
+the explicit
 `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE` map below. See
 [indicators/SCORING_AUDIT.md](../../indicators/SCORING_AUDIT.md) for which of
 these are currently wired in the pipeline.
@@ -32,8 +32,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import yaml
-
-from .hierarchy import INDICATORS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +49,31 @@ NON_SDG_FRONTEND_KEY_TO_SERIES_CODE: Dict[str, Optional[str]] = {
     "popdens": "EN.POP.DNST",
     "state": None,
     "conces": None,
+}
+
+SDG_ID_TO_SERIES_CODE: Dict[str, str] = {
+    "1.2.1": "SI_POV_NAHC",
+    "2.1.2": "AG_PRD_FIESMS",
+    "2.2.1": "SH_STA_STNT",
+    "2.2.2": "SN_STA_OVWGT",
+    "2.2.3": "SH_STA_ANEM",
+    "2.4.1": "AG_LND_SUST",
+    "2.a.2": "DC_TOF_AGRL",
+    "3.1.1": "SH_STA_MORT",
+    "3.2.1": "SH_DYN_MORT",
+    "3.3.2": "SH_TBS_INCD",
+    "3.3.3": "SH_STA_MALR",
+    "3.7.1": "SH_FPL_MTMM",
+    "3.7.2": "SP_DYN_ADKL",
+    "3.8.1": "SH_ACS_UNHC_25",
+    "3.9.2": "SH_STA_WASHARI",
+    "3.d.1": "SH_IHR_CAPS",
+    "6.1.1": "SH_H2O_SAFE",
+    "6.2.1": "SH_SAN_SAFE",
+    "7.1.1": "EG_ACS_ELEC",
+    "7.1.2": "EG_EGY_CLEAN",
+    "7.2.1": "EG_FEC_RNEW",
+    "8.10.2": "FB_BNK_ACCSS",
 }
 
 
@@ -77,15 +100,9 @@ def _load_yaml() -> dict:
 
 
 @lru_cache(maxsize=1)
-def _indicator_id_to_series_code() -> Dict[str, str]:
-    return {meta.indicator_id: meta.series_code for meta in INDICATORS.values()}
-
-
-@lru_cache(maxsize=1)
 def load_taxonomy() -> List[IndicatorTaxonomy]:
     """Return the flat list of 28 indicator taxonomy records."""
     cfg = _load_yaml()
-    id_map = _indicator_id_to_series_code()
 
     records: List[IndicatorTaxonomy] = []
     for pillar in cfg.get("pillars", []):
@@ -96,7 +113,7 @@ def load_taxonomy() -> List[IndicatorTaxonomy]:
                 fk = ind["frontend_key"]
                 sdg_id = ind.get("id")
                 if sdg_id:
-                    series_code = id_map.get(sdg_id)
+                    series_code = SDG_ID_TO_SERIES_CODE.get(sdg_id)
                 else:
                     series_code = NON_SDG_FRONTEND_KEY_TO_SERIES_CODE.get(fk)
                 records.append(
@@ -147,3 +164,15 @@ def subdomain_to_pillar() -> Dict[str, str]:
 
 def list_pillar_keys() -> List[str]:
     return [p.key for p in load_pillars()]
+
+
+@lru_cache(maxsize=1)
+def series_code_to_filename() -> Dict[str, str]:
+    """Map series_code to per-indicator output CSV filename."""
+    out: Dict[str, str] = {}
+    for t in load_taxonomy():
+        if t.series_code:
+            out[t.series_code] = f"{t.frontend_key}.csv"
+    if "EN.POP.DNST" in out and "POP_DENSITY" not in out:
+        out["POP_DENSITY"] = out["EN.POP.DNST"]
+    return out
