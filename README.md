@@ -2,8 +2,8 @@
 
 ## What This Project Is
 
-PlanCatalyst is a country-level decision-support dashboard for global development.
-It helps teams quickly identify where need is highest and where investments can
+This is an interactive dasbhoard that visualizes country-level development.
+It helps PlanCatalyst teams and stakeholders identify where need is highest and where investments can
 have the most practical impact.
 
 This repository contains the full data platform behind that dashboard:
