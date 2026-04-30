@@ -6,6 +6,7 @@ from src.clean.base_clean import DataCleaner
 from src.pipeline.utils import ensure_dir
 from src.pipeline.terminal_output import TerminalOutput
 from pathlib import Path
+from src.utils.country_names import get_canonical_name
 
 class WorldBankCleaner(DataCleaner):
     """
@@ -67,6 +68,10 @@ class WorldBankCleaner(DataCleaner):
                 "year",
                 "value",
             ],
+        )
+        df["country_name"] = df.apply(
+            lambda r: get_canonical_name(str(r["country_code"]), str(r.get("country_name") or "")),
+            axis=1,
         )
 
         df = df.sort_values(

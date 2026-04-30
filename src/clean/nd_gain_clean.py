@@ -6,6 +6,7 @@ from src.pipeline.utils import ensure_dir
 from src.pipeline.terminal_output import TerminalOutput
 
 from src.clean.base_clean import DataCleaner
+from src.utils.country_names import get_canonical_name
 
 class NDGAINCleaner(DataCleaner):
     """
@@ -72,6 +73,10 @@ class NDGAINCleaner(DataCleaner):
             
             # Reorder columns for consistency with other clients
             df_long = df_long[['country_code', 'country_name', 'indicator', 'year', 'value']]
+            df_long["country_name"] = df_long.apply(
+                lambda r: get_canonical_name(str(r["country_code"]), str(r.get("country_name") or "")),
+                axis=1,
+            )
             
             TerminalOutput.summary("  Extracted", f"{len(df_long)} rows")
             TerminalOutput.complete("Converted to DataFrame")
