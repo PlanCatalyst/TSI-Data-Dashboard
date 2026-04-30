@@ -1,0 +1,217 @@
+iso3,iso_numeric,name,wb_region_code
+ABW,533,Aruba,lcr
+AFG,004,Afghanistan,mna
+AGO,024,Angola,afe
+ALB,008,Albania,eca
+AND,020,Andorra,eca
+ARE,784,United Arab Emirates,mna
+ARG,032,Argentina,lcr
+ARM,051,Armenia,eca
+ASM,016,American Samoa,eap
+ATG,028,Antigua & Barbuda,lcr
+AUS,036,Australia,eap
+AUT,040,Austria,eca
+AZE,031,Azerbaijan,eca
+BDI,108,Burundi,afe
+BEL,056,Belgium,eca
+BEN,204,Benin,afw
+BFA,854,Burkina Faso,afw
+BGD,050,Bangladesh,sar
+BGR,100,Bulgaria,eca
+BHR,048,Bahrain,mna
+BHS,044,Bahamas,lcr
+BIH,070,Bosnia,eca
+BLR,112,Belarus,eca
+BLZ,084,Belize,lcr
+BMU,060,Bermuda,nam
+BOL,068,Bolivia,lcr
+BRA,076,Brazil,lcr
+BRB,052,Barbados,lcr
+BRN,096,Brunei,eap
+BTN,064,Bhutan,sar
+BWA,072,Botswana,afe
+CAF,140,Central African Republic,afw
+CAN,124,Canada,nam
+CHE,756,Switzerland,eca
+CHL,152,Chile,lcr
+CHN,156,China,eap
+CIV,384,Côte d’Ivoire,afw
+CMR,120,Cameroon,afw
+COD,180,Congo - Kinshasa,afe
+COG,178,Congo - Brazzaville,afw
+COL,170,Colombia,lcr
+COM,174,Comoros,afe
+CPV,132,Cape Verde,afw
+CRI,188,Costa Rica,lcr
+CUB,192,Cuba,lcr
+CUW,531,Curaçao,lcr
+CYM,136,Cayman Islands,lcr
+CYP,196,Cyprus,eca
+CZE,203,Czechia,eca
+DEU,276,Germany,eca
+DJI,262,Djibouti,mna
+DMA,212,Dominica,lcr
+DNK,208,Denmark,eca
+DOM,214,Dominican Republic,lcr
+DZA,012,Algeria,mna
+ECU,218,Ecuador,lcr
+EGY,818,Egypt,mna
+ERI,232,Eritrea,afe
+ESP,724,Spain,eca
+EST,233,Estonia,eca
+ETH,231,Ethiopia,afe
+FIN,246,Finland,eca
+FJI,242,Fiji,eap
+FRA,250,France,eca
+FRO,234,Faroe Islands,eca
+FSM,583,Micronesia,eap
+GAB,266,Gabon,afw
+GBR,826,UK,eca
+GEO,268,Georgia,eca
+GHA,288,Ghana,afw
+GIB,292,Gibraltar,eca
+GIN,324,Guinea,afw
+GMB,270,Gambia,afw
+GNB,624,Guinea-Bissau,afw
+GNQ,226,Equatorial Guinea,afw
+GRC,300,Greece,eca
+GRD,308,Grenada,lcr
+GRL,304,Greenland,eca
+GTM,320,Guatemala,lcr
+GUM,316,Guam,eap
+GUY,328,Guyana,lcr
+HKG,344,Hong Kong,eap
+HND,340,Honduras,lcr
+HRV,191,Croatia,eca
+HTI,332,Haiti,lcr
+HUN,348,Hungary,eca
+IDN,360,Indonesia,eap
+IMN,833,Isle of Man,eca
+IND,356,India,sar
+IRL,372,Ireland,eca
+IRN,364,Iran,mna
+IRQ,368,Iraq,mna
+ISL,352,Iceland,eca
+ISR,376,Israel,mna
+ITA,380,Italy,eca
+JAM,388,Jamaica,lcr
+JOR,400,Jordan,mna
+JPN,392,Japan,eap
+KAZ,398,Kazakhstan,eca
+KEN,404,Kenya,afe
+KGZ,417,Kyrgyzstan,eca
+KHM,116,Cambodia,eap
+KIR,296,Kiribati,eap
+KNA,659,St. Kitts & Nevis,lcr
+KOR,410,South Korea,eap
+KWT,414,Kuwait,mna
+LAO,418,Laos,eap
+LBN,422,Lebanon,mna
+LBR,430,Liberia,afw
+LBY,434,Libya,mna
+LCA,662,St. Lucia,lcr
+LIE,438,Liechtenstein,eca
+LKA,144,Sri Lanka,sar
+LSO,426,Lesotho,afe
+LTU,440,Lithuania,eca
+LUX,442,Luxembourg,eca
+LVA,428,Latvia,eca
+MAC,446,Macau,eap
+MAF,663,St. Martin,lcr
+MAR,504,Morocco,mna
+MCO,492,Monaco,eca
+MDA,498,Moldova,eca
+MDG,450,Madagascar,afe
+MDV,462,Maldives,sar
+MEX,484,Mexico,lcr
+MHL,584,Marshall Islands,eap
+MKD,807,Macedonia,eca
+MLI,466,Mali,afw
+MLT,470,Malta,mna
+MMR,104,Myanmar,eap
+MNE,499,Montenegro,eca
+MNG,496,Mongolia,eap
+MNP,580,Northern Mariana Islands,eap
+MOZ,508,Mozambique,afe
+MRT,478,Mauritania,afw
+MUS,480,Mauritius,afe
+MWI,454,Malawi,afe
+MYS,458,Malaysia,eap
+NAM,516,Namibia,afe
+NCL,540,New Caledonia,eap
+NER,562,Niger,afw
+NGA,566,Nigeria,afw
+NIC,558,Nicaragua,lcr
+NLD,528,Netherlands,eca
+NOR,578,Norway,eca
+NPL,524,Nepal,sar
+NRU,520,Nauru,eap
+NZL,554,New Zealand,eap
+OMN,512,Oman,mna
+PAK,586,Pakistan,mna
+PAN,591,Panama,lcr
+PER,604,Peru,lcr
+PHL,608,Philippines,eap
+PLW,585,Palau,eap
+PNG,598,Papua New Guinea,eap
+POL,616,Poland,eca
+PRI,630,Puerto Rico,lcr
+PRK,408,North Korea,eap
+PRT,620,Portugal,eca
+PRY,600,Paraguay,lcr
+PSE,275,Palestine,mna
+PYF,258,French Polynesia,eap
+QAT,634,Qatar,mna
+ROU,642,Romania,eca
+RUS,643,Russia,eca
+RWA,646,Rwanda,afe
+SAU,682,Saudi Arabia,mna
+SDN,729,Sudan,afe
+SEN,686,Senegal,afw
+SGP,702,Singapore,eap
+SLB,090,Solomon Islands,eap
+SLE,694,Sierra Leone,afw
+SLV,222,El Salvador,lcr
+SMR,674,San Marino,eca
+SOM,706,Somalia,afe
+SRB,688,Serbia,eca
+SSD,728,South Sudan,afe
+STP,678,São Tomé & Príncipe,afw
+SUR,740,Suriname,lcr
+SVK,703,Slovakia,eca
+SVN,705,Slovenia,eca
+SWE,752,Sweden,eca
+SWZ,748,Swaziland,afe
+SXM,534,Sint Maarten,lcr
+SYC,690,Seychelles,afe
+SYR,760,Syria,mna
+TCA,796,Turks & Caicos Islands,lcr
+TCD,148,Chad,afw
+TGO,768,Togo,afw
+THA,764,Thailand,eap
+TJK,762,Tajikistan,eca
+TKM,795,Turkmenistan,eca
+TLS,626,Timor-Leste,eap
+TON,776,Tonga,eap
+TTO,780,Trinidad & Tobago,lcr
+TUN,788,Tunisia,mna
+TUR,792,Turkey,eca
+TUV,798,Tuvalu,eap
+TZA,834,Tanzania,afe
+UGA,800,Uganda,afe
+UKR,804,Ukraine,eca
+URY,858,Uruguay,lcr
+USA,840,US,nam
+UZB,860,Uzbekistan,eca
+VCT,670,St. Vincent & Grenadines,lcr
+VEN,862,Venezuela,lcr
+VGB,092,British Virgin Islands,lcr
+VIR,850,U.S. Virgin Islands,lcr
+VNM,704,Vietnam,eap
+VUT,548,Vanuatu,eap
+WSM,882,Samoa,eap
+XKX,-99,Kosovo,eca
+YEM,887,Yemen,mna
+ZAF,710,South Africa,afe
+ZMB,894,Zambia,afe
+ZWE,716,Zimbabwe,afe

@@ -1,0 +1,211 @@
+# PlanCatalyst pipeline settings
+# This file is intended for the new repository direction:
+# contract-first publish to frontend JSON with Azure Blob delivery.
+
+# ====================================================================
+# World Bank Settings
+# ====================================================================
+worldbank: # name must match client_factory.py
+
+  # Inclusive start/end year for the World Bank "date" filter, e.g. date=2010:2024
+  # Not all indicators have values for every year; nulls are expected.
+  start_year: 2010
+  end_year: 2024
+
+  api_paths: 
+    # Base URL for World Bank API
+    base: "https://api.worldbank.org/v2"
+    # Indicator endpoint
+    indicator_endpoint: "/country/{country_str}/indicator/{indicator_code}"
+
+  # Indicators to fetch. "code" is the official WB indicator id;
+  # "alias" is a stable internal name used downstream.
+  indicators:
+    # Population density (people per sq. km of land area)
+    # See: https://data.worldbank.org/indicator/EN.POP.DNST
+    - { code: "EN.POP.DNST", alias: "population_density_per_sq_km" }  
+
+  # ISO-3 country codes to query in ONE request (semicolon-joined in the API call).
+  # You can add/remove codes (e.g., "GBR", "FRA"). Regions like "WLD" (world) also work,
+  # but mixing countries + regions may complicate modeling/visuals later.
+  countries: ["all"]
+
+  # # EXTRA INDICATORS (uncomment as needed)
+  # - { code: "NY.GDP.PCAP.CD", alias: "gdp_per_capita_usd" }           # GDP per capita (current US$)
+  # - { code: "GC.TAX.TOTL.GD.ZS", alias: "tax_revenue_pct_gdp" }       # Tax revenue (% of GDP)
+  # - { code: "FS.AST.PRVT.GD.ZS", alias: "domestic_credit_private_pct_gdp" } # Domestic credit to private sector (% of GDP)
+
+# ====================================================================
+# UN SDG Settings
+# ====================================================================
+unsdg: # name must match client_factory.py
+
+  # Inclusive start/end year for UN SDG data fetching
+  start_year: 2010
+  end_year: 2024
+
+  api_paths: 
+    # Base URL for UN SDG API (sdgapi returns full dimensions: Age, Sex, Reporting Type, etc.)
+    base: "https://unstats.un.org/sdgapi/v1/sdg"
+    # GeoArea/Tree must use UNSDGAPIV5 for country-code filtering
+    geo_area_tree_url: "https://unstats.un.org/sdgs/UNSDGAPIV5/v1/sdg/GeoArea/Tree"
+    # Indicator endpoints
+    indicator_list_endpoint: "/Indicator/List"
+    indicator_data_endpoint: "/Indicator/Data"
+
+  indicators:
+    # === HEALTHCARE ===
+    # Resilient Primary Healthcare (PHC) systems
+    - { code: "3.8.1", alias: "coverage_of_essential_health_services" }
+    # Infectious disease control
+    - { code: "3.3.2", alias: "tuberculosis_incidence_per_100000_population" }
+    - { code: "3.3.3", alias: "incidence_of_malaria" }
+    # Maternal and child health
+    - { code: "3.1.1", alias: "maternal_mortality_ratio" }
+    - { code: "3.2.1", alias: "under_5_mortality_ratio" }
+    # Nutrition
+    - { code: "2.2.1", alias: "prevalence_of_stunting" }
+    - { code: "2.2.2", alias: "prevalence_of_malnutrition" }
+    - { code: "2.2.3", alias: "prevalence_of_anemia_in_women_aged_15_to_49_years" }
+    # Reproductive health and family planning
+    - { code: "3.7.1", alias: "portion_of_women_of_reproductive_age_with_family_planning_needs_met" }
+    - { code: "3.7.2", alias: "adolescent_birth_rate_age_15_to_19_years_per_1000_women_in_that_age_group" }
+    # Health risk reduction and management
+    - { code: "3.d.1", alias: "international_health_regs_capacity_and_health_emergency_preparedness" }
+ 
+    # === AGRICULTURE ===
+    # Food security
+    - { code: "2.1.2", alias: "prevalence_of_moderate_severe_food_insecurity_in_pop_based_on_FIES" }
+    - { code: "2.4.1", alias: "proportion_of_agricultural_area_under_productive_and_sustainable_agriculture" }
+    # Agricultural systems and value chain strengthening
+    - { code: "2.a.2", alias: "total_agricultural_flows_to_the_agriculture_sector" }
+
+    # === SOCIAL INFRASTRUCTURE ===
+    # Water, sanitation, and hygiene (WASH)
+    - { code: "6.1.1", alias: "proportion_of_population_using_safely_managed_drinking_water_services" }
+    - { code: "6.2.1", alias: "proportion_of_population_not_using_safely_managed_sanitation_services" }
+    - { code: "3.9.2", alias: "mortality_rate_attributable_to_household_and_ambient_air_pollution" }
+    # Off-grid power
+    - { code: "7.1.1", alias: "proportion_of_population_with_access_to_electricity" }
+    - { code: "7.1.2", alias: "proportion_of_population_with_primary_reliance_on_clean_fuels_and_technology" }
+    - { code: "7.2.1", alias: "renewable_energy_share_in_total_final_energy_consumption" }
+    # Digital financial inclusion
+    - { code: "8.10.2", alias: "proportion_of_adults_15_or_older_with_account_at_a_financial_institution_or_with_a_mobile_money_service_provider" }
+    # === ADDITIONAL CONSIDERATIONS ===
+    - { code: "1.2.1", alias: "proportion_of_population_below_the_international_poverty_line" }
+
+  # FetchHandler settings for robust autonomous retry handling
+  settings:
+    request_timeout: 90           # Request timeout in seconds (UN SDG API is slow)
+    max_retries: 10               # Max retry attempts per request before giving up
+    initial_backoff: 2.0          # Initial backoff in seconds
+    max_backoff: 180.0            # Maximum backoff cap (3 minutes)
+    backoff_multiplier: 2.0       # Exponential backoff multiplier (2s -> 4s -> 8s -> ...)
+    delay_between_requests: 0.75  # Delay between successful requests (reduces server load)
+
+# ====================================================================
+# ND-GAIN Settings
+# ====================================================================
+ndgain: # name must match client_factory.py
+
+  zip_path: 
+    # Base path of the ND-GAIN ZIP file (downloaded from ND-GAIN site).
+    base: data/raw/nd-gain/ndgain_countryindex_2026.zip
+
+  # Indicator prefixes used inside the ND-GAIN ZIP files.
+  indicators:
+    # Indicators for constructing a country's Vulnerability index
+    # Ecosystem Services, Food, Human Habitat, Health, Infrastructure, Water
+    vulnerability: ['id_ecos', 'id_food', 'id_habi', 'id_heal', 'id_infr', 'id_wate']
+    # Indicators for constructing a country's Readiness index
+    # Government, Economic, Social
+    readiness: ['id_gove', 'id_econ', 'id_soci']
+
+  settings:
+    request_timeout: 30  # in seconds
+    max_retries: 3
+    retry_backoff_factor: 0.3
+
+# ====================================================================
+# General Settings
+# ====================================================================
+paths:
+  # Local raw data root (source-native payloads by source folder)
+  data_raw: "data/raw/"
+
+  # Cleaned outputs from src/clean (nulls/duplicates/errors handled)
+  data_clean: "data/clean/"
+  # Backward-compatible alias used by existing modules.
+  data_interim_cleaned: "data/clean/"
+
+  # Frontend-ready organization layer (contract-shaped/consumer-friendly files)
+  data_organized: "data/organized/"
+
+  # Scoring outputs from src/calculating
+  data_interim_validated: "data/interim/validated/"
+
+  # Projections outputs (actuals + forecast rows)
+  data_processed: "data/processed/"
+
+runtime:
+
+  # When false, skip API/ZIP fetch and load existing raw files under paths.data_raw.
+  fetch_raw: false
+
+  # Save raw data locally?
+  save_raw: true
+
+  # Save cleaned data locally?
+  save_cleaned: true 
+
+  # If true: upload backend artifacts to Azure Blob.
+  upload_azure: true
+
+  # Paths to cleaned CSVs written by src/clean.
+  interim_data:
+    unsdg: "data/clean/unsdg/un_sdg_clean.csv"
+    ndgain: "data/clean/ndgain/nd_gain_clean.csv"
+    worldbank: "data/clean/world-bank/world_bank_clean.csv"
+
+  # Page size for World Bank API pagination.
+  per_page: 1000
+
+  # Chunk size for file processing
+  chunk_size: 10000
+
+  # Max retry attempts for transient network/server errors
+  max_retries: 4
+
+  # Raw staging filenames by source folder.
+  raw_files:
+    unsdg: "un_sdg_raw.json"
+    worldbank: "world_bank_raw.json"
+    ndgain: "nd_gain_raw.json"
+
+paths_by_source:
+  raw:
+    unsdg: "data/raw/unsdg/"
+    worldbank: "data/raw/world-bank/"
+    ndgain: "data/raw/nd-gain/"
+    undp_hdr: "data/raw/undp-hdr/"
+    owid_state_capacity: "data/raw/owid-state-capacity/"
+    wb_imf_concessionality: "data/raw/world-bank-imf-concessionality/"
+
+azure:
+  # Private backend artifacts container.
+  container_name: "validated-scores"
+  # Optional prefix for blob names
+  blob_prefix: ""
+  # Only upload frontend-relevant validated artifacts. Legacy compatibility CSVs
+  # remain local unless explicitly re-added here.
+  validated_upload_paths:
+    - Indicator_Scores_Full.csv
+    - pillarscores.csv
+    - subdomainscores.csv
+    - indicatorscores
+
+publish:
+  # Public frontend payload container. `src/upload/publish_dashboard.py` writes
+  # meta.json, countries.json, and timeseries.json under this versioned prefix.
+  dashboard_container_name: "dashboard-public"
+  dashboard_prefix: "v1/"

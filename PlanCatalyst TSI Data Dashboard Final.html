@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlanCatalyst — Country Development Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f4f5f7;color:#1e2a35;font-size:14px;}
+:root{
+  --blue:#0079c1;--blue-dk:#005d96;--blue-lt:#e6f3fb;
+  --green:#b2cd5a;--green-dk:#7a9a1f;--green-lt:#f3f8e6;
+  --slate:#435d7f;--slate-lt:#edf0f5;
+  --stone:#817d77;
+  --bd:#dde2ea;--txt:#1e2a35;--mut:#5f6e7c;
+}
+
+/* ── NAV ── */
+.nav{background:#fff;border-bottom:1px solid var(--bd);padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:8px;}
+.nav-brand{display:flex;align-items:center;gap:6px;flex-shrink:0;min-width:0;}
+.brand-name{font-size:17px;font-weight:700;color:var(--blue);white-space:nowrap;}
+.nav-label{font-size:12px;color:var(--mut);border-left:1px solid var(--bd);padding-left:12px;margin-left:2px;white-space:nowrap;}
+.nav-tabs{display:flex;gap:2px;flex-shrink:0;}
+.ntab{padding:6px 13px;border-radius:18px;font-size:13px;font-weight:500;cursor:pointer;color:var(--mut);border:none;background:none;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.ntab.active{background:var(--blue);color:#fff;}
+.ntab:hover:not(.active){background:var(--blue-lt);color:var(--blue);}
+@media(max-width:640px){.nav-label{display:none;}.ntab{padding:5px 9px;font-size:12px;}}
+@media(max-width:400px){.brand-name{font-size:15px;}.ntab{padding:5px 7px;font-size:11px;}}
+
+/* ── HERO ── */
+.hero{background:var(--blue);color:#fff;padding:22px 16px 18px;}
+.hero h1{font-size:clamp(16px,4vw,23px);font-weight:700;letter-spacing:-0.3px;margin-bottom:5px;line-height:1.3;}
+.hero p{font-size:13px;opacity:.85;line-height:1.6;}
+.hero-meta{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;}
+.hstat-num{font-size:20px;font-weight:700;color:var(--green);}
+.hstat-lbl{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+@media(max-width:480px){
+  .hero{padding:16px 12px 14px;}
+  .hero p{font-size:12px;}
+  .hstat-num{font-size:17px;}
+  .hero-meta{gap:10px;}
+}
+
+/* ── FILTER BAR ── */
+.fbar{background:#fff;border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.fbar-lbl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.fbtn{padding:5px 12px;border-radius:14px;border:1px solid var(--bd);background:#fff;font-size:12px;cursor:pointer;color:var(--txt);transition:all .15s;font-family:inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.fbtn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.fbtn:hover:not(.active){border-color:var(--blue);color:var(--blue);}
+.fbar-sep{width:1px;height:18px;background:var(--bd);margin:0 2px;flex-shrink:0;}
+.fsearch{padding:6px 12px;border:1px solid var(--bd);border-radius:14px;font-size:12px;font-family:inherit;color:var(--txt);outline:none;width:100%;margin-top:4px;}
+.fsearch:focus{border-color:var(--blue);}
+@media(max-width:480px){
+  .fbar{padding:7px 12px;gap:5px;}
+  .fbtn{padding:4px 10px;font-size:11px;}
+  .fbar-lbl{font-size:10px;}
+  .fbar-sep{display:none;}
+}
+
+/* ── VIEWS ── */
+.view{display:none;}.view.active{display:block;width:100%;max-width:100%;overflow-x:hidden;}
+
+/* ── EXPLORE ── */
+
+.ov-body > div{min-width:0;overflow:hidden;}
+.ov-body > div > .card{overflow:hidden;}
+.ov-body{padding:14px 16px 32px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;max-width:100%;width:100%;}
+@media(max-width:860px){.ov-body{grid-template-columns:1fr;padding:10px 12px 24px;width:100%;}}
+.card{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;max-width:100%;min-width:0;overflow:hidden;}
+@media(max-width:480px){.card{padding:12px 12px;border-radius:8px;}}
+.card-title{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.card-title::before{content:'';width:3px;height:15px;background:var(--green);border-radius:2px;flex-shrink:0;}
+.side-col{display:flex;flex-direction:column;gap:14px;}
+
+/* Country table */
+.ind-table{width:100%;border-collapse:collapse;font-size:12px;}
+.ind-table th{text-align:left;padding:6px 5px;color:var(--mut);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bd);white-space:nowrap;}
+.ind-table td{padding:7px 5px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}
+.ind-table tr:last-child td{border-bottom:none;}
+@media(hover:hover){.ind-table tr:hover td{background:#fafbfc;}}
+.country-link{color:var(--blue);cursor:pointer;font-weight:500;white-space:nowrap;}
+.trend-up{color:#2a7a3a;font-size:11px;font-weight:600;white-space:nowrap;}
+.trend-em{color:#817d77;font-size:11px;font-weight:600;white-space:nowrap;}
+.trend-fl{color:var(--mut);font-size:11px;white-space:nowrap;}
+.spark-wrap{display:flex;align-items:center;gap:4px;}
+.spark-bg{flex:1;height:4px;background:#eef0f3;border-radius:2px;min-width:0;}
+.spark-fill{height:100%;border-radius:2px;}
+
+/* Region list */
+.region-item{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.region-name{font-size:12px;color:var(--txt);width:110px;flex-shrink:0;}
+.region-bar-bg{flex:1;height:6px;background:#eef0f3;border-radius:3px;}
+.region-bar-fill{height:100%;border-radius:3px;}
+.region-count{font-size:11px;color:var(--mut);width:60px;text-align:right;}
+
+/* Domain filter buttons (ov-ind-sel) */
+.chart-ind-sel{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.chart-ind-btn{padding:4px 10px;border-radius:12px;border:1px solid var(--bd);background:#fff;font-size:11px;cursor:pointer;color:var(--mut);transition:all .15s;font-family:inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.chart-ind-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.chart-ind-btn:hover:not(.active){border-color:var(--blue);color:var(--blue);}
+@media(max-width:480px){.chart-ind-btn{padding:4px 8px;font-size:10.5px;}}
+
+/* ── COMPARE ── */
+.cmp-body{padding:14px 16px 40px;}
+@media(max-width:480px){.cmp-body{padding:10px 12px 32px;}}
+.strip-chart{margin-bottom:20px;}
+.strip-row{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:10px;margin-bottom:14px;}
+.strip-label{font-size:12px;color:var(--txt);line-height:1.3;text-align:right;}
+.strip-track{position:relative;height:28px;}
+.strip-axis{position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--bd);}
+.strip-avg-line{position:absolute;bottom:-4px;width:1px;background:#aab0ba;top:0;}
+.strip-avg-label{position:absolute;bottom:-16px;font-size:9px;color:#aab0ba;transform:translateX(-50%);}
+.strip-dot{position:absolute;width:10px;height:10px;border-radius:50%;top:50%;transform:translate(-50%,-50%);cursor:pointer;transition:transform .1s;}
+.strip-dot:hover{transform:translate(-50%,-50%) scale(1.6);}
+@media(pointer:coarse){.strip-dot{width:14px;height:14px;}}
+.strip-axis-labels{display:grid;grid-template-columns:130px 1fr;gap:10px;margin-bottom:6px;}
+.strip-axis-row{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);padding:0 0 4px;}
+@media(max-width:600px){
+  .strip-row{grid-template-columns:90px 1fr;gap:7px;}
+  .strip-axis-labels{grid-template-columns:90px 1fr;gap:7px;}
+  .strip-label{font-size:10.5px;}
+}
+@media(max-width:380px){
+  .strip-row{grid-template-columns:65px 1fr;gap:5px;}
+  .strip-axis-labels{grid-template-columns:65px 1fr;gap:5px;}
+  .strip-label{font-size:9.5px;}
+}
+
+/* Tooltip */
+.dot-tooltip{position:fixed;background:#1e2a35;color:#fff;padding:8px 11px;border-radius:7px;font-size:12px;pointer-events:none;display:none;z-index:500;max-width:200px;line-height:1.5;}
+.dot-tooltip strong{display:block;font-size:12px;font-weight:700;margin-bottom:3px;color:var(--green);}
+
+/* ── MAP ── */
+.map-fbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap !important;padding-bottom:10px;}
+.map-fbar .fbtn,.map-fbar .fbar-lbl,.map-fbar .fbar-sep{flex-shrink:0;}
+.map-layout{display:grid;grid-template-columns:1fr 380px;height:calc(100vh - 104px);}
+@media(max-width:860px){
+  .map-layout{grid-template-columns:1fr;grid-template-rows:min(55vw,420px) auto;height:auto;}
+}
+@media(max-width:480px){
+  .map-layout{grid-template-rows:min(72vw,360px) auto;}
+}
+.map-area{background:#e8eff6;position:relative;overflow:hidden;}
+#wmap{width:100%;height:100%;}
+.map-overlay{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.95);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:11px;}
+.mov-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:6px;}
+.leg-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;color:var(--txt);}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+@media(max-width:480px){
+  .map-overlay{font-size:10px;padding:6px 8px;}
+  .mov-title{font-size:9px;}
+  .leg-row{font-size:10px;margin-bottom:2px;}
+}
+.map-tip{position:absolute;background:#1e2a35;color:#fff;padding:8px 12px;border-radius:7px;font-size:12px;pointer-events:none;display:none;z-index:20;min-width:140px;max-width:190px;}
+.map-tip strong{display:block;font-size:13px;font-weight:700;margin-bottom:3px;}
+.tip-row{display:flex;justify-content:space-between;gap:10px;margin-top:3px;font-size:11px;opacity:.9;}
+
+/* Detail panel */
+.detail-panel{background:#fff;border-left:1px solid var(--bd);overflow-y:auto;height:100%;}
+@media(max-width:860px){.detail-panel{height:auto;border-left:none;border-top:1px solid var(--bd);}}
+.dp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;padding:32px 20px;text-align:center;color:var(--mut);min-height:200px;}
+.dp-empty p{font-size:13px;line-height:1.6;}
+.dp-hero{background:var(--blue);color:#fff;padding:16px;}
+.dp-hero h2{font-size:17px;font-weight:700;margin-bottom:3px;}
+.dp-hero p{font-size:12px;opacity:.8;}
+.dp-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);}
+.dp-sc{background:#fff;padding:10px 6px;text-align:center;}
+.dp-sc-lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);font-weight:600;margin-bottom:3px;}
+.dp-sc-val{font-size:18px;font-weight:700;color:var(--blue);}
+.dp-sc-trend{font-size:10px;margin-top:2px;}
+@media(max-width:400px){
+  .dp-scores{grid-template-columns:repeat(2,1fr) !important;}
+  .dp-sc-val{font-size:15px !important;}
+  .dp-sc-lbl{font-size:9px;}
+}
+.dp-section{padding:12px 14px;}
+@media(max-width:400px){.dp-section{padding:10px 11px;}}
+.dp-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.badge{font-size:10px;padding:2px 6px;border-radius:8px;text-transform:none;letter-spacing:0;font-weight:500;}
+.hist-badge{background:#e6f3fb;color:#005d96;}
+.pred-badge{background:#fef6e6;color:#7a4a0a;}
+.dp-sep{height:1px;background:var(--bd);}
+
+/* Collapsible sub-domains */
+.sd-block{border:1px solid var(--bd);border-radius:8px;margin-bottom:7px;overflow:hidden;}
+.sd-head{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;cursor:pointer;background:#fff;user-select:none;-webkit-tap-highlight-color:transparent;}
+.sd-head-left{display:flex;align-items:center;gap:8px;}
+.sd-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sd-label{font-size:12.5px;font-weight:600;color:var(--txt);}
+.sd-head-right{display:flex;align-items:center;gap:8px;}
+.sd-mini{width:46px;height:4px;background:#eef0f3;border-radius:2px;overflow:hidden;}
+.sd-mini-fill{height:100%;border-radius:2px;}
+.sd-val{font-size:12px;font-weight:700;color:var(--txt);min-width:20px;text-align:right;}
+.sd-chev{font-size:11px;color:var(--mut);transition:transform .2s;display:inline-block;}
+.sd-chev.open{transform:rotate(180deg);}
+.sd-body{display:none;border-top:1px solid var(--bd);background:#fafbfc;}
+.sd-body.open{display:block;}
+.ind-row-dp{padding:9px 10px 9px 22px;border-bottom:1px solid #eff0f2;}
+.ind-row-dp:last-child{border-bottom:none;}
+.ind-main{flex:1;min-width:0;}
+.ind-name{font-size:12px;font-weight:500;color:var(--txt);margin-bottom:2px;line-height:1.3;}
+.ind-meta{font-size:10.5px;color:var(--mut);}
+.ind-src{font-size:10px;color:var(--stone);margin-top:1px;}
+.ind-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;min-width:80px;}
+.ind-val{font-size:13px;font-weight:700;color:var(--blue);}
+.ind-unit{font-size:9.5px;color:var(--mut);text-align:right;line-height:1.3;}
+.ind-chip{font-size:10px;padding:1px 5px;border-radius:7px;}
+.chip-up{background:#edf7f0;color:#1a6630;}
+.chip-em{background:#f3f0ee;color:#5f5a55;}
+.chip-fl{background:#eef2f7;color:#435d7f;}
+.src-note{font-size:10.5px;color:var(--mut);padding:9px 14px;border-top:1px solid var(--bd);line-height:1.5;}
+
+/* ── ABOUT ── */
+.about-body{max-width:780px;margin:0 auto;padding:24px 16px 40px;}
+.about-body h2{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:10px;}
+.about-body p{font-size:13.5px;line-height:1.7;color:var(--txt);margin-bottom:14px;}
+.fw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0;}
+@media(max-width:480px){.fw-grid{grid-template-columns:1fr;}.about-body{padding:18px 12px 32px;}}
+.fw-card{border:1px solid var(--bd);border-radius:8px;padding:14px;}
+.fw-head{font-size:12.5px;font-weight:700;color:#fff;padding:7px 11px;margin:-14px -14px 10px;border-radius:6px 6px 0 0;}
+.fw-head.blue{background:var(--blue);}
+.fw-head.green{background:var(--green-dk);}
+.fw-head.slate{background:var(--slate);}
+.fw-head.stone{background:#7a6058;}
+.fw-item{font-size:12px;color:var(--txt);padding:4px 0;border-bottom:1px solid #f0f1f3;line-height:1.4;}
+.fw-item:last-child{border-bottom:none;}
+.fw-item span{display:block;font-size:10.5px;color:var(--mut);}
+
+
+/* Table card: allow scroll wrapper to work */
+.ind-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;}
+/* ── CRITICAL: Prevent overflow ── */
+/* Force all direct children to stay in bounds */
+* {box-sizing:border-box;}
+html{overflow-x:hidden;width:100%;}body{overflow-x:hidden;width:100%;max-width:100%;position:relative;}
+.view{max-width:100%;overflow-x:hidden;}
+.ov-body{max-width:100%;}
+.card{max-width:100%;}
+.side-col{max-width:100%;min-width:0;}
+#sparkGrid{max-width:100%;width:100%;}
+#aggChart{max-width:100% !important;display:block;}
+.chart-ind-sel{max-width:100%;}
+.fbar{max-width:100vw;}
+/* Table: contained within its card */
+.ind-table-wrap{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;max-width:100%;}
+.ind-table{table-layout:fixed;border-collapse:collapse;}
+
+/* ── Resizable columns ── */
+.th-sort{position:relative;cursor:pointer;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sort-arrow{color:#ccc;font-size:9px;margin-left:3px;}
+.sort-arrow.active{color:var(--blue);}
+.col-resize{
+  position:absolute;right:0;top:0;bottom:0;width:5px;
+  cursor:col-resize;z-index:1;
+  background:transparent;
+}
+.col-resize:hover,.col-resize.dragging{background:var(--blue);opacity:0.4;}
+/* prevent sort trigger when dragging */
+.th-resizable.resizing{cursor:col-resize;}
+
+/* ── Country comparison panel ── */
+.cmp-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 10px;border-radius:14px;font-size:12px;font-weight:500;background:var(--blue-lt);color:var(--blue-dk);border:1px solid #b8d8f0;}
+.cmp-chip button{background:none;border:none;cursor:pointer;font-size:13px;color:var(--blue);padding:0;line-height:1;margin-left:2px;}
+.cmp-dd-item{padding:7px 12px;cursor:pointer;color:var(--txt);}
+.cmp-dd-item:hover{background:var(--blue-lt);}
+.cmp-dd-item.disabled{color:var(--mut);cursor:default;background:none;}
+.country-cmp-card{background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;flex:1;min-width:220px;}
+.cmp-domain-row{display:grid;grid-template-columns:90px 1fr 28px;align-items:center;gap:6px;padding:4px 12px;}
+</style>
+</head>
+<body>
+
+<div id="cmp-svg-tip" style="position:fixed;background:#1e2a35;color:#fff;padding:8px 12px;border-radius:7px;font-size:12px;pointer-events:none;display:none;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.3);min-width:120px;max-width:220px;line-height:1.4;"></div>
+<div class="dot-tooltip" id="dot-tooltip"><strong id="dtt-title"></strong><div id="dtt-body"></div></div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="brand-name">PlanCatalyst</span>
+    <div class="brand-blocks"><div class="brand-block"></div><div class="brand-block"></div></div>
+    <span class="nav-label">Country Development Dashboard</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="ntab active" onclick="switchTab('overview',this)">Explore</button>
+    <button class="ntab" onclick="switchTab('compare',this)">Compare</button>
+    <button class="ntab" onclick="switchTab('map',this)">Map</button>
+    <button class="ntab" onclick="switchTab('about',this)">About</button>
+  </div>
+</nav>
+
+<!-- ═══ EXPLORE ════════════════════════════════════════ -->
+<div class="view active" id="view-overview">
+  <div class="hero">
+    <h1>Country Development Indicators — Overview</h1>
+    <p>Explore healthcare, agriculture, social infrastructure, and financial inclusion indicators across PlanCatalyst countries. Data spans 2017–2023 with projections to 2026.</p>
+    <div class="hero-meta">
+      <div><div class="hstat-num">185</div><div class="hstat-lbl">Countries</div></div>
+      <div><div class="hstat-num">28</div><div class="hstat-lbl">Indicators</div></div>
+      <div><div class="hstat-num">5</div><div class="hstat-lbl">Domains</div></div>
+      <div><div class="hstat-num">2017–2026</div><div class="hstat-lbl">Time range</div></div>
+    </div>
+  </div>
+  <div class="fbar">
+    <span class="fbar-lbl">Region</span>
+    <button class="fbtn active" onclick="applyFilter('region','all',this)">All</button>
+    <button class="fbtn" onclick="applyFilter('region','afe',this)">E. &amp; S. Africa</button>
+    <button class="fbtn" onclick="applyFilter('region','afw',this)">W. &amp; C. Africa</button>
+    <button class="fbtn" onclick="applyFilter('region','eap',this)">East Asia &amp; Pacific</button>
+    <button class="fbtn" onclick="applyFilter('region','eca',this)">Europe &amp; C. Asia</button>
+    <button class="fbtn" onclick="applyFilter('region','lcr',this)">Latin America</button>
+    <button class="fbtn" onclick="applyFilter('region','mna',this)">Middle East &amp; N. Africa</button>
+    <button class="fbtn" onclick="applyFilter('region','sar',this)">South Asia</button>
+    <button class="fbtn" onclick="applyFilter('region','nam',this)">North America</button>
+    <div class="fbar-sep"></div>
+    <input class="fsearch" type="text" placeholder="Search country…" oninput="searchCountry(this.value)">
+  </div>
+  <div class="ov-body">
+    <div style="min-width:0;overflow:hidden;">
+      <div class="card">
+        <div class="card-title">Country indicator summary</div>
+        <div class="ind-table-wrap" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table class="ind-table" id="main-table" style="table-layout:fixed;width:max-content;min-width:100%;">
+          <thead><tr>
+            <th id="th-name"    data-label="Country"      class="th-sort th-resizable" style="width:120px;min-width:60px;"  onclick="sortTable('name')">Country<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-region"  data-label="Region"       class="th-sort th-resizable" style="width:160px;min-width:60px;"  onclick="sortTable('region')">Region<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-trend"   data-label="Trend"        class="th-sort th-resizable" style="width:100px;min-width:60px;"  onclick="sortTable('trend')">Trend<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-overall" data-label="Overall"      class="th-sort th-resizable" style="width:90px;min-width:60px;"   onclick="sortTable('overall')">Overall<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-h"       data-label="Healthcare"   class="th-sort th-resizable" style="width:100px;min-width:60px;"  onclick="sortTable('h')">Healthcare<span class="sort-arrow active">▼</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-ag"      data-label="Agriculture"  class="th-sort th-resizable" style="width:100px;min-width:60px;"  onclick="sortTable('ag')">Agriculture<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-si"      data-label="Social infra." class="th-sort th-resizable" style="width:100px;min-width:60px;" onclick="sortTable('si')">Social infra.<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-women"   data-label="Gender"       class="th-sort th-resizable" style="width:90px;min-width:60px;"   onclick="sortTable('women')">Gender<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-climate" data-label="Climate"      class="th-sort th-resizable" style="width:90px;min-width:60px;"   onclick="sortTable('climate')">Climate<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-ctx"     data-label="Country ctx." class="th-sort th-resizable" style="width:100px;min-width:60px;"  onclick="sortTable('ctx')">Country ctx.<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+            <th id="th-pri"     data-label="Soc.-econ."   class="th-sort th-resizable" style="width:90px;min-width:60px;"   onclick="sortTable('pri')">Soc.-econ.<span class="sort-arrow">⇅</span><div class="col-resize" onmousedown="startResize(event,this)"></div></th>
+          </tr></thead>
+          <tbody id="main-tbody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+    <div class="side-col">
+      <div class="card">
+        <div class="card-title">Countries by region</div>
+        <div id="region-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Trends across regions</div>
+        <p style="font-size:12px;color:var(--mut);margin-bottom:10px;">Select a domain to see regional averages 2017–2023. Country sparklines below show individual trajectories.</p>
+        <div class="chart-ind-sel" id="ov-ind-sel"></div>
+        <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 4px;">Regional averages &mdash; 2017 to 2023</div>
+        <svg id="aggChart" style="display:block;width:100%;max-width:100%;overflow:hidden;"></svg>
+        <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 4px;">Country sparklines</div>
+        <div id="sparkGrid"></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--mut);" id="ov-chart-legend"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPARE ════════════════════════════════════════ -->
+<div class="view" id="view-compare">
+  <div class="hero" style="padding:18px 20px 16px;">
+    <h1 style="font-size:clamp(15px,2.5vw,20px);">Sub-domain comparison — all countries</h1>
+    <p style="font-size:12.5px;">Each dot represents one country. Hover to identify. Use filters to narrow the view.</p>
+  </div>
+  <div class="fbar">
+    <span class="fbar-lbl">Region</span>
+    <button class="fbtn active" data-grp="creg" onclick="applyCmpFilter('region','all',this)">All</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','afe',this)">E. &amp; S. Africa</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','afw',this)">W. &amp; C. Africa</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','eap',this)">East Asia &amp; Pacific</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','eca',this)">Europe &amp; C. Asia</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','lcr',this)">Latin America</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','mna',this)">MENA</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','sar',this)">South Asia</button>
+    <button class="fbtn" data-grp="creg" onclick="applyCmpFilter('region','nam',this)">North America</button>
+    <div class="fbar-sep"></div>
+    <span class="fbar-lbl">Domain</span>
+    <button class="fbtn active" data-grp="cdom" onclick="applyCmpFilter('domain','all',this)">All domains</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','health',this)">Healthcare</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','ag',this)">Agriculture</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','si',this)">Social infrastructure</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','cc',this)">Cross-cutting</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','ctx',this)">Country context</button>
+    <button class="fbtn" data-grp="cdom" onclick="applyCmpFilter('domain','pri',this)">Socio-economic performance</button>
+  </div>
+  <!-- Country comparison selector bar -->
+  <div id="cmp-select-bar" style="background:#fff;border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span class="fbar-lbl">Compare countries</span>
+    <div style="position:relative;flex:1;min-width:160px;max-width:280px;">
+      <input id="cmp-country-input" type="text" placeholder="Search and add country…"
+        style="width:100%;padding:5px 11px;border:1px solid var(--bd);border-radius:14px;font-size:12px;font-family:inherit;outline:none;"
+        oninput="cmpCountrySearch(this.value)" onfocus="cmpCountrySearch(this.value)" autocomplete="off">
+      <div id="cmp-country-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--bd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:220px;overflow-y:auto;font-size:12px;"></div>
+    </div>
+    <div id="cmp-selected-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    <button id="cmp-compare-btn" onclick="showCountryComparison()" style="display:none;padding:5px 14px;background:var(--blue);color:#fff;border:none;border-radius:14px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;">Compare selected</button>
+    <button onclick="clearCmpSelection()" style="padding:5px 10px;background:none;border:1px solid var(--bd);border-radius:14px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--mut);display:none;" id="cmp-clear-btn">Clear</button>
+  </div>
+
+  <!-- Country comparison detail panel (shown when countries selected) -->
+  <div id="cmp-detail-panel" style="display:none;background:#f4f5f7;padding:16px 20px 32px;"></div>
+
+  <div class="cmp-body" id="cmp-body"></div>
+</div>
+
+<!-- ═══ MAP ════════════════════════════════════════════ -->
+<div class="view" id="view-map">
+  <div class="map-layout">
+    <div class="map-area">
+      <svg id="wmap"></svg>
+      <div class="map-tip" id="mtip">
+        <strong id="mtip-name">—</strong>
+        <div class="tip-row"><span>Overall</span><span id="mtip-overall">—</span></div>
+        <div class="tip-row"><span>Healthcare</span><span id="mtip-h">—</span></div>
+        <div class="tip-row"><span>Agriculture</span><span id="mtip-a">—</span></div>
+        <div class="tip-row"><span>Social infra.</span><span id="mtip-si">—</span></div>
+        <div class="tip-row"><span>Gender</span><span id="mtip-w">—</span></div>
+        <div class="tip-row"><span>Climate</span><span id="mtip-cl">—</span></div>
+        <div class="tip-row"><span>Region</span><span id="mtip-r">—</span></div>
+      </div>
+      <div class="map-overlay" style="min-width:160px;">
+        <div class="mov-title" id="map-overlay-title">Overall index</div>
+        <div style="display:flex;align-items:stretch;gap:7px;margin:6px 0 4px;">
+          <div style="width:14px;border-radius:3px;background:linear-gradient(to bottom,#1a4f72,#0079c1,#5aaed4,#a8d4e8,#d4ebcf);flex-shrink:0;"></div>
+          <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:var(--mut);line-height:1.2;">
+            <span style="font-weight:600;color:var(--txt);">80+</span>
+            <span>65</span>
+            <span>50</span>
+            <span>35</span>
+            <span style="font-weight:600;color:var(--txt);">&lt;35</span>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;color:var(--mut);line-height:1.2;padding-top:1px;">
+            <span>Very high</span>
+            <span>High</span>
+            <span>Moderate</span>
+            <span>Low</span>
+            <span>Very low</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:9.5px;color:var(--mut);">
+          <div style="width:14px;height:10px;border-radius:2px;background:#e8ecf0;flex-shrink:0;border:1px solid #d0d5dc;"></div>No data
+        </div>
+        <div style="margin-top:7px;font-size:9.5px;color:var(--mut);line-height:1.4;">Click to explore<br>Double-click to reset</div>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="dp-empty" id="dp-empty">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#b2cd5a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <p>Select a country on the map to explore its indicators and projected trends.</p>
+      </div>
+      <div id="dp-content" style="display:none;">
+        <div class="dp-hero">
+          <h2 id="dp-name">—</h2><p id="dp-sub">—</p>
+        </div>
+        <div class="dp-scores" style="grid-template-columns:repeat(4,1fr);">
+          <div class="dp-sc"><div class="dp-sc-lbl">Healthcare</div><div class="dp-sc-val" id="dp-h" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-ht">—</div></div>
+          <div class="dp-sc"><div class="dp-sc-lbl">Agriculture</div><div class="dp-sc-val" id="dp-a" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-at">—</div></div>
+          <div class="dp-sc"><div class="dp-sc-lbl">Social infra.</div><div class="dp-sc-val" id="dp-s" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-st">—</div></div>
+          <div class="dp-sc"><div class="dp-sc-lbl">Gender</div><div class="dp-sc-val" id="dp-w" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-wt">—</div></div>
+        </div>
+        <div class="dp-scores" style="grid-template-columns:repeat(3,1fr);border-top:none;">
+          <div class="dp-sc"><div class="dp-sc-lbl">Climate</div><div class="dp-sc-val" id="dp-cl" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-clt">—</div></div>
+          <div class="dp-sc"><div class="dp-sc-lbl">Country ctx.</div><div class="dp-sc-val" id="dp-ctx" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-ctxt">—</div></div>
+          <div class="dp-sc"><div class="dp-sc-lbl">Soc.-econ.</div><div class="dp-sc-val" id="dp-pri" style="font-size:17px;">—</div><div class="dp-sc-trend" id="dp-prit">—</div></div>
+        </div>
+        <div class="dp-sep"></div>
+        <div class="dp-section">
+          <div class="dp-section-title">Domain trends — 2017 to 2026 <span class="badge hist-badge">Historical</span><span class="badge pred-badge">Projected</span></div>
+          <div style="position:relative;height:200px;"><canvas id="dpChart"></canvas></div>
+          <div id="dp-chart-legend" style="display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:11px;"></div>
+        </div>
+        <div class="dp-sep"></div>
+        <div class="dp-section">
+          <div class="dp-section-title">Sub-domain breakdown <span style="font-size:10px;color:var(--mut);font-weight:400;text-transform:none;letter-spacing:0;">click to expand indicators</span></div>
+          <div id="dp-subs"></div>
+        </div>
+        <div class="src-note">Sources: SDG Indicators Database · WHO · FAO · World Bank · UNDP · ND-GAIN · ILO · Our World in Data. Data current to 2023. Projections use linear trend modelling.</div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ═══ COUNTRY COMPARISON ════════════════════════════════ -->
+<div class="view" id="view-cmp-detail">
+  <div class="nav" style="position:sticky;top:0;z-index:100;">
+    <div class="nav-brand">
+      <div class="brand-blocks"><div class="brand-block"></div><div class="brand-block"></div></div>
+      <span class="brand-name">PlanCatalyst</span>
+      <span class="nav-label">Country Comparison</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="ntab" onclick="switchTab('overview',this)">Explore</button>
+      <button class="ntab active" onclick="switchTab('compare',this)">Compare</button>
+      <button class="ntab" onclick="switchTab('map',this)">Map</button>
+      <button class="ntab" onclick="switchTab('about',this)">About</button>
+    </div>
+  </div>
+  <div style="background:#fff;border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:52px;z-index:99;">
+    <button onclick="closeCmpDetail()" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--bd);border-radius:14px;background:#fff;font-size:12px;cursor:pointer;font-family:inherit;color:var(--mut);white-space:nowrap;">
+      ← Back to Compare
+    </button>
+    <span style="font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;" id="cmpd-title">Country Comparison</span>
+    <button onclick="editCmpCountries()" style="display:flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid var(--bd);border-radius:14px;background:#fff;font-size:12px;cursor:pointer;font-family:inherit;color:var(--blue);white-space:nowrap;">
+      ✎ Edit countries
+    </button>
+    <span style="font-size:11px;color:var(--mut);">Charts:</span>
+    <button id="cmpd-overlay-btn" onclick="setCmpChartMode('overlay')" class="fbtn active" style="padding:4px 10px;font-size:11px;">Combined</button>
+    <button id="cmpd-separate-btn" onclick="setCmpChartMode('separate')" class="fbtn" style="padding:4px 10px;font-size:11px;">Separate</button>
+  </div>
+  <!-- Inline edit panel (hidden by default) -->
+  <div id="cmpd-edit-panel" style="display:none;background:#fff;border-bottom:1px solid var(--bd);padding:10px 16px;position:sticky;top:52px;z-index:99;">
+    <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">Edit comparison</div>
+    <div id="cmpd-edit-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div style="position:relative;">
+        <input id="cmpd-edit-input" type="text" placeholder="Add country…"
+          style="padding:5px 11px;border:1px solid var(--bd);border-radius:14px;font-size:12px;font-family:inherit;outline:none;width:180px;"
+          oninput="cmpEditSearch(this.value)" onfocus="cmpEditSearch(this.value)" autocomplete="off">
+        <div id="cmpd-edit-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--bd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:300;max-height:200px;overflow-y:auto;min-width:200px;font-size:12px;"></div>
+      </div>
+      <button onclick="applyEditSelection()" style="padding:5px 14px;background:var(--blue);color:#fff;border:none;border-radius:14px;font-size:12px;font-family:inherit;cursor:pointer;">Update comparison</button>
+      <button onclick="document.getElementById('cmpd-edit-panel').style.display='none'" style="padding:5px 10px;background:none;border:1px solid var(--bd);border-radius:14px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--mut);">Cancel</button>
+    </div>
+  </div>
+  <div id="cmpd-body" style="padding:20px 20px 40px;background:#f4f5f7;"></div>
+</div>
+
+<!-- ═══ ABOUT ══════════════════════════════════════════ -->
+<div class="view" id="view-about">
+  <div class="about-body">
+    <h2>About this tool</h2>
+    <p>This interactive data tool brings together publicly available development indicator data — spanning healthcare, agriculture, social infrastructure, financial inclusion, and cross-cutting themes — for countries worldwide.</p>
+    <p>It is designed both as a public resource and as a demonstration of our analytical approach. Users can explore country-level trends, compare sub-domains across all countries, and examine the data inputs that underpin our programme work.</p>
+    <h2 style="margin-top:4px;">Indicator framework</h2>
+    <p>All 28 indicators are drawn from the SDG indicator framework and supplementary international databases, organised across three domains and cross-cutting themes.</p>
+    <div class="fw-grid">
+      <div class="fw-card"><div class="fw-head blue">Domain 1: Impact — Healthcare</div>
+        <div class="fw-item"><strong>Resilient primary healthcare systems</strong></div>
+        <div class="fw-item">SDG 3.8.1 · Coverage of essential health services<span>Index (geometric mean of 14 tracer indicators) · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Infectious disease control</strong></div>
+        <div class="fw-item">SDG 3.3.2 · Tuberculosis incidence per 100,000 population<span>Rate · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 3.3.3 · Incidence of malaria<span>Cases per 1,000 population at risk · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Maternal, newborn & child health</strong></div>
+        <div class="fw-item">SDG 3.1.1 · Maternal mortality ratio<span>Deaths per 100,000 live births · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 3.2.1 · Under-5 mortality rate<span>Deaths per 1,000 live births · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Nutrition</strong></div>
+        <div class="fw-item">SDG 2.2.1 · Prevalence of stunting (under 5)<span>% of children · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 2.2.2 · Prevalence of malnutrition (overweight, under 5)<span>% of children · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 2.2.3 · Prevalence of anaemia in women aged 15–49<span>% of women · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Reproductive health & family planning</strong></div>
+        <div class="fw-item">SDG 3.7.1 · Proportion of women with family planning needs met<span>% of women 15–49 · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 3.7.2 · Adolescent birth rate (aged 15–19)<span>Rate per 1,000 girls · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Health risk reduction & management</strong></div>
+        <div class="fw-item">SDG 3.d.1 · IHR capacity & health emergency preparedness<span>Index 0–100 · SDG Indicators Database</span></div>
+      </div>
+      <div class="fw-card"><div class="fw-head green">Domain 1: Impact — Agriculture & Social infrastructure</div>
+        <div class="fw-item"><strong>Food security</strong></div>
+        <div class="fw-item">SDG 2.1.2 · Prevalence of moderate or severe food insecurity (FIES)<span>% of population · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 2.4.1 · Agricultural area under sustainable use<span>Score 1–5 · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Agricultural systems & value chains</strong></div>
+        <div class="fw-item">SDG 2.a.2 · Total official flows to agriculture<span>Millions USD (const. 2022), normalised to GDP · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Water, sanitation & hygiene (WASH)</strong></div>
+        <div class="fw-item">SDG 6.1.1 · Population using safely managed drinking water<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 6.2.1 · Population using safely managed sanitation<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 3.9.2 · Mortality from unsafe water, sanitation & hygiene<span>Rate per 100,000 · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Off-grid power & clean energy</strong></div>
+        <div class="fw-item">SDG 7.1.1 · Population with access to electricity<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 7.1.2 · Population using clean fuels and technology<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item">SDG 7.2.1 · Renewable energy share in final energy consumption<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item"><strong>Digital financial inclusion</strong></div>
+        <div class="fw-item">SDG 8.10.2 · Adults with account at financial institution or mobile money<span>% of adults 15+ · SDG Indicators Database</span></div>
+      </div>
+      <div class="fw-card"><div class="fw-head stone">Cross-cutting themes</div>
+        <div class="fw-item"><strong>Gender equality</strong></div>
+        <div class="fw-item">Gender Inequality Index (GII)<span>Composite: reproductive health, empowerment, labour market · UNDP Human Development Reports</span></div>
+        <div class="fw-item"><strong>Climate adaptation</strong></div>
+        <div class="fw-item">ND-GAIN Vulnerability Index<span>Exposure, sensitivity & adaptive capacity across 6 sectors · University of Notre Dame</span></div>
+      </div>
+      <div class="fw-card"><div class="fw-head slate">Domain 2: Country context</div>
+        <div class="fw-item"><strong>State & partner capacity</strong></div>
+        <div class="fw-item">State Capacity Index<span>21 indicators across extractive, coercive & administrative capacity · Our World in Data</span></div>
+        <div class="fw-item"><strong>Poverty & livelihoods</strong></div>
+        <div class="fw-item">SDG 1.2.1 · Population below national poverty line<span>% · SDG Indicators Database</span></div>
+        <div class="fw-item">Global Multidimensional Poverty Index (MPI)<span>Acute poverty across health, education, living standards · UNDP Human Dev. Reports</span></div>
+        <div class="fw-item"><strong>Additional country context</strong></div>
+        <div class="fw-item">Population density<span>People per km² · World Bank</span></div>
+      </div>
+      <div class="fw-card"><div class="fw-head" style="background:#3a5a6a;">Domain 3: Socio-economic performance</div>
+        <div class="fw-item"><strong>Socio-economic performance</strong></div>
+        <div class="fw-item">Concessionality Index<span>Composite of per capita income, vulnerability & fragility, risk of debt distress, non-concessional external debt · World Bank / IMF</span></div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--mut);">All data is publicly available. Index values are normalised to 0–100 for comparability; higher values indicate more favourable conditions unless otherwise noted. Scoring methodology is described in the technical documentation.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+const REG={
+  afe:'Eastern & Southern Africa',
+  afw:'Western & Central Africa',
+  eap:'East Asia & Pacific',
+  eca:'Europe & Central Asia',
+  lcr:'Latin America & Caribbean',
+  mna:'Middle East & North Africa',
+  sar:'South Asia',
+  nam:'North America',
+};
+const SLAB={health:'Healthcare',ag:'Agriculture',si:'Social infrastructure'};
+const SCLS={health:'',ag:'ag',si:'si'};
+
+const INDICATORS=[
+  // Domain 1: Impact — Healthcare
+  {key:'uhc',    label:'Coverage of essential health services',                   sdg:'SDG 3.8.1',  src:'SDG Indicators Database',   unit:'Index 0–100 (geometric mean of 14 tracer indicators)',  domain:'health',sub:'phc'},
+  {key:'tb',     label:'Tuberculosis incidence per 100,000 population',           sdg:'SDG 3.3.2',  src:'SDG Indicators Database',   unit:'Rate per 100,000 population',                           domain:'health',sub:'infect'},
+  {key:'mal',    label:'Incidence of malaria',                                    sdg:'SDG 3.3.3',  src:'SDG Indicators Database',   unit:'Cases per 1,000 population at risk',                    domain:'health',sub:'infect'},
+  {key:'mmr',    label:'Maternal mortality ratio',                                sdg:'SDG 3.1.1',  src:'SDG Indicators Database',   unit:'Maternal deaths per 100,000 live births',               domain:'health',sub:'mnch'},
+  {key:'u5mr',   label:'Under-5 mortality rate',                                  sdg:'SDG 3.2.1',  src:'SDG Indicators Database',   unit:'Deaths per 1,000 live births',                          domain:'health',sub:'mnch'},
+  {key:'stunt',  label:'Prevalence of stunting in children under 5',              sdg:'SDG 2.2.1',  src:'SDG Indicators Database',   unit:'% of children under 5',                                 domain:'health',sub:'nutr'},
+  {key:'maln',   label:'Prevalence of malnutrition (overweight) in children',     sdg:'SDG 2.2.2',  src:'SDG Indicators Database',   unit:'% of children under 5',                                 domain:'health',sub:'nutr'},
+  {key:'anaem',  label:'Prevalence of anaemia in women aged 15–49 years',         sdg:'SDG 2.2.3',  src:'SDG Indicators Database',   unit:'% of women',                                            domain:'health',sub:'nutr'},
+  {key:'contra', label:'Proportion of women with family planning needs met',      sdg:'SDG 3.7.1',  src:'SDG Indicators Database',   unit:'% of women of reproductive age (15–49)',                domain:'health',sub:'repro'},
+  {key:'abr',    label:'Adolescent birth rate (aged 15–19 years)',                sdg:'SDG 3.7.2',  src:'SDG Indicators Database',   unit:'Rate per 1,000 girls aged 15–19',                       domain:'health',sub:'repro'},
+  {key:'ihr',    label:'IHR capacity and health emergency preparedness',           sdg:'SDG 3.d.1',  src:'SDG Indicators Database',   unit:'Index score 0–100',                                     domain:'health',sub:'hrisk'},
+  // Domain 1: Impact — Agriculture
+  {key:'food',   label:'Prevalence of moderate or severe food insecurity (FIES)', sdg:'SDG 2.1.2',  src:'SDG Indicators Database',   unit:'% of population',                                       domain:'ag',    sub:'foodsec'},
+  {key:'susag',  label:'Proportion of agricultural area under sustainable use',   sdg:'SDG 2.4.1',  src:'SDG Indicators Database',   unit:'Score 1–5 (sustainable agriculture status)',            domain:'ag',    sub:'foodsec'},
+  {key:'agoda',  label:'Total official flows to the agriculture sector',          sdg:'SDG 2.a.2',  src:'SDG Indicators Database',   unit:'Millions USD (constant 2022), normalised to GDP',        domain:'ag',    sub:'agrivc'},
+  // Domain 1: Impact — Social Infrastructure
+  {key:'water',  label:'Proportion of population using safely managed drinking water',sdg:'SDG 6.1.1',src:'SDG Indicators Database', unit:'% of population',                                       domain:'si',    sub:'wash'},
+  {key:'sanit',  label:'Proportion of population using safely managed sanitation', sdg:'SDG 6.2.1',  src:'SDG Indicators Database',   unit:'% of population',                                       domain:'si',    sub:'wash'},
+  {key:'washmort',label:'Mortality from unsafe water, sanitation and hygiene',    sdg:'SDG 3.9.2',  src:'SDG Indicators Database',   unit:'Rate per 100,000 population',                           domain:'si',    sub:'wash'},
+  {key:'elec',   label:'Proportion of population with access to electricity',     sdg:'SDG 7.1.1',  src:'SDG Indicators Database',   unit:'% of population',                                       domain:'si',    sub:'energy'},
+  {key:'clean',  label:'Proportion of population using clean fuels and technology',sdg:'SDG 7.1.2',  src:'SDG Indicators Database',   unit:'% of population',                                       domain:'si',    sub:'energy'},
+  {key:'renew',  label:'Renewable energy share in total final energy consumption', sdg:'SDG 7.2.1',  src:'SDG Indicators Database',   unit:'% of total final energy consumption',                   domain:'si',    sub:'energy'},
+  {key:'finc',   label:'Adults with account at financial institution or mobile money',sdg:'SDG 8.10.2',src:'SDG Indicators Database', unit:'% of adults aged 15+',                                  domain:'si',    sub:'digfin'},
+  // Cross-cutting themes
+  {key:'gii',    label:'Gender Inequality Index (GII)',                           sdg:'UNDP',       src:'UNDP Human Development Reports','unit':'Index 0–1 (lower = less inequality)',            domain:'cc',    sub:'women'},
+  {key:'ndgain', label:'ND-GAIN Vulnerability Index',                             sdg:'ND-GAIN',    src:'University of Notre Dame',  unit:'Index 0–100 (higher = more vulnerable)',                domain:'cc',    sub:'climate'},
+  // Domain 2: Country context
+  {key:'popdens',label:'Population density',                                      sdg:'—',          src:'World Bank',                unit:'People per square km',                                  domain:'ctx',   sub:'ctxmisc'},
+  {key:'pov',    label:'Proportion of population below national poverty line',    sdg:'SDG 1.2.1',  src:'SDG Indicators Database',   unit:'% of population',                                       domain:'ctx',   sub:'poverty'},
+  {key:'mpi',    label:'Global Multidimensional Poverty Index (MPI)',             sdg:'UNDP MPI',   src:'UNDP Human Development Reports','unit':'MPI score 0–1 (higher = more deprived)',         domain:'ctx',   sub:'poverty'},
+  {key:'state',  label:'State Capacity Index',                                    sdg:'—',          src:'Our World in Data',         unit:'Index score (higher = greater capacity; 21 indicators)',domain:'ctx',   sub:'statecap'},
+  // Domain 3: Socio-Economic Performance
+  {key:'conces', label:'Concessionality Index',                                   sdg:'—',          src:'World Bank / IMF',          unit:'Index score 0–100 (income, vulnerability, debt, ODA)',  domain:'pri',   sub:'macrosec'},
+];
+
+const SUBDOMAINS=[
+  {key:'phc',     label:'Resilient primary healthcare systems', color:'#0079c1',domain:'health'},
+  {key:'infect',  label:'Infectious disease control',          color:'#0079c1',domain:'health'},
+  {key:'mnch',    label:'Maternal, newborn & child health',    color:'#0079c1',domain:'health'},
+  {key:'nutr',    label:'Nutrition',                           color:'#0079c1',domain:'health'},
+  {key:'repro',   label:'Reproductive health & family planning',color:'#0079c1',domain:'health'},
+  {key:'hrisk',   label:'Health risk reduction & management',  color:'#0079c1',domain:'health'},
+  {key:'foodsec', label:'Food security',                       color:'#7a9a1f',domain:'ag'},
+  {key:'agrivc',  label:'Agricultural systems & value chains', color:'#7a9a1f',domain:'ag'},
+  {key:'wash',    label:'Water, sanitation & hygiene',         color:'#435d7f',domain:'si'},
+  {key:'energy',  label:'Off-grid power & clean energy',       color:'#435d7f',domain:'si'},
+  {key:'digfin',  label:'Digital financial inclusion',         color:'#435d7f',domain:'si'},
+  {key:'women',   label:"Gender equality",                 color:'#817d77',domain:'cc'},
+  {key:'climate', label:'Climate adaptation',                  color:'#7a6a30',domain:'cc'},
+  {key:'statecap',label:'State & partner capacity',            color:'#a05020',domain:'ctx'},
+  {key:'poverty', label:'Poverty & livelihoods',               color:'#a05020',domain:'ctx'},
+  {key:'ctxmisc', label:'Additional country context',          color:'#a05020',domain:'ctx'},
+  {key:'macrosec',label:'Socio-economic performance',color:'#3a5a6a',domain:'pri'},
+];
+
+const DOMAIN_META={
+  health:{label:'Domain 1 — Healthcare',                cls:'health'},
+  ag:    {label:'Domain 1 — Agriculture',               cls:'ag'},
+  si:    {label:'Domain 1 — Social infrastructure',     cls:'si'},
+  cc:    {label:'Cross-cutting themes',                  cls:'cc'},
+  ctx:   {label:'Domain 2 — Country context',           cls:'ctx'},
+  pri:   {label:'Domain 3 — Socio-economic performance',        cls:'pri'},
+};
+
+const DATA=[
+  {id:24,name:'Angola',region:'afe',sector:'health',h:43,ag:42,si:45,women:39,climate:44,ctx:38,pri:35},
+  {id:72,name:'Botswana',region:'afe',sector:'health',h:42,ag:55,si:38,women:32,climate:39,ctx:40,pri:39},
+  {id:108,name:'Burundi',region:'afe',sector:'health',h:56,ag:42,si:43,women:45,climate:44,ctx:48,pri:40},
+  {id:174,name:'Comoros',region:'afe',sector:'health',h:40,ag:47,si:50,women:42,climate:45,ctx:38,pri:38},
+  {id:180,name:'Congo, Dem. Rep.',region:'afe',sector:'health',h:50,ag:45,si:39,women:44,climate:40,ctx:45,pri:43},
+  {id:232,name:'Eritrea',region:'afe',sector:'health',h:48,ag:43,si:51,women:35,climate:49,ctx:36,pri:41},
+  {id:748,name:'Eswatini',region:'afe',sector:'health',h:51,ag:48,si:39,women:33,climate:44,ctx:43,pri:34},
+  {id:231,name:'Ethiopia',region:'afe',sector:'health',h:47,ag:45,si:49,women:40,climate:51,ctx:45,pri:37},
+  {id:404,name:'Kenya',region:'afe',sector:'health',h:64,ag:67,si:58,women:52,climate:59,ctx:55,pri:54},
+  {id:426,name:'Lesotho',region:'afe',sector:'health',h:51,ag:53,si:43,women:40,climate:39,ctx:39,pri:39},
+  {id:450,name:'Madagascar',region:'afe',sector:'health',h:45,ag:56,si:49,women:40,climate:44,ctx:44,pri:33},
+  {id:454,name:'Malawi',region:'afe',sector:'health',h:47,ag:43,si:47,women:44,climate:45,ctx:36,pri:38},
+  {id:480,name:'Mauritius',region:'afe',sector:'health',h:50,ag:48,si:52,women:44,climate:51,ctx:38,pri:40},
+  {id:508,name:'Mozambique',region:'afe',sector:'health',h:72,ag:58,si:49,women:44,climate:38,ctx:52,pri:52},
+  {id:516,name:'Namibia',region:'afe',sector:'health',h:44,ag:49,si:45,women:45,climate:49,ctx:45,pri:39},
+  {id:646,name:'Rwanda',region:'afe',sector:'health',h:44,ag:58,si:52,women:34,climate:38,ctx:37,pri:36},
+  {id:678,name:'Sao Tome',region:'afe',sector:'health',h:45,ag:55,si:39,women:44,climate:49,ctx:48,pri:48},
+  {id:690,name:'Seychelles',region:'afe',sector:'health',h:48,ag:42,si:40,women:40,climate:47,ctx:37,pri:41},
+  {id:706,name:'Somalia',region:'afe',sector:'health',h:30,ag:35,si:25,women:18,climate:28,ctx:22,pri:25},
+  {id:710,name:'South Africa',region:'afe',sector:'health',h:70,ag:62,si:68,women:55,climate:55,ctx:62,pri:62},
+  {id:728,name:'South Sudan',region:'afe',sector:'health',h:53,ag:47,si:51,women:32,climate:45,ctx:50,pri:37},
+  {id:729,name:'Sudan',region:'afe',sector:'health',h:56,ag:45,si:46,women:48,climate:43,ctx:38,pri:43},
+  {id:834,name:'Tanzania',region:'afe',sector:'health',h:60,ag:64,si:52,women:48,climate:55,ctx:50,pri:50},
+  {id:800,name:'Uganda',region:'afe',sector:'health',h:45,ag:58,si:37,women:42,climate:52,ctx:34,pri:35},
+  {id:894,name:'Zambia',region:'afe',sector:'health',h:51,ag:51,si:44,women:33,climate:44,ctx:36,pri:34},
+  {id:716,name:'Zimbabwe',region:'afe',sector:'health',h:55,ag:44,si:41,women:36,climate:52,ctx:39,pri:40},
+  {id:204,name:'Benin',region:'afw',sector:'health',h:52,ag:53,si:38,women:34,climate:44,ctx:42,pri:40},
+  {id:854,name:'Burkina Faso',region:'afw',sector:'health',h:50,ag:56,si:46,women:31,climate:42,ctx:37,pri:31},
+  {id:132,name:'Cabo Verde',region:'afw',sector:'health',h:46,ag:40,si:39,women:35,climate:35,ctx:32,pri:30},
+  {id:120,name:'Cameroon',region:'afw',sector:'health',h:43,ag:42,si:33,women:38,climate:37,ctx:46,pri:36},
+  {id:140,name:'Central African Rep.',region:'afw',sector:'health',h:44,ag:55,si:38,women:32,climate:50,ctx:37,pri:44},
+  {id:148,name:'Chad',region:'afw',sector:'health',h:38,ag:45,si:33,women:28,climate:35,ctx:30,pri:32},
+  {id:178,name:'Congo, Rep.',region:'afw',sector:'health',h:49,ag:46,si:35,women:31,climate:48,ctx:41,pri:42},
+  {id:384,name:"Côte d'Ivoire",region:'afw',sector:'health',h:49,ag:54,si:33,women:31,climate:36,ctx:42,pri:39},
+  {id:226,name:'Equatorial Guinea',region:'afw',sector:'health',h:39,ag:47,si:38,women:34,climate:49,ctx:34,pri:42},
+  {id:266,name:'Gabon',region:'afw',sector:'health',h:41,ag:48,si:46,women:35,climate:37,ctx:44,pri:32},
+  {id:270,name:'Gambia',region:'afw',sector:'health',h:37,ag:40,si:34,women:35,climate:40,ctx:43,pri:44},
+  {id:288,name:'Ghana',region:'afw',sector:'health',h:66,ag:63,si:60,women:54,climate:61,ctx:57,pri:56},
+  {id:324,name:'Guinea',region:'afw',sector:'health',h:51,ag:46,si:44,women:29,climate:40,ctx:42,pri:29},
+  {id:624,name:'Guinea-Bissau',region:'afw',sector:'health',h:48,ag:48,si:46,women:37,climate:48,ctx:45,pri:33},
+  {id:430,name:'Liberia',region:'afw',sector:'health',h:42,ag:49,si:38,women:29,climate:36,ctx:40,pri:30},
+  {id:466,name:'Mali',region:'afw',sector:'health',h:37,ag:55,si:48,women:44,climate:40,ctx:31,pri:45},
+  {id:478,name:'Mauritania',region:'afw',sector:'health',h:38,ag:45,si:34,women:30,climate:42,ctx:42,pri:32},
+  {id:562,name:'Niger',region:'afw',sector:'health',h:43,ag:41,si:34,women:41,climate:51,ctx:40,pri:37},
+  {id:566,name:'Nigeria',region:'afw',sector:'health',h:42,ag:50,si:39,women:36,climate:47,ctx:34,pri:38},
+  {id:686,name:'Senegal',region:'afw',sector:'health',h:61,ag:66,si:54,women:50,climate:56,ctx:51,pri:51},
+  {id:694,name:'Sierra Leone',region:'afw',sector:'health',h:50,ag:50,si:34,women:28,climate:49,ctx:33,pri:31},
+  {id:768,name:'Togo',region:'afw',sector:'health',h:42,ag:56,si:40,women:32,climate:46,ctx:32,pri:36},
+  {id:36,name:'Australia',region:'eap',sector:'health',h:86,ag:80,si:86,women:78,climate:68,ctx:82,pri:82},
+  {id:96,name:'Brunei',region:'eap',sector:'health',h:68,ag:61,si:59,women:64,climate:61,ctx:70,pri:55},
+  {id:116,name:'Cambodia',region:'eap',sector:'health',h:65,ag:60,si:60,women:52,climate:52,ctx:55,pri:54},
+  {id:156,name:'China',region:'eap',sector:'health',h:75,ag:70,si:74,women:62,climate:58,ctx:70,pri:72},
+  {id:242,name:'Fiji',region:'eap',sector:'health',h:66,ag:55,si:58,women:58,climate:55,ctx:57,pri:59},
+  {id:360,name:'Indonesia',region:'eap',sector:'health',h:68,ag:62,si:65,women:56,climate:56,ctx:60,pri:60},
+  {id:392,name:'Japan',region:'eap',sector:'health',h:85,ag:78,si:84,women:72,climate:68,ctx:80,pri:80},
+  {id:296,name:'Kiribati',region:'eap',sector:'health',h:65,ag:61,si:60,women:60,climate:58,ctx:62,pri:71},
+  {id:408,name:'Korea, Dem. Rep.',region:'eap',sector:'health',h:72,ag:60,si:55,women:52,climate:65,ctx:62,pri:56},
+  {id:410,name:'Korea, Rep.',region:'eap',sector:'health',h:80,ag:74,si:80,women:70,climate:64,ctx:76,pri:76},
+  {id:418,name:'Laos',region:'eap',sector:'health',h:57,ag:62,si:58,women:58,climate:57,ctx:68,pri:68},
+  {id:458,name:'Malaysia',region:'eap',sector:'health',h:57,ag:55,si:56,women:54,climate:53,ctx:65,pri:59},
+  {id:496,name:'Mongolia',region:'eap',sector:'health',h:70,ag:56,si:55,women:59,climate:63,ctx:55,pri:66},
+  {id:104,name:'Myanmar',region:'eap',sector:'health',h:58,ag:55,si:52,women:44,climate:50,ctx:48,pri:46},
+  {id:520,name:'Nauru',region:'eap',sector:'health',h:63,ag:59,si:57,women:61,climate:65,ctx:58,pri:62},
+  {id:554,name:'New Zealand',region:'eap',sector:'health',h:86,ag:80,si:86,women:78,climate:70,ctx:82,pri:82},
+  {id:598,name:'Papua New Guinea',region:'eap',sector:'health',h:62,ag:57,si:67,women:50,climate:57,ctx:64,pri:68},
+  {id:608,name:'Philippines',region:'eap',sector:'health',h:68,ag:62,si:64,women:57,climate:55,ctx:60,pri:60},
+  {id:882,name:'Samoa',region:'eap',sector:'health',h:64,ag:60,si:59,women:53,climate:64,ctx:55,pri:70},
+  {id:706,name:'Solomon Islands',region:'eap',sector:'health',h:30,ag:35,si:25,women:18,climate:28,ctx:22,pri:25},
+  {id:764,name:'Thailand',region:'eap',sector:'health',h:72,ag:65,si:68,women:58,climate:58,ctx:62,pri:62},
+  {id:626,name:'Timor-Leste',region:'eap',sector:'health',h:64,ag:58,si:68,women:61,climate:61,ctx:61,pri:62},
+  {id:776,name:'Tonga',region:'eap',sector:'health',h:57,ag:58,si:66,women:60,climate:60,ctx:56,pri:63},
+  {id:798,name:'Tuvalu',region:'eap',sector:'health',h:68,ag:68,si:66,women:60,climate:52,ctx:57,pri:63},
+  {id:548,name:'Vanuatu',region:'eap',sector:'health',h:62,ag:60,si:55,women:53,climate:65,ctx:65,pri:65},
+  {id:704,name:'Vietnam',region:'eap',sector:'health',h:70,ag:64,si:66,women:58,climate:57,ctx:62,pri:62},
+  {id:8,name:'Albania',region:'eca',sector:'health',h:83,ag:80,si:73,women:76,climate:66,ctx:75,pri:67},
+  {id:51,name:'Armenia',region:'eca',sector:'health',h:83,ag:64,si:86,women:70,climate:71,ctx:80,pri:68},
+  {id:40,name:'Austria',region:'eca',sector:'health',h:80,ag:74,si:73,women:73,climate:76,ctx:76,pri:79},
+  {id:31,name:'Azerbaijan',region:'eca',sector:'health',h:80,ag:76,si:79,women:68,climate:66,ctx:80,pri:78},
+  {id:112,name:'Belarus',region:'eca',sector:'health',h:75,ag:73,si:82,women:64,climate:69,ctx:76,pri:72},
+  {id:56,name:'Belgium',region:'eca',sector:'health',h:83,ag:74,si:84,women:78,climate:74,ctx:73,pri:82},
+  {id:70,name:'Bosnia & Herz.',region:'eca',sector:'health',h:85,ag:69,si:72,women:73,climate:76,ctx:77,pri:68},
+  {id:100,name:'Bulgaria',region:'eca',sector:'health',h:77,ag:73,si:77,women:70,climate:64,ctx:67,pri:67},
+  {id:191,name:'Croatia',region:'eca',sector:'health',h:77,ag:79,si:72,women:78,climate:73,ctx:73,pri:78},
+  {id:196,name:'Cyprus',region:'eca',sector:'health',h:85,ag:76,si:77,women:68,climate:60,ctx:70,pri:79},
+  {id:203,name:'Czech Republic',region:'eca',sector:'health',h:77,ag:69,si:86,women:78,climate:61,ctx:74,pri:69},
+  {id:208,name:'Denmark',region:'eca',sector:'health',h:84,ag:68,si:84,women:80,climate:70,ctx:81,pri:82},
+  {id:233,name:'Estonia',region:'eca',sector:'health',h:83,ag:78,si:75,women:79,climate:74,ctx:75,pri:73},
+  {id:246,name:'Finland',region:'eca',sector:'health',h:78,ag:80,si:85,women:71,climate:68,ctx:81,pri:68},
+  {id:250,name:'France',region:'eca',sector:'health',h:84,ag:76,si:82,women:76,climate:68,ctx:80,pri:80},
+  {id:268,name:'Georgia',region:'eca',sector:'health',h:79,ag:71,si:78,women:74,climate:70,ctx:69,pri:70},
+  {id:276,name:'Germany',region:'eca',sector:'health',h:85,ag:78,si:84,women:78,climate:70,ctx:82,pri:82},
+  {id:300,name:'Greece',region:'eca',sector:'health',h:74,ag:71,si:82,women:68,climate:66,ctx:69,pri:79},
+  {id:348,name:'Hungary',region:'eca',sector:'health',h:83,ag:74,si:84,women:77,climate:61,ctx:73,pri:79},
+  {id:352,name:'Iceland',region:'eca',sector:'health',h:82,ag:64,si:82,women:79,climate:60,ctx:78,pri:75},
+  {id:372,name:'Ireland',region:'eca',sector:'health',h:82,ag:77,si:77,women:79,climate:67,ctx:75,pri:79},
+  {id:380,name:'Italy',region:'eca',sector:'health',h:85,ag:64,si:82,women:74,climate:72,ctx:72,pri:80},
+  {id:398,name:'Kazakhstan',region:'eca',sector:'health',h:74,ag:64,si:82,women:64,climate:62,ctx:80,pri:70},
+  {id:417,name:'Kyrgyz Republic',region:'eca',sector:'health',h:84,ag:69,si:71,women:72,climate:72,ctx:77,pri:72},
+  {id:428,name:'Latvia',region:'eca',sector:'health',h:84,ag:74,si:80,women:76,climate:68,ctx:80,pri:74},
+  {id:438,name:'Liechtenstein',region:'eca',sector:'health',h:72,ag:79,si:70,women:65,climate:71,ctx:74,pri:68},
+  {id:440,name:'Lithuania',region:'eca',sector:'health',h:71,ag:64,si:77,women:70,climate:60,ctx:71,pri:73},
+  {id:442,name:'Luxembourg',region:'eca',sector:'health',h:74,ag:79,si:73,women:70,climate:74,ctx:75,pri:77},
+  {id:498,name:'Moldova',region:'eca',sector:'health',h:75,ag:67,si:75,women:73,climate:63,ctx:67,pri:75},
+  {id:492,name:'Monaco',region:'eca',sector:'health',h:82,ag:76,si:76,women:66,climate:67,ctx:70,pri:75},
+  {id:499,name:'Montenegro',region:'eca',sector:'health',h:73,ag:65,si:81,women:77,climate:71,ctx:69,pri:82},
+  {id:528,name:'Netherlands',region:'eca',sector:'health',h:80,ag:64,si:83,women:79,climate:63,ctx:80,pri:77},
+  {id:807,name:'North Macedonia',region:'eca',sector:'health',h:84,ag:68,si:83,women:69,climate:76,ctx:75,pri:81},
+  {id:578,name:'Norway',region:'eca',sector:'health',h:84,ag:77,si:78,women:74,climate:67,ctx:69,pri:74},
+  {id:616,name:'Poland',region:'eca',sector:'health',h:78,ag:70,si:76,women:68,climate:64,ctx:72,pri:72},
+  {id:620,name:'Portugal',region:'eca',sector:'health',h:84,ag:71,si:84,women:76,climate:70,ctx:67,pri:81},
+  {id:642,name:'Romania',region:'eca',sector:'health',h:74,ag:66,si:72,women:64,climate:60,ctx:68,pri:68},
+  {id:643,name:'Russia',region:'eca',sector:'health',h:72,ag:65,si:70,women:62,climate:60,ctx:65,pri:64},
+  {id:688,name:'Serbia',region:'eca',sector:'health',h:80,ag:69,si:85,women:70,climate:71,ctx:75,pri:76},
+  {id:703,name:'Slovakia',region:'eca',sector:'health',h:78,ag:72,si:70,women:80,climate:66,ctx:69,pri:73},
+  {id:705,name:'Slovenia',region:'eca',sector:'health',h:83,ag:79,si:77,women:79,climate:75,ctx:81,pri:66},
+  {id:724,name:'Spain',region:'eca',sector:'health',h:72,ag:73,si:77,women:76,climate:67,ctx:76,pri:77},
+  {id:752,name:'Sweden',region:'eca',sector:'health',h:85,ag:80,si:81,women:77,climate:70,ctx:78,pri:80},
+  {id:756,name:'Switzerland',region:'eca',sector:'health',h:78,ag:73,si:78,women:71,climate:63,ctx:73,pri:76},
+  {id:762,name:'Tajikistan',region:'eca',sector:'health',h:62,ag:55,si:58,women:45,climate:50,ctx:47,pri:47},
+  {id:795,name:'Turkmenistan',region:'eca',sector:'health',h:73,ag:69,si:76,women:70,climate:75,ctx:75,pri:82},
+  {id:792,name:'Türkiye',region:'eca',sector:'health',h:74,ag:68,si:72,women:64,climate:62,ctx:68,pri:68},
+  {id:804,name:'Ukraine',region:'eca',sector:'health',h:79,ag:67,si:76,women:73,climate:67,ctx:78,pri:71},
+  {id:826,name:'United Kingdom',region:'eca',sector:'health',h:83,ag:77,si:82,women:76,climate:68,ctx:81,pri:80},
+  {id:860,name:'Uzbekistan',region:'eca',sector:'health',h:79,ag:64,si:74,women:72,climate:61,ctx:68,pri:75},
+  {id:28,name:'Antigua & Barbuda',region:'lcr',sector:'health',h:64,ag:69,si:60,women:52,climate:59,ctx:67,pri:69},
+  {id:32,name:'Argentina',region:'lcr',sector:'health',h:74,ag:66,si:72,women:63,climate:56,ctx:65,pri:66},
+  {id:44,name:'Bahamas',region:'lcr',sector:'health',h:74,ag:64,si:62,women:53,climate:58,ctx:67,pri:57},
+  {id:52,name:'Barbados',region:'lcr',sector:'health',h:62,ag:66,si:72,women:54,climate:51,ctx:56,pri:58},
+  {id:84,name:'Belize',region:'lcr',sector:'health',h:69,ag:56,si:64,women:55,climate:63,ctx:59,pri:70},
+  {id:68,name:'Bolivia',region:'lcr',sector:'health',h:72,ag:68,si:71,women:61,climate:63,ctx:61,pri:55},
+  {id:76,name:'Brazil',region:'lcr',sector:'health',h:70,ag:65,si:68,women:60,climate:55,ctx:60,pri:62},
+  {id:152,name:'Chile',region:'lcr',sector:'health',h:78,ag:70,si:76,women:68,climate:60,ctx:72,pri:73},
+  {id:170,name:'Colombia',region:'lcr',sector:'health',h:71,ag:63,si:68,women:60,climate:55,ctx:60,pri:61},
+  {id:188,name:'Costa Rica',region:'lcr',sector:'health',h:63,ag:60,si:63,women:60,climate:52,ctx:57,pri:61},
+  {id:192,name:'Cuba',region:'lcr',sector:'health',h:65,ag:56,si:62,women:52,climate:63,ctx:66,pri:69},
+  {id:212,name:'Dominica',region:'lcr',sector:'health',h:69,ag:55,si:64,women:61,climate:59,ctx:66,pri:56},
+  {id:214,name:'Dominican Rep.',region:'lcr',sector:'health',h:67,ag:62,si:63,women:65,climate:53,ctx:59,pri:58},
+  {id:218,name:'Ecuador',region:'lcr',sector:'health',h:68,ag:58,si:59,women:53,climate:55,ctx:61,pri:63},
+  {id:222,name:'El Salvador',region:'lcr',sector:'health',h:74,ag:57,si:71,women:61,climate:62,ctx:60,pri:70},
+  {id:308,name:'Grenada',region:'lcr',sector:'health',h:75,ag:68,si:59,women:53,climate:63,ctx:62,pri:62},
+  {id:320,name:'Guatemala',region:'lcr',sector:'health',h:60,ag:56,si:64,women:52,climate:58,ctx:53,pri:59},
+  {id:328,name:'Guyana',region:'lcr',sector:'health',h:75,ag:70,si:71,women:60,climate:55,ctx:65,pri:69},
+  {id:332,name:'Haiti',region:'lcr',sector:'health',h:62,ag:69,si:68,women:65,climate:60,ctx:62,pri:57},
+  {id:340,name:'Honduras',region:'lcr',sector:'health',h:65,ag:64,si:70,women:67,climate:59,ctx:64,pri:55},
+  {id:388,name:'Jamaica',region:'lcr',sector:'health',h:74,ag:56,si:67,women:60,climate:60,ctx:55,pri:66},
+  {id:484,name:'Mexico',region:'lcr',sector:'health',h:72,ag:65,si:70,women:60,climate:55,ctx:62,pri:63},
+  {id:558,name:'Nicaragua',region:'lcr',sector:'health',h:76,ag:54,si:71,women:65,climate:51,ctx:58,pri:70},
+  {id:591,name:'Panama',region:'lcr',sector:'health',h:71,ag:69,si:71,women:53,climate:56,ctx:60,pri:58},
+  {id:600,name:'Paraguay',region:'lcr',sector:'health',h:69,ag:68,si:72,women:55,climate:50,ctx:59,pri:59},
+  {id:604,name:'Peru',region:'lcr',sector:'health',h:72,ag:64,si:68,women:60,climate:55,ctx:62,pri:62},
+  {id:659,name:'St. Kitts & Nevis',region:'lcr',sector:'health',h:69,ag:54,si:70,women:54,climate:57,ctx:55,pri:68},
+  {id:662,name:'St. Lucia',region:'lcr',sector:'health',h:63,ag:58,si:72,women:61,climate:66,ctx:60,pri:67},
+  {id:670,name:'St. Vincent',region:'lcr',sector:'health',h:75,ag:69,si:64,women:66,climate:54,ctx:64,pri:60},
+  {id:740,name:'Suriname',region:'lcr',sector:'health',h:76,ag:58,si:59,women:60,climate:63,ctx:62,pri:70},
+  {id:780,name:'Trinidad & Tobago',region:'lcr',sector:'health',h:68,ag:54,si:66,women:61,climate:65,ctx:56,pri:68},
+  {id:858,name:'Uruguay',region:'lcr',sector:'health',h:75,ag:65,si:67,women:64,climate:64,ctx:62,pri:60},
+  {id:862,name:'Venezuela',region:'lcr',sector:'health',h:67,ag:66,si:64,women:65,climate:51,ctx:62,pri:69},
+  {id:12,name:'Algeria',region:'mna',sector:'health',h:64,ag:59,si:56,women:55,climate:45,ctx:51,pri:63},
+  {id:48,name:'Bahrain',region:'mna',sector:'health',h:62,ag:50,si:66,women:43,climate:60,ctx:61,pri:47},
+  {id:262,name:'Djibouti',region:'mna',sector:'health',h:56,ag:60,si:56,women:42,climate:59,ctx:55,pri:57},
+  {id:818,name:'Egypt',region:'mna',sector:'health',h:68,ag:60,si:65,women:55,climate:58,ctx:58,pri:57},
+  {id:364,name:'Iran',region:'mna',sector:'health',h:65,ag:58,si:62,women:45,climate:54,ctx:52,pri:50},
+  {id:368,name:'Iraq',region:'mna',sector:'health',h:64,ag:49,si:62,women:52,climate:54,ctx:62,pri:48},
+  {id:400,name:'Jordan',region:'mna',sector:'health',h:54,ag:54,si:61,women:47,climate:46,ctx:60,pri:50},
+  {id:414,name:'Kuwait',region:'mna',sector:'health',h:55,ag:61,si:57,women:49,climate:44,ctx:48,pri:57},
+  {id:422,name:'Lebanon',region:'mna',sector:'health',h:53,ag:56,si:63,women:51,climate:57,ctx:51,pri:54},
+  {id:434,name:'Libya',region:'mna',sector:'health',h:68,ag:60,si:57,women:45,climate:49,ctx:49,pri:59},
+  {id:504,name:'Morocco',region:'mna',sector:'health',h:71,ag:65,si:68,women:60,climate:63,ctx:61,pri:60},
+  {id:512,name:'Oman',region:'mna',sector:'health',h:59,ag:62,si:56,women:47,climate:58,ctx:55,pri:61},
+  {id:634,name:'Qatar',region:'mna',sector:'health',h:60,ag:47,si:66,women:49,climate:49,ctx:49,pri:61},
+  {id:682,name:'Saudi Arabia',region:'mna',sector:'health',h:68,ag:60,si:68,women:48,climate:56,ctx:62,pri:62},
+  {id:760,name:'Syria',region:'mna',sector:'health',h:38,ag:40,si:32,women:28,climate:35,ctx:28,pri:30},
+  {id:788,name:'Tunisia',region:'mna',sector:'health',h:63,ag:56,si:65,women:48,climate:58,ctx:56,pri:53},
+  {id:784,name:'UAE',region:'mna',sector:'health',h:64,ag:62,si:55,women:47,climate:56,ctx:58,pri:56},
+  {id:887,name:'Yemen',region:'mna',sector:'health',h:41,ag:38,si:35,women:25,climate:37,ctx:28,pri:30},
+  {id:4,name:'Afghanistan',region:'sar',sector:'health',h:40,ag:46,si:36,women:20,climate:38,ctx:30,pri:32},
+  {id:50,name:'Bangladesh',region:'sar',sector:'health',h:63,ag:62,si:58,women:52,climate:54,ctx:52,pri:52},
+  {id:64,name:'Bhutan',region:'sar',sector:'health',h:56,ag:46,si:56,women:44,climate:42,ctx:43,pri:55},
+  {id:356,name:'India',region:'sar',sector:'health',h:67,ag:63,si:62,women:50,climate:52,ctx:60,pri:60},
+  {id:462,name:'Maldives',region:'sar',sector:'health',h:56,ag:53,si:55,women:43,climate:48,ctx:50,pri:44},
+  {id:524,name:'Nepal',region:'sar',sector:'health',h:50,ag:47,si:53,women:50,climate:43,ctx:53,pri:44},
+  {id:586,name:'Pakistan',region:'sar',sector:'health',h:55,ag:58,si:50,women:35,climate:48,ctx:44,pri:45},
+  {id:144,name:'Sri Lanka',region:'sar',sector:'health',h:75,ag:66,si:70,women:64,climate:65,ctx:63,pri:62},
+  {id:124,name:'Canada',region:'nam',sector:'health',h:86,ag:80,si:86,women:80,climate:70,ctx:84,pri:83},
+  {id:840,name:'United States',region:'nam',sector:'health',h:82,ag:78,si:84,women:74,climate:65,ctx:82,pri:82}
+];
+
+const YEARS=[2017,2018,2019,2020,2021,2022,2023,2024,2025];
+const HE=6;
+const REG_COLORS={
+  afe:'#0079c1',
+  afw:'#005d96',
+  eap:'#b2cd5a',
+  eca:'#7a9a1f',
+  lcr:'#e07b35',
+  mna:'#435d7f',
+  sar:'#7a5a9a',
+  nam:'#2a7a3a',
+};
+
+function seededRand(seed){
+  // simple deterministic pseudo-random from a seed integer
+  let s=seed;
+  return function(){s=((s*1664525+1013904223)&0xffffffff)>>>0;return s/0xffffffff;};
+}
+
+function getTS(c,key){
+  // Base global trend for each indicator (2017-2023, index 0-6, then projections 7-8)
+  const bases={
+    uhc:[52,54,56,58,60,62,64,66,68],
+    tb:[58,56,54,52,50,48,46,44,42],
+    mal:[62,59,56,53,50,48,46,44,42],
+    mmr:[60,57,54,51,49,47,45,43,41],
+    u5mr:[57,54,52,49,47,45,43,41,39],
+    stunt:[52,50,48,46,44,42,40,38,36],
+    maln:[49,48,46,44,42,41,40,39,38],
+    anaem:[53,52,51,50,49,48,47,46,45],
+    contra:[42,45,48,51,54,57,60,63,65],
+    abr:[58,56,53,51,48,46,44,42,40],
+    ihr:[46,48,51,54,56,58,61,63,65],
+    food:[60,57,54,51,49,46,44,42,40],
+    susag:[38,40,43,46,48,51,53,55,57],
+    agoda:[33,36,40,44,48,52,55,58,61],
+    water:[46,49,52,55,58,61,63,66,68],
+    sanit:[42,45,48,51,54,57,59,62,64],
+    washmort:[58,55,52,49,46,43,41,39,37],
+    elec:[48,51,55,58,61,64,66,69,71],
+    clean:[38,41,45,48,52,55,57,60,63],
+    renew:[46,48,50,52,54,56,58,60,62],
+    finc:[36,39,43,47,51,55,59,62,65],
+    gii:[43,45,47,49,51,53,55,57,59],
+    ndgain:[48,49,51,52,53,54,55,56,57],
+    pov:[57,54,51,49,46,43,41,39,37],
+    mpi:[54,51,49,46,44,42,40,38,36],
+    state:[46,48,50,52,54,56,58,60,62],
+    popdens:[50,50,51,51,52,52,53,53,54],
+    conces:[48,50,52,54,56,57,58,59,60],
+  };
+  const base=bases[key]||bases.uhc;
+  // Map indicator to the country's domain score
+  const domKey={uhc:'h',tb:'h',mal:'h',mmr:'h',u5mr:'h',stunt:'h',maln:'h',anaem:'h',contra:'h',abr:'h',ihr:'h',
+    food:'ag',susag:'ag',agoda:'ag',
+    water:'si',sanit:'si',washmort:'si',elec:'si',clean:'si',renew:'si',finc:'si',
+    gii:'women',ndgain:'climate',pov:'ctx',mpi:'ctx',state:'ctx',popdens:'ctx',conces:'pri'};
+  const score=c[domKey[key]||'h'];
+  // Level offset: shift the whole curve up/down based on country's score vs global baseline at 2023
+  const levelOff=(score-base[6])*0.6;
+  // Per-country trajectory variation: some countries improve fast, some plateau, some regress
+  // Use country id + indicator as seed for deterministic variety
+  const rng=seededRand((c.id*31+key.charCodeAt(0)*7+key.length*13)%999983);
+  // Trajectory type: 0=steady improve, 1=fast then plateau, 2=slow start then accelerate, 3=slight regress mid then recover, 4=plateau or mild decline
+  const trType=Math.floor(rng()*5);
+  const noiseMag=4+rng()*6; // 4-10 pts of noise/variation
+  const trendMults=[
+    [0.5,0.8,1.0,1.1,1.2,1.1,1.0,1.0,1.0],  // 0: steady
+    [1.2,1.4,1.5,1.4,1.2,1.0,0.8,0.7,0.6],  // 1: fast then plateau
+    [0.2,0.3,0.5,0.8,1.2,1.5,1.8,1.9,2.0],  // 2: accelerating
+    [0.8,0.6,0.3,0.1,-0.2,0.3,0.8,1.2,1.5], // 3: dip then recover
+    [0.1,0.1,0.0,-0.1,-0.2,-0.1,0.0,0.1,0.2], // 4: plateau / very slow
+  ][trType];
+  // Global trend magnitude per year (how much the global avg changes 2017->2023)
+  const globalRange=base[6]-base[0];
+  return base.map((v,i)=>{
+    const noise=(rng()-0.5)*noiseMag;
+    const trendBoost=trendMults[i]*globalRange*0.25;
+    return Math.round(Math.max(2,Math.min(98,v+levelOff+trendBoost+noise)));
+  });
+}
+
+function indVal(c,key){return getTS(c,key)[HE];}
+
+function subVal(c,subKey){
+  const inds=INDICATORS.filter(i=>i.sub===subKey);
+  return Math.round(inds.reduce((s,i)=>s+indVal(c,i.key),0)/inds.length);
+}
+
+// ── STATE ─────────────────────────────────────────────
+let AF={region:'all',sector:'all'};
+let cmpF={region:'all',domain:'all'};
+let SS='';
+let dpChart=null;
+let ovChart=null;
+let mapInit=false;
+let ovIndKey='uhc';
+let sortCol='h';  // default sort by healthcare
+let sortDir=1;    // 1=desc, -1=asc
+let ovDomainKey='overall';
+
+// ── EXPLORE ───────────────────────────────────────────
+function switchTab(t,el){
+  // Hide comparison detail view if open
+  const cmpDetail=document.getElementById('view-cmp-detail');
+  if(cmpDetail){cmpDetail.style.display='none';cmpDetail.classList.remove('active');}
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+  el.classList.add('active');
+  if(t==='map'&&!mapInit)initMap();
+  if(t==='compare')renderCompare();
+}
+
+function applyFilter(type,val,el){
+  AF[type]=val;
+  const grp=el.dataset.grp||type;
+  el.closest('.fbar').querySelectorAll('.fbtn').forEach(b=>{
+    if(b.dataset.grp===grp||(type==='region'&&!b.dataset.grp))b.classList.remove('active');
+  });
+  el.classList.add('active');
+  renderTable();
+}
+
+function searchCountry(v){SS=v.toLowerCase();renderTable();}
+
+function filtered(){
+  return DATA.filter(c=>{
+    if(AF.region!=='all'&&c.region!==AF.region)return false;
+    if(AF.sector!=='all'&&c.sector!==AF.sector)return false;
+    if(SS&&!c.name.toLowerCase().includes(SS))return false;
+    return true;
+  });
+}
+
+function trendLbl(h){
+  if(h>=60)return'<span class="trend-up">▲ Improving</span>';
+  if(h<=45)return'<span class="trend-em">~ Emerging</span>';
+  return'<span class="trend-fl">→ Stable</span>';
+}
+
+function domainBar(val, col){
+  return `<div class="spark-wrap">
+    <div class="spark-bg"><div class="spark-fill" style="width:${val}%;background:${col};"></div></div>
+    <span style="font-size:11px;font-weight:600;text-align:right;color:#1e2a35;">${val}</span>
+  </div>`;
+}
+
+function sortTable(col){
+  if(sortCol===col) sortDir*=-1;
+  else{ sortCol=col; sortDir=1; }
+  renderTable();
+}
+
+function sortArrow(col){
+  if(sortCol!==col) return '<span class="sort-arrow">⇅</span>';
+  return sortDir===1
+    ? '<span class="sort-arrow active">▼</span>'
+    : '<span class="sort-arrow active">▲</span>';
+}
+
+function renderTable(){
+  // Sort by selected column
+  const colMap={name:'name',region:'region',trend:'h',overall:'overall',h:'h',ag:'ag',si:'si',women:'women',climate:'climate',ctx:'ctx',pri:'pri'};
+  const key=colMap[sortCol]||'h';
+  const overall=c=>Math.round((c.h+c.ag+c.si+c.women+c.climate+c.ctx+c.pri)/7);
+  const rows=filtered().sort((a,b)=>{
+    if(key==='name')    return sortDir*(a.name<b.name?-1:a.name>b.name?1:0);
+    if(key==='region')  return sortDir*(a.region<b.region?-1:a.region>b.region?1:0);
+    if(key==='overall') return sortDir*(overall(b)-overall(a));
+    return sortDir*(b[key]-a[key]);
+  });
+
+  // Update header sort indicators
+  const cols=['name','region','trend','h','ag','si','women','climate','ctx','pri'];
+  cols.forEach(c=>{
+    const el=document.getElementById('th-'+c);
+    if(el) el.innerHTML=el.dataset.label+sortArrow(c);
+  });
+
+  document.getElementById('main-tbody').innerHTML=rows.map(c=>`
+    <tr>
+      <td><span class="country-link" onclick="openCountry(${c.id})">${c.name}</span></td>
+      <td style="font-size:11px;color:var(--mut);white-space:nowrap;">${REG[c.region]}</td>
+      <td>${trendLbl(c.h)}</td>
+      <td>${domainBar(Math.round((c.h+c.ag+c.si+c.women+c.climate+c.ctx+c.pri)/7),'#1e2a35')}</td>
+      <td>${domainBar(c.h,'#0079c1')}</td>
+      <td>${domainBar(c.ag,'#7a9a1f')}</td>
+      <td>${domainBar(c.si,'#435d7f')}</td>
+      <td>${domainBar(c.women,'#817d77')}</td>
+      <td>${domainBar(c.climate,'#7a6a30')}</td>
+      <td>${domainBar(c.ctx,'#a05020')}</td>
+      <td>${domainBar(c.pri,'#3a5a6a')}</td>
+    </tr>`).join('');
+  renderRegionList();
+  renderOvChart();
+}
+
+function renderRegionList(){
+  const cnt={};
+  Object.keys(REG).forEach(r=>cnt[r]=0);
+  filtered().forEach(c=>cnt[c.region]=(cnt[c.region]||0)+1);
+  const tot=Math.max(filtered().length,1);
+  document.getElementById('region-list').innerHTML=Object.entries(cnt)
+    .filter(([r,n])=>n>0)
+    .map(([r,n])=>`
+    <div class="region-item">
+      <span class="region-name" style="width:140px;">${REG[r]}</span>
+      <div class="region-bar-bg"><div class="region-bar-fill" style="width:${Math.round(n/tot*100)}%;background:${REG_COLORS[r]};"></div></div>
+      <span class="region-count">${n} countries</span>
+    </div>`).join('');
+}
+
+// Build overview indicator selector
+function buildOvIndSel(){
+  const domains=[
+    {key:'overall', label:'Overall'},
+    {key:'h',       label:'Healthcare'},
+    {key:'ag',      label:'Agriculture'},
+    {key:'si',      label:'Social infra.'},
+    {key:'women',   label:'Gender'},
+    {key:'climate', label:'Climate'},
+    {key:'ctx',     label:'Country context'},
+    {key:'pri',     label:'Soc.-econ.'},
+  ];
+  document.getElementById('ov-ind-sel').innerHTML=domains.map(d=>
+    `<button class="chart-ind-btn ${d.key===ovDomainKey?'active':''}" onclick="changeOvDomain('${d.key}',this)">${d.label}</button>`
+  ).join('');
+}
+
+function changeOvDomain(key,el){
+  ovDomainKey=key;
+  document.querySelectorAll('#ov-ind-sel .chart-ind-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderOvChart();
+}
+
+function domainScore(c,key){
+  if(key==='overall') return Math.round((c.h+c.ag+c.si+c.women+c.climate+c.ctx+c.pri)/7);
+  return c[key]||0;
+}
+
+function renderOvChart(){
+  const rows=filtered();
+  renderAggChart(rows);
+  renderSparkGrid(rows);
+  document.getElementById('ov-chart-legend').innerHTML=
+    Object.entries(REG_COLORS).map(([k,col])=>
+      `<span style="display:flex;align-items:center;gap:4px;"><span style="width:16px;height:2px;background:${col};display:inline-block;"></span>${REG[k]}</span>`
+    ).join('')+
+    `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(180,195,210,0.35);display:inline-block;"></span>Country spread</span>`;
+}
+
+function renderAggChart(rows){
+  const svg=document.getElementById('aggChart');
+  // Fixed internal coordinate space — SVG scales via CSS width:100%
+  const W=500, H=140;
+  const PAD={t:12,b:30,l:32,r:8};
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.style.width='100%';
+  svg.style.height=H+'px';
+  const HIST_YRS=YEARS.slice(0,HE+1);
+  const trackW=W-PAD.l-PAD.r;
+  const xS=i=>PAD.l+(i/(HIST_YRS.length-1))*trackW;
+  const yS=v=>PAD.t+(1-v/100)*(H-PAD.t-PAD.b);
+
+  // Use getTS for historical per-country per-year values, anchored to domain score
+  function countryYearVal(c,yi){
+    if(ovDomainKey==='overall'){
+      return Math.round(['h','ag','si','women','climate','ctx','pri']
+        .reduce((sum,k)=>sum+getTS(c,{h:'uhc',ag:'food',si:'water',women:'gii',climate:'ndgain',ctx:'state',pri:'conces'}[k])[yi],0)/7);
+    }
+    const indMap={h:'uhc',ag:'food',si:'water',women:'gii',climate:'ndgain',ctx:'state',pri:'conces'};
+    return getTS(c,indMap[ovDomainKey]||'uhc')[yi];
+  }
+
+  const regions=['afe','afw','eap','eca','lcr','mna','sar','nam'];
+  const regionAvgs={};
+  regions.forEach(r=>{
+    const rc=rows.filter(c=>c.region===r);
+    if(!rc.length){regionAvgs[r]=null;return;}
+    regionAvgs[r]=HIST_YRS.map((_,yi)=>{
+      const vals=rc.map(c=>countryYearVal(c,yi));
+      return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+    });
+  });
+
+  // Per-year spread band (min/max across all countries)
+  const perYearMin=HIST_YRS.map((_,yi)=>Math.min(...rows.map(c=>countryYearVal(c,yi))));
+  const perYearMax=HIST_YRS.map((_,yi)=>Math.max(...rows.map(c=>countryYearVal(c,yi))));
+
+  let html='';
+  // gridlines
+  [0,25,50,75,100].forEach(v=>{
+    const y=yS(v);
+    html+=`<line x1="${PAD.l}" y1="${y}" x2="${W-PAD.r}" y2="${y}" stroke="#eef0f3" stroke-width="1"/>`;
+    html+=`<text x="${PAD.l-4}" y="${y+3.5}" text-anchor="end" font-size="9" fill="#b0b8c2">${v}</text>`;
+  });
+  [0,2,4,6].forEach(i=>{
+    html+=`<text x="${xS(i)}" y="${H-PAD.b+11}" text-anchor="middle" font-size="9" fill="#9aa4ae">${HIST_YRS[i]}</text>`;
+  });
+
+  // Spread band
+  const bandTop=perYearMax.map((v,i)=>`${xS(i)},${yS(v)}`).join(' ');
+  const bandBot=[...perYearMin].reverse().map((v,i)=>`${xS(perYearMin.length-1-i)},${yS(v)}`).join(' ');
+  html+=`<polygon points="${bandTop} ${bandBot}" fill="rgba(180,195,210,0.18)" stroke="none"/>`;
+
+  // Region lines
+  const RDASH={afe:'none',afw:'4,2',eap:'none',eca:'5,3',lcr:'2,2',mna:'5,3',sar:'4,2',nam:'2,2'};
+  const RLABEL=REG;
+  regions.forEach(r=>{
+    const avgs=regionAvgs[r];
+    if(!avgs) return;
+    const col=REG_COLORS[r];
+    const pts=avgs.map((v,i)=>`${xS(i)},${yS(v)}`).join(' ');
+    html+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="${RDASH[r]}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+    html+=`<circle cx="${xS(avgs.length-1)}" cy="${yS(avgs[avgs.length-1])}" r="3" fill="${col}"/>`;
+    avgs.forEach((v,i)=>{
+      html+=`<circle cx="${xS(i)}" cy="${yS(v)}" r="4" fill="transparent" stroke="none"
+        data-yr="${HIST_YRS[i]}" data-region="${RLABEL[r]}" data-val="${v}"
+        onmouseenter="showRegionTip(event,this)" onmouseleave="hideDotTip()" style="cursor:pointer;"/>`;
+    });
+  });
+  svg.innerHTML=html;
+}
+
+
+function showRegionTip(ev,el){
+  const tip=document.getElementById('dot-tooltip');
+  document.getElementById('dtt-title').textContent=el.dataset.region+' — '+el.dataset.yr;
+  document.getElementById('dtt-body').innerHTML=
+    `<span style="display:block;font-size:11px;opacity:.9;">Regional avg: <strong>${el.dataset.val}</strong></span>`;
+  tip.style.display='block';
+  const tipW=220,tipH=80;
+  const tx=Math.min(ev.clientX+14, window.innerWidth-tipW-8);
+  const ty=Math.max(ev.clientY-10, 8);
+  tip.style.left=tx+'px';
+  tip.style.top=ty+'px';
+}
+
+
+function renderSparkGrid(rows){
+  const HIST_YRS=YEARS.slice(0,HE+1);
+  const grid=document.getElementById('sparkGrid');
+  const SW=52, SH=20;
+  const REGION_ORDER=['afe','afw','eap','eca','lcr','mna','sar','nam'];
+  const REGION_LABEL=REG;
+
+  const indMap={h:'uhc',ag:'food',si:'water',women:'gii',climate:'ndgain',ctx:'state',pri:'conces'};
+
+  function sparkSVG(c){
+    const sparkKey=ovDomainKey==='overall'?'uhc':indMap[ovDomainKey]||'uhc';
+    const vals=HIST_YRS.map((_,i)=>ovDomainKey==='overall'
+      ? Math.round(['h','ag','si','women','climate','ctx','pri'].reduce((s,k)=>s+getTS(c,indMap[k]||'uhc')[i],0)/7)
+      : getTS(c,sparkKey)[i]);
+    const vMin=Math.min(...vals)-1, vMax=Math.max(...vals)+1;
+    const xS=i=>1+(i/(vals.length-1))*(SW-2);
+    const yS=v=>1+(1-(v-vMin)/(vMax-vMin||1))*(SH-2);
+    const pts=vals.map((v,i)=>`${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+    const col=REG_COLORS[c.region];
+    const vN=vals[vals.length-1];
+    return {svg:`<svg width="${SW}" height="${SH}" viewBox="0 0 ${SW} ${SH}" style="display:block;overflow:visible;vertical-align:middle;">
+      <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+      <circle cx="${xS(vals.length-1).toFixed(1)}" cy="${yS(vN).toFixed(1)}" r="2.5" fill="${col}"/>
+    </svg>`, vN, delta:vN-vals[0]};
+  }
+
+  const cards=REGION_ORDER.map(r=>{
+    const regionRows=rows.filter(c=>c.region===r)
+      .sort((a,b)=>domainScore(b,ovDomainKey)-domainScore(a,ovDomainKey));
+    if(!regionRows.length) return '';
+    const col=REG_COLORS[r];
+    const avg=Math.round(regionRows.reduce((s,c)=>s+domainScore(c,ovDomainKey),0)/regionRows.length);
+
+    const tableRows=regionRows.map(c=>{
+      const {svg,vN,delta}=sparkSVG(c);
+      const deltaCol=delta>3?'#2a7a3a':delta<-3?'#c0392b':'#9aa4ae';
+      const deltaStr=(delta>0?'+':'')+delta;
+      const shortName=c.name.length>14?c.name.slice(0,13)+'…':c.name;
+      return `<tr onclick="openCountry(${c.id})" style="cursor:pointer;" onmouseenter="this.style.background='#f7f9fc'" onmouseleave="this.style.background=''">
+        <td style="padding:3px 4px 3px 8px;font-size:11px;color:#2a3a48;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0;">${shortName}</td>
+        <td style="padding:2px 4px;width:${SW+4}px;">${svg}</td>
+        <td style="padding:2px 4px;width:28px;font-size:11.5px;font-weight:700;color:#1e2a35;text-align:right;">${vN}</td>
+        <td style="padding:2px 8px 2px 4px;width:30px;font-size:10.5px;font-weight:600;color:${deltaCol};text-align:right;">${deltaStr}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="border:1px solid #dde2ea;border-top:3px solid ${col};border-radius:0 0 8px 8px;background:#fff;">
+      <div style="padding:7px 8px 5px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:12px;font-weight:700;color:#1e2a35;">${REGION_LABEL[r]}</span>
+        <span style="font-size:11px;color:#5f6e7c;white-space:nowrap;">${regionRows.length} countries &middot; avg <strong style="color:${col};">${avg}</strong></span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;border-top:1px solid #dde2ea;">
+        <thead><tr>
+          <th style="padding:3px 4px 4px 8px;font-size:9px;font-weight:700;color:#9aa4ae;text-transform:uppercase;letter-spacing:.3px;text-align:left;">Country</th>
+          <th style="padding:3px 4px;width:${SW+4}px;font-size:9px;font-weight:700;color:#9aa4ae;text-transform:uppercase;letter-spacing:.3px;">2017–23</th>
+          <th style="padding:3px 4px;width:28px;font-size:9px;font-weight:700;color:#9aa4ae;text-transform:uppercase;text-align:right;">Now</th>
+          <th style="padding:3px 8px 3px 4px;width:30px;font-size:9px;font-weight:700;color:#9aa4ae;text-transform:uppercase;text-align:right;">Chg</th>
+        </tr></thead>
+        <tbody style="border-top:1px solid #dde2ea;">${tableRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  grid.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px;">${cards}</div>`;
+}
+
+
+
+// ── COMPARE ───────────────────────────────────────────
+function applyCmpFilter(type,val,el){
+  cmpF[type]=val;
+  el.closest('.fbar').querySelectorAll(`.fbtn[data-grp="${el.dataset.grp}"]`).forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderCompare();
+}
+
+function cmpFiltered(){
+  return DATA.filter(c=>{
+    if(cmpF.region!=='all'&&c.region!==cmpF.region)return false;
+    return true;
+  });
+}
+
+function renderCompare(){
+  const countries=cmpFiltered();
+  const domainKeys=cmpF.domain==='all'?Object.keys(DOMAIN_META):[cmpF.domain];
+  const body=document.getElementById('cmp-body');
+
+  // Density colour scale: 1 country = lightest, 5+ = darkest
+  // Gradient legend — shows the continuous scale concept
+  const densityGradLegend=`<div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:11px;color:var(--mut);">Fewer countries</span>
+    <div style="width:120px;height:11px;border-radius:6px;background:linear-gradient(to right,#d6eaf8,#7fb3d3,#2e86c1,#1a4f72,#0d2d45);border:1px solid rgba(0,0,0,.08);"></div>
+    <span style="font-size:11px;color:var(--mut);">More countries</span>
+  </div>`;
+  const densityLegend=densityGradLegend;
+
+  let html=`<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 16px 12px;margin-bottom:16px;">
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);margin-bottom:8px;">Dot colour = number of countries at that score</div>
+    <div style="display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;">
+      ${densityLegend}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mut);white-space:nowrap;">
+        <span style="width:1px;height:14px;background:#aab0ba;display:inline-block;flex-shrink:0;"></span>Sub-domain average
+      </span>
+    </div>
+    <div style="margin-top:6px;font-size:11px;color:var(--mut);">Dot position = score · hover to see country name and region</div>
+  </div>`;
+
+  domainKeys.forEach(dk=>{
+    const dm=DOMAIN_META[dk];
+    const sds=SUBDOMAINS.filter(s=>s.domain===dk);
+    if(!sds.length) return;
+    const accentCol=sds[0].color;
+
+    html+=`<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;">
+        <span style="width:4px;height:20px;border-radius:2px;background:${accentCol};flex-shrink:0;display:inline-block;"></span>
+        <span style="font-size:14px;font-weight:700;color:var(--txt);">${dm.label}</span>
+        <span style="font-size:11px;color:var(--mut);margin-left:auto;">${sds.length} sub-domain${sds.length>1?'s':''} · ${countries.length} countries</span>
+      </div>
+      <div style="padding:12px 16px 16px;">
+        <div class="strip-axis-labels"><div></div><div class="strip-axis-row"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>
+        <div class="strip-chart">`;
+
+    sds.forEach(sd=>{
+      const vals=countries.map(c=>({c,v:subVal(c,sd.key)}));
+      const avg=Math.round(vals.reduce((s,x)=>s+x.v,0)/vals.length);
+
+      // Count countries per score bucket (round to nearest 2)
+      const bucketCount={};
+      vals.forEach(({v})=>{
+        const b=Math.round(v/2)*2;
+        bucketCount[b]=(bucketCount[b]||0)+1;
+      });
+
+      // Set thresholds dynamically based on this sub-domain's distribution
+      const allCounts=Object.values(bucketCount).sort((a,b)=>a-b);
+      const maxCount=allCounts[allCounts.length-1]||1;
+      const p60=allCounts[Math.floor(allCounts.length*0.60)]||1;
+      const p75=allCounts[Math.floor(allCounts.length*0.75)]||1;
+      const p87=allCounts[Math.floor(allCounts.length*0.87)]||1;
+      const p95=allCounts[Math.floor(allCounts.length*0.95)]||1;
+
+      function densityColor(count){
+        if(count>=p95) return'#0d2d45';
+        if(count>=p87) return'#1a4f72';
+        if(count>=p75) return'#2471a3';
+        if(count>=p60) return'#2e86c1';
+        if(count>=2)   return'#7fb3d3';
+        return'#d6eaf8';
+      }
+
+      html+=`<div class="strip-row">
+        <div class="strip-label">${sd.label}</div>
+        <div class="strip-track" id="track-${sd.key}">
+          <div class="strip-axis"></div>
+          <div class="strip-avg-line" style="left:${avg}%;">
+            <div class="strip-avg-label">${avg}</div>
+          </div>`;
+      vals.forEach(({c,v})=>{
+        const bucket=Math.round(v/2)*2;
+        const col=densityColor(bucketCount[bucket]||1);
+        html+=`<div class="strip-dot" style="left:${v}%;background:${col};opacity:0.9;border:1px solid rgba(0,0,0,.08);"
+          data-name="${c.name}" data-val="${v}" data-region="${REG[c.region]}" data-sub="${sd.key}" data-bucket="${bucket}"
+          onmouseenter="showDotTip(event,this)" onmouseleave="hideDotTip()"></div>`;
+      });
+      html+=`</div></div>`;
+    });
+
+    html+=`</div></div></div>`;
+  });
+
+  body.innerHTML=html;
+}
+
+// DOT TOOLTIP — groups countries at the same bucket
+function showDotTip(ev,el){
+  const sub=el.dataset.sub;
+  const bucket=el.dataset.bucket;
+  // find all dots in the same track with the same bucket
+  const track=el.closest('.strip-track');
+  const peers=[...track.querySelectorAll('.strip-dot')].filter(d=>d.dataset.bucket===bucket);
+  const names=peers.map(d=>d.dataset.name);
+  const val=el.dataset.val;
+  const tip=document.getElementById('dot-tooltip');
+  document.getElementById('dtt-title').textContent=names.length>1?`${names.length} countries — score ~${val}`:el.dataset.name;
+  document.getElementById('dtt-body').innerHTML=names.length>1
+    ?names.map(n=>`<span style="display:block;font-size:11px;opacity:.85;">${n}</span>`).join('')
+    :`<span style="display:block;font-size:11px;opacity:.85;">${el.dataset.region}</span><span style="display:block;font-size:11px;opacity:.85;">Score: ${val}</span>`;
+  tip.style.display='block';
+  const tipW=220,tipH=80;
+  const tx=Math.min(ev.clientX+14, window.innerWidth-tipW-8);
+  const ty=Math.max(ev.clientY-10, 8);
+  tip.style.left=tx+'px';
+  tip.style.top=ty+'px';
+}
+function hideDotTip(){document.getElementById('dot-tooltip').style.display='none';}
+
+// ── MAP ───────────────────────────────────────────────
+function openCountry(id){
+  const c=DATA.find(d=>d.id===id);if(!c)return;
+  switchTab('map',document.querySelectorAll('.ntab')[2]);
+  // give the map tab time to become visible before zooming
+  setTimeout(()=>{
+    showDetail(c);
+    zoomToCountry(c.id);
+  },120);
+}
+
+function zoomToCountry(countryId){
+  if(!window._mapG||!window._mapSvg) return;
+  const g=window._mapG, svg=window._mapSvg;
+  const zoom=window._mapZoom, path=window._mapPath;
+  const W=window._mapW, H=window._mapH;
+  // find the matching path feature
+  const pathEl=g.selectAll('path').filter(d=>+d.id===countryId);
+  if(pathEl.empty()) return;
+  const d=pathEl.datum();
+  // highlight
+  g.selectAll('path').attr('stroke','#fff').classed('selected',false);
+  pathEl.attr('stroke','#0079c1').classed('selected',true);
+  // compute bounds and zoom
+  const bounds=path.bounds(d);
+  const bW=Math.max(bounds[1][0]-bounds[0][0],1);
+  const bH=Math.max(bounds[1][1]-bounds[0][1],1);
+  const midX=(bounds[0][0]+bounds[1][0])/2;
+  const midY=(bounds[0][1]+bounds[1][1])/2;
+  const scale=Math.min(5, 0.55/Math.max(bW/W, bH/H));
+  const tx=W/2-scale*midX;
+  const ty=H/2-scale*midY;
+  svg.transition().duration(650).ease(d3.easeCubicInOut)
+    .call(zoom.transform, d3.zoomIdentity.translate(tx,ty).scale(scale));
+}
+
+function showDetail(c){
+  document.getElementById('dp-empty').style.display='none';
+  document.getElementById('dp-content').style.display='block';
+  document.getElementById('dp-name').textContent=c.name;
+  document.getElementById('dp-sub').textContent=REG[c.region];
+  const tr=v=>v>=60?`<span style="color:#2a7a3a;">▲ Improving</span>`:v<=45?`<span style="color:#817d77;">~ Emerging</span>`:`<span style="color:#435d7f;">→ Stable</span>`;
+  const domScores=[['dp-h',c.h],['dp-a',c.ag],['dp-s',c.si],['dp-w',c.women],['dp-cl',c.climate],['dp-ctx',c.ctx],['dp-pri',c.pri]];
+  const domTrends=[['dp-ht',c.h],['dp-at',c.ag],['dp-st',c.si],['dp-wt',c.women],['dp-clt',c.climate],['dp-ctxt',c.ctx],['dp-prit',c.pri]];
+  domScores.forEach(([id,v])=>document.getElementById(id).textContent=v);
+  domTrends.forEach(([id,v])=>document.getElementById(id).innerHTML=tr(v));
+  renderDpChart(c);
+  renderSubs(c);
+}
+
+function buildDpIndSel(c){ /* no-op — selector removed, chart shows all domains */ }
+function changeDpInd(key,el,cid){ /* no-op */ }
+
+function renderDpChart(c){
+  const ctx=document.getElementById('dpChart').getContext('2d');
+  if(dpChart)dpChart.destroy();
+
+  // 7 domains — indicator key used to build time series, domain label + colour
+  const domains=[
+    {key:'h',    label:'Healthcare',        color:'#0079c1', indKey:'uhc'},
+    {key:'ag',   label:'Agriculture',       color:'#7a9a1f', indKey:'food'},
+    {key:'si',   label:'Social infra.',     color:'#435d7f', indKey:'water'},
+    {key:'women',label:"Gender",      color:'#817d77', indKey:'gii'},
+    {key:'climate',label:'Climate',         color:'#7a6a30', indKey:'ndgain'},
+    {key:'ctx',  label:'Country context',   color:'#a05020', indKey:'state'},
+    {key:'pri',  label:'Soc.-econ.',        color:'#3a5a6a', indKey:'conces'},
+  ];
+
+  const datasets=domains.flatMap(d=>{
+    const all=getTS(c,d.indKey);
+    // normalise to 0-100 using domain score as anchor at 2023
+    const anchor=c[d.key];
+    const base=all[HE];
+    const norm=all.map(v=>Math.round(Math.max(0,Math.min(100,v+(anchor-base)))));
+    return[
+      {
+        label:d.label,
+        data:norm.map((v,i)=>i<=HE?v:null),
+        borderColor:d.color,
+        backgroundColor:'transparent',
+        borderWidth:2,
+        tension:0.3,
+        pointRadius:2.5,
+        pointBackgroundColor:d.color,
+      },
+      {
+        label:d.label+' (proj.)',
+        data:norm.map((v,i)=>i>=HE?v:null),
+        borderColor:d.color,
+        backgroundColor:'transparent',
+        borderDash:[4,3],
+        borderWidth:1.5,
+        tension:0.3,
+        pointRadius:2,
+        pointBackgroundColor:d.color,
+        pointStyle:'circle',
+        showLine:true,
+      }
+    ];
+  });
+
+  dpChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:YEARS,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index',
+          intersect:false,
+          callbacks:{
+            title:items=>items.length?'Year: '+YEARS[items[0].dataIndex]:'',
+            label:item=>item.dataset.label.includes('proj.')?null:(' '+item.dataset.label+': '+item.raw),
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{display:false},
+          ticks:{font:{size:9},color:'#9aa4ae',autoSkip:false,maxRotation:0},
+        },
+        y:{
+          min:0,max:100,
+          grid:{color:'#f0f1f3'},
+          ticks:{font:{size:9},color:'#9aa4ae',stepSize:25}
+        }
+      }
+    }
+  });
+
+  // Build custom HTML legend
+  document.getElementById('dp-chart-legend').innerHTML=domains.map(d=>`
+    <span style="display:flex;align-items:center;gap:4px;">
+      <span style="width:16px;height:2.5px;background:${d.color};border-radius:2px;display:inline-block;flex-shrink:0;"></span>
+      <span style="color:var(--mut);">${d.label}</span>
+    </span>`).join('');
+}
+
+function chipClass(t){return t==='up'?'chip-up':t==='em'?'chip-em':'chip-fl';}
+function chipText(t){return t==='up'?'▲ Improving':t==='em'?'~ Emerging':'→ Stable';}
+
+function renderSubs(c){
+  // Group subdomains by domain
+  const domainOrder=Object.keys(DOMAIN_META);
+  let sdIndex=0;
+  let html='';
+  domainOrder.forEach(dk=>{
+    const dm=DOMAIN_META[dk];
+    const sds=SUBDOMAINS.filter(s=>s.domain===dk);
+    if(!sds.length) return;
+    // domain heading
+    html+=`<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);padding:10px 0 6px;border-bottom:2px solid ${sds[0].color}20;margin-bottom:6px;">${dm.label}</div>`;
+    sds.forEach(s=>{
+      const i=sdIndex++;
+      const inds=INDICATORS.filter(x=>x.sub===s.key);
+      const val=subVal(c,s.key);
+      html+=`<div class="sd-block" style="margin-bottom:6px;">
+        <div class="sd-head" onclick="toggleSub(${i})">
+          <div class="sd-head-left"><div class="sd-dot" style="background:${s.color};"></div><span class="sd-label">${s.label}</span></div>
+          <div class="sd-head-right">
+            <div class="sd-mini"><div class="sd-mini-fill" style="width:${val}%;background:${s.color};"></div></div>
+            <span class="sd-val">${val}</span><span class="sd-chev" id="chev-${i}">▾</span>
+          </div>
+        </div>
+        <div class="sd-body" id="sdb-${i}">
+          ${inds.map(ind=>{
+            const v=indVal(c,ind.key);
+            const histVals=YEARS.slice(0,HE+1).map((_,yi)=>getTS(c,ind.key)[yi]);
+            const projVals=YEARS.slice(HE).map((_,yi)=>getTS(c,ind.key)[HE+yi]);
+            const allVals=[...histVals,...projVals.slice(1)];
+            const allYears=[...YEARS.slice(0,HE+1),...YEARS.slice(HE+1)];
+            const prev=histVals[3];
+            const t=Math.abs(v-prev)<3?'fl':v>prev?'up':'em';
+            const col=s.color;
+
+            // Confidence: based on variance in historical trend — lower variance = higher confidence
+            const histDeltas=histVals.slice(1).map((v,i)=>v-histVals[i]);
+            const variance=histDeltas.reduce((s,d)=>s+d*d,0)/histDeltas.length;
+            const confPct=Math.round(Math.max(40,Math.min(85,85-variance*0.8)));
+            const confLabel=confPct>=75?'High':confPct>=60?'Moderate':'Low';
+            const confCol=confPct>=75?'#2a7a3a':confPct>=60?'#7a6a30':'#c0392b';
+            // Confidence band: widens linearly from 0 at 2023 to ±bandMax at 2025
+            const bandMax=Math.round((100-confPct)*0.4); // e.g. 75% conf → ±10 band
+
+            const CW=320, CH=106;
+            const PAD={t:4,b:28,l:34,r:12};
+            const tW=CW-PAD.l-PAD.r, tH=CH-PAD.t-PAD.b;
+
+            const rawMin=Math.min(...allVals)-bandMax;
+            const rawMax=Math.max(...allVals)+bandMax;
+            const range=Math.max(rawMax-rawMin,10);
+            const yMin=Math.max(0, Math.floor((rawMin-range*0.1)/5)*5);
+            const yMax=Math.min(100, Math.ceil((rawMax+range*0.1)/5)*5);
+
+            const xS=i=>PAD.l+(i/(allVals.length-1))*tW;
+            const yS=val=>PAD.t+(1-(Math.max(yMin,Math.min(yMax,val))-yMin)/(yMax-yMin||1))*tH;
+
+            const yStep=Math.ceil((yMax-yMin)/4/5)*5||5;
+            const yTicks=[];
+            for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep) yTicks.push(y);
+
+            const xLabelIdxs=allYears.reduce((acc,yr,i)=>{
+              if([2017,2019,2021,2023,2025].includes(yr)) acc.push(i);
+              return acc;
+            },[]);
+
+            const histPts=histVals.map((val,i)=>`${xS(i).toFixed(1)},${yS(val).toFixed(1)}`).join(' ');
+            const areaBase=yS(yMin).toFixed(1);
+            const areaPath=`${xS(0).toFixed(1)},${areaBase} ${histPts} ${xS(HE).toFixed(1)},${areaBase}`;
+            const projStartIdx=HE;
+            const projPts=projVals.map((val,i)=>`${xS(projStartIdx+i).toFixed(1)},${yS(val).toFixed(1)}`).join(' ');
+            const divX=xS(HE).toFixed(1);
+
+            // Confidence band polygon: upper edge then lower edge reversed
+            const bandUpper=projVals.map((val,i)=>{
+              const spread=bandMax*(i/(projVals.length-1));
+              return`${xS(projStartIdx+i).toFixed(1)},${yS(val+spread).toFixed(1)}`;
+            });
+            const bandLower=[...projVals].reverse().map((val,i)=>{
+              const ri=projVals.length-1-i;
+              const spread=bandMax*(ri/(projVals.length-1));
+              return`${xS(projStartIdx+ri).toFixed(1)},${yS(val-spread).toFixed(1)}`;
+            });
+            const bandPath=[...bandUpper,...bandLower].join(' ');
+
+            const deltaVal=v-histVals[0];
+            const deltaCol=deltaVal>3?'#2a7a3a':deltaVal<-3?'#c0392b':'#817d77';
+            const deltaStr=(deltaVal>0?'+':'')+deltaVal+' since 2017';
+
+            return`<div style="padding:11px 12px 12px 22px;border-bottom:1px solid #eff0f2;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--txt);line-height:1.3;margin-bottom:2px;">${ind.label}</div>
+              <div style="font-size:10.5px;color:var(--mut);margin-bottom:8px;">${ind.sdg} &middot; ${ind.src}</div>
+              <div style="display:flex;align-items:flex-start;gap:12px;">
+                <div style="flex-shrink:0;width:72px;padding-top:10px;">
+                  <div style="font-size:22px;font-weight:700;color:${col};line-height:1;">${v}</div>
+                  <div style="font-size:9.5px;color:var(--mut);margin-top:3px;line-height:1.3;">${ind.unit}</div>
+                  <div style="font-size:10.5px;font-weight:600;color:${deltaCol};margin-top:5px;">${deltaStr}</div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <svg width="100%" viewBox="0 0 ${CW} ${CH}" style="display:block;overflow:visible;pointer-events:all;" preserveAspectRatio="none">
+                    ${yTicks.map(y=>`
+                      <line x1="${PAD.l}" y1="${yS(y).toFixed(1)}" x2="${CW-PAD.r}" y2="${yS(y).toFixed(1)}" stroke="#eef0f3" stroke-width="1"/>
+                      <text x="${PAD.l-5}" y="${(yS(y)+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#b0b8c2">${y}</text>
+                    `).join('')}
+                    ${xLabelIdxs.map(i=>`
+                      <text x="${xS(i).toFixed(1)}" y="${(CH-PAD.b+11).toFixed(1)}" text-anchor="middle" font-size="9" fill="#b0b8c2">${allYears[i]}</text>
+                    `).join('')}
+                    <line x1="${divX}" y1="${PAD.t}" x2="${divX}" y2="${CH-PAD.b}" stroke="#dde2ea" stroke-width="1" stroke-dasharray="3,2"/>
+                    <polygon points="${areaPath}" fill="${col}" opacity="0.07"/>
+                    <polygon points="${bandPath}" fill="${col}" opacity="0.12"/>
+                    <polyline points="${histPts}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="${projPts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+                    ${histVals.map((val,i)=>`<circle cx="${xS(i).toFixed(1)}" cy="${yS(val).toFixed(1)}" r="4" fill="${col}" opacity="0.85" class="cmp-tip-dot" data-tip="${YEARS[i]}: ${val}" pointer-events="all"></circle>`).join('')}
+                    ${projVals.slice(1).map((val,i)=>`<circle cx="${xS(HE+1+i).toFixed(1)}" cy="${yS(val).toFixed(1)}" r="3.5" fill="white" stroke="${col}" stroke-width="1.5" class="cmp-tip-dot" data-tip="${YEARS[HE+1+i]} (proj): ${val}" pointer-events="all"></circle>`).join('')}
+                  </svg>
+                  <div style="display:flex;align-items:center;gap:12px;margin-top:7px;flex-wrap:wrap;">
+                    <span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--mut);">
+                      <span style="width:14px;height:2px;background:${col};display:inline-block;border-radius:1px;flex-shrink:0;"></span>Historical
+                    </span>
+                    <span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--mut);">
+                      <svg width="14" height="4" style="display:inline-block;flex-shrink:0;"><line x1="0" y1="2" x2="14" y2="2" stroke="${col}" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Projected
+                    </span>
+                    <span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--mut);">
+                      <span style="width:14px;height:7px;background:${col};opacity:0.15;display:inline-block;border-radius:1px;flex-shrink:0;"></span>±${bandMax}pt range
+                    </span>
+                    <span style="margin-left:auto;display:flex;align-items:center;gap:6px;background:#f4f5f7;border-radius:6px;padding:3px 8px;">
+                      <span style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;">Confidence</span>
+                      <span style="font-size:12px;font-weight:700;color:${confCol};">${confLabel}</span>
+                      <span style="font-size:10px;color:${confCol};opacity:.85;">${confPct}%</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('dp-subs').innerHTML=html;
+}
+
+function toggleSub(i){
+  const b=document.getElementById('sdb-'+i);
+  const ch=document.getElementById('chev-'+i);
+  b.classList.toggle('open');
+  ch.classList.toggle('open',b.classList.contains('open'));
+}
+
+let mapDomain='overall';
+const MAP_DOMAIN_LABELS={overall:'Overall index',h:'Healthcare',ag:'Agriculture',si:'Social infrastructure',women:'Gender equality',climate:'Climate adaptation',ctx:'Country context',pri:'Socio-economic performance'};
+
+function overallScore(c){return Math.round((c.h+c.ag+c.si+c.women+c.climate+c.ctx+c.pri)/7);}
+
+function mapScore(c){return mapDomain==='overall'?overallScore(c):c[mapDomain];}
+
+function mapColor(score){
+  if(score>=80) return'#1a4f72';
+  if(score>=65) return'#0079c1';
+  if(score>=50) return'#5aaed4';
+  if(score>=35) return'#a8d4e8';
+  return'#d4ebcf';
+}
+
+function setMapDomain(dom,el){
+  mapDomain=dom;
+  document.querySelectorAll('[data-grp="mapdom"]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('map-overlay-title').textContent=MAP_DOMAIN_LABELS[dom]||dom;
+  // recolour paths
+  d3.select('#wmap').selectAll('path').attr('fill',function(d){
+    const byId={};DATA.forEach(c=>byId[c.id]=c);
+    const c=byId[+d.id];return c?mapColor(mapScore(c)):'#dde2ea';
+  });
+}
+
+function initMap(){
+  mapInit=true;
+  const con=document.querySelector('.map-area');
+  const W=con.clientWidth||800,H=con.clientHeight||520;
+  const svg=d3.select('#wmap').attr('width',W).attr('height',H);
+  const proj=d3.geoNaturalEarth1().scale(W/6).translate([W/2,H/2]);
+  const path=d3.geoPath(proj);
+  const byId={};DATA.forEach(c=>byId[c.id]=c);
+  const tip=document.getElementById('mtip');
+
+  // zoom layer — all paths live inside this group so transforms apply cleanly
+  const g=svg.append('g');
+
+  // zoom behaviour — scroll/pinch to zoom, drag to pan
+  const zoom=d3.zoom()
+    .scaleExtent([1,8])
+    .on('zoom',ev=>{
+      g.attr('transform',ev.transform);
+      // keep stroke width consistent regardless of zoom level
+      g.selectAll('path').attr('stroke-width',0.5/ev.transform.k);
+      g.selectAll('path.selected').attr('stroke-width',2/ev.transform.k);
+    });
+  svg.call(zoom);
+
+  // reset button — double-click anywhere on the map resets zoom
+  svg.on('dblclick.zoom',null); // disable default d3 dblclick zoom
+  svg.on('dblclick',()=>{
+    svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity);
+  });
+
+  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{
+    g.selectAll('path').data(topojson.feature(world,world.objects.countries).features).join('path')
+      .attr('d',path)
+      .attr('fill',d=>{const c=byId[+d.id];return c?mapColor(mapScore(c)):'#dde2ea';})
+      .attr('stroke','#fff').attr('stroke-width',0.5)
+      .style('cursor',d=>byId[+d.id]?'pointer':'default')
+      .on('mousemove',function(ev,d){
+        const c=byId[+d.id];if(!c)return;
+        tip.style.display='block';
+        tip.style.left=(ev.offsetX+16)+'px';tip.style.top=(ev.offsetY-8)+'px';
+        document.getElementById('mtip-name').textContent=c.name;
+        document.getElementById('mtip-overall').textContent=overallScore(c);
+        document.getElementById('mtip-h').textContent=c.h;
+        document.getElementById('mtip-a').textContent=c.ag;
+        document.getElementById('mtip-si').textContent=c.si;
+        document.getElementById('mtip-w').textContent=c.women;
+        document.getElementById('mtip-cl').textContent=c.climate;
+        document.getElementById('mtip-r').textContent=REG[c.region];
+      })
+      .on('mouseleave',()=>tip.style.display='none')
+      .on('click',function(ev,d){
+        const c=byId[+d.id];if(!c)return;
+        ev.stopPropagation();
+        // highlight selection
+        g.selectAll('path').attr('stroke','#fff').classed('selected',false);
+        d3.select(this).attr('stroke','#0079c1').classed('selected',true);
+        // zoom to country bounds
+        const bounds=path.bounds(d);
+        const bW=bounds[1][0]-bounds[0][0];
+        const bH=bounds[1][1]-bounds[0][1];
+        const midX=(bounds[0][0]+bounds[1][0])/2;
+        const midY=(bounds[0][1]+bounds[1][1])/2;
+        // scale so country fills ~55% of the viewport, capped at 5x
+        const scale=Math.min(5, 0.55/Math.max(bW/W, bH/H));
+        const tx=W/2-scale*midX;
+        const ty=H/2-scale*midY;
+        svg.transition().duration(600).ease(d3.easeCubicInOut)
+          .call(zoom.transform, d3.zoomIdentity.translate(tx,ty).scale(scale));
+        showDetail(c);
+      });
+  });
+
+  // expose references for external zoom calls
+  window._mapG=g;
+  window._mapZoom=zoom;
+  window._mapSvg=svg;
+  window._mapPath=path;
+  window._mapW=W;
+  window._mapH=H;
+}
+
+// patch setMapDomain to use the group rather than the svg root
+const _origSetMapDomain=setMapDomain;
+setMapDomain=function(dom,el){
+  mapDomain=dom;
+  document.querySelectorAll('[data-grp="mapdom"]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('map-overlay-title').textContent=MAP_DOMAIN_LABELS[dom]||dom;
+  if(window._mapG){
+    window._mapG.selectAll('path').attr('fill',function(d){
+      const byId={};DATA.forEach(c=>byId[c.id]=c);
+      const c=byId[+d.id];return c?mapColor(mapScore(c)):'#dde2ea';
+    });
+  }
+};
+
+
+// ── Column resize ────────────────────────────────────────────────────────────
+let _resizeTh=null, _resizeStartX=0, _resizeStartW=0;
+
+function startResize(e, handle){
+  e.stopPropagation(); // don't trigger sort
+  _resizeTh = handle.parentElement;
+  _resizeStartX = e.clientX;
+  _resizeStartW = _resizeTh.offsetWidth;
+  _resizeTh.classList.add('resizing');
+  handle.classList.add('dragging');
+  document.addEventListener('mousemove', doResize);
+  document.addEventListener('mouseup', stopResize);
+  document.body.style.cursor='col-resize';
+  document.body.style.userSelect='none';
+}
+
+function doResize(e){
+  if(!_resizeTh) return;
+  const newW = Math.max(50, _resizeStartW + (e.clientX - _resizeStartX));
+  _resizeTh.style.width = newW + 'px';
+}
+
+function stopResize(){
+  if(_resizeTh){
+    _resizeTh.classList.remove('resizing');
+    _resizeTh.querySelector('.col-resize').classList.remove('dragging');
+    _resizeTh=null;
+  }
+  document.removeEventListener('mousemove', doResize);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.cursor='';
+  document.body.style.userSelect='';
+}
+
+// ── Country comparison ────────────────────────────────────────────────────────
+let cmpSelected=[];   // array of country IDs
+
+function cmpCountrySearch(q){
+  const dd=document.getElementById('cmp-country-dropdown');
+  if(!q.trim()){dd.style.display='none';return;}
+  const matches=DATA.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,10);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(c=>{
+    const sel=cmpSelected.includes(c.id);
+    return`<div class="cmp-dd-item${sel?' disabled':''}" onclick="${sel?'':'addCmpCountry('+c.id+')'}">
+      ${c.name} <span style="font-size:10px;color:var(--mut);">${REG[c.region]}</span>
+      ${sel?'<span style="float:right;font-size:10px;color:var(--mut);">Added</span>':''}
+    </div>`;
+  }).join('');
+  dd.style.display='block';
+}
+
+function addCmpCountry(id){
+  if(cmpSelected.includes(id)||cmpSelected.length>=6) return;
+  cmpSelected.push(id);
+  document.getElementById('cmp-country-input').value='';
+  document.getElementById('cmp-country-dropdown').style.display='none';
+  updateCmpChips();
+}
+
+function removeCmpCountry(id){
+  cmpSelected=cmpSelected.filter(x=>x!==id);
+  updateCmpChips();
+  if(cmpSelected.length===0) document.getElementById('cmp-detail-panel').style.display='none';
+}
+
+function clearCmpSelection(){
+  cmpSelected=[];
+  updateCmpChips();
+  document.getElementById('cmp-detail-panel').style.display='none';
+}
+
+function updateCmpChips(){
+  const container=document.getElementById('cmp-selected-chips');
+  const btn=document.getElementById('cmp-compare-btn');
+  const clr=document.getElementById('cmp-clear-btn');
+  container.innerHTML=cmpSelected.map(id=>{
+    const c=DATA.find(x=>x.id===id);
+    return`<span class="cmp-chip">${c.name}<button onclick="removeCmpCountry(${id})">×</button></span>`;
+  }).join('');
+  btn.style.display=cmpSelected.length>=2?'block':'none';
+  clr.style.display=cmpSelected.length>0?'block':'none';
+}
+
+// Colour palette for selected countries
+const CMP_COLS=['#0079c1','#e07b35','#2a7a3a','#7a5a9a','#a05020','#c0392b'];
+
+let cmpChartMode='overlay'; // 'overlay' or 'separate'
+let cmpCountries=[];
+let cmpChartInstances={};
+
+function closeCmpDetail(){
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  document.getElementById('view-compare').style.display='block';
+  document.getElementById('view-compare').classList.add('active');
+  // destroy chart instances
+  Object.values(cmpChartInstances).forEach(ch=>{try{ch.destroy();}catch(e){}});
+  cmpChartInstances={};
+}
+
+function setCmpChartMode(mode){
+  cmpChartMode=mode;
+  document.getElementById('cmpd-overlay-btn').className='fbtn'+(mode==='overlay'?' active':'');
+  document.getElementById('cmpd-separate-btn').className='fbtn'+(mode==='separate'?' active':'');
+  renderCmpDetail();
+}
+
+function showCountryComparison(){
+  cmpCountries=cmpSelected.map(id=>DATA.find(c=>c.id===id));
+  // Hide all views (use both class and style to be safe)
+  document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');v.style.display='';});
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
+  const v=document.getElementById('view-cmp-detail');
+  v.style.display='block';v.classList.add('active');
+  document.getElementById('cmpd-title').textContent=
+    cmpCountries.map(c=>c.name).join(' vs ')+' — Country Comparison';
+  cmpChartMode='overlay';
+  document.getElementById('cmpd-overlay-btn').className='fbtn active';
+  document.getElementById('cmpd-separate-btn').className='fbtn';
+  renderCmpDetail();
+  window.scrollTo(0,0);
+}
+
+function renderCmpDetail(){
+  Object.values(cmpChartInstances).forEach(ch=>{try{ch.destroy();}catch(e){}});
+  cmpChartInstances={};
+
+  const countries=cmpCountries;
+  const overall=c=>Math.round((c.h+c.ag+c.si+c.women+c.climate+c.ctx+c.pri)/7);
+  const tr=v=>v>=60?'<span style="color:#2a7a3a;font-size:11px;">▲ Improving</span>':
+    v<=45?'<span style="color:#817d77;font-size:11px;">~ Emerging</span>':
+    '<span style="color:#435d7f;font-size:11px;">→ Stable</span>';
+
+  const DOMAIN_ROWS=[
+    {key:'h',    label:'Healthcare',      col:'#0079c1'},
+    {key:'ag',   label:'Agriculture',     col:'#7a9a1f'},
+    {key:'si',   label:'Social infra.',   col:'#435d7f'},
+    {key:'women',label:'Gender eq.',      col:'#817d77'},
+    {key:'climate',label:'Climate',       col:'#7a6a30'},
+    {key:'ctx',  label:'Country context', col:'#a05020'},
+    {key:'pri',  label:'Soc.-econ.',      col:'#3a5a6a'},
+  ];
+
+  // ── Country legend ─────────────────────────────────────────────────────────
+  const legend=countries.map((c,ci)=>{
+    const col=CMP_COLS[ci%CMP_COLS.length];
+    return`<span style="display:flex;align-items:center;gap:5px;font-size:12px;">
+      <span style="width:11px;height:11px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0;"></span>
+      <strong style="color:${col};">${c.name}</strong>
+      <span style="color:var(--mut);font-size:10.5px;">${overall(c)} overall</span>
+    </span>`;
+  }).join('');
+
+  // ── Score cards overview ───────────────────────────────────────────────────
+  const scoreCards=countries.map((c,ci)=>{
+    const col=CMP_COLS[ci%CMP_COLS.length];
+    const ov=overall(c);
+    const domBars=DOMAIN_ROWS.map(d=>`
+      <div style="display:grid;grid-template-columns:90px 1fr 30px;align-items:center;gap:6px;padding:3px 12px;">
+        <span style="font-size:10.5px;color:var(--mut);text-align:right;">${d.label}</span>
+        <div style="height:5px;background:#eef0f3;border-radius:3px;overflow:hidden;">
+          <div style="width:${c[d.key]}%;height:100%;background:${d.col};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:11.5px;font-weight:700;color:var(--txt);text-align:right;">${c[d.key]}</span>
+      </div>`).join('');
+    return`<div style="flex:1;min-width:200px;background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;border-top:4px solid ${col};">
+      <div style="padding:14px 16px 12px;border-bottom:1px solid var(--bd);">
+        <div style="font-size:16px;font-weight:700;color:var(--txt);">${c.name}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:2px;">${REG[c.region]}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px;">
+          <span style="font-size:34px;font-weight:700;line-height:1;color:${col};">${ov}</span>
+          <span style="font-size:11px;color:var(--mut);">overall index</span>
+        </div>
+        <div style="margin-top:5px;">${tr(c.h)}</div>
+      </div>
+      <div style="background:#f8f9fa;padding:8px 0 10px;">${domBars}</div>
+    </div>`;
+  }).join('');
+
+  // ── Domain trends: one chart per domain, all countries overlaid ────────────
+  const domIndMap={h:'uhc',ag:'food',si:'water',women:'gii',climate:'ndgain',ctx:'state',pri:'conces'};
+  const domTrendChartsHtml=DOMAIN_ROWS.map((d,di)=>`
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:11px;font-weight:700;color:${d.col};margin-bottom:4px;">${d.label}</div>
+      <div style="position:relative;height:110px;"><canvas id="cmpd-dt-${d.key}"></canvas></div>
+    </div>`).join('');
+
+  // ── Sub-domain breakdown ───────────────────────────────────────────────────
+  const domainOrder=Object.keys(DOMAIN_META);
+  let subsHtml='';
+  let sdGlobalIdx=0;
+
+  domainOrder.forEach(dk=>{
+    const dm=DOMAIN_META[dk];
+    const sds=SUBDOMAINS.filter(s=>s.domain===dk);
+    if(!sds.length) return;
+    const accentCol=sds[0].color;
+
+    subsHtml+=`<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;">
+        <span style="width:4px;height:18px;background:${accentCol};border-radius:2px;flex-shrink:0;display:inline-block;"></span>
+        <span style="font-size:14px;font-weight:700;color:var(--txt);">${dm.label}</span>
+      </div>`;
+
+    sds.forEach(sd=>{
+      const sdIdx=sdGlobalIdx++;
+      const inds=INDICATORS.filter(x=>x.sub===sd.key);
+      subsHtml+=`<div class="sd-block" style="border-left:none;border-right:none;border-top:none;border-radius:0;margin-bottom:0;">
+        <div class="sd-head" onclick="toggleCmpSub(${sdIdx})">
+          <div class="sd-head-left">
+            <div class="sd-dot" style="background:${sd.color};"></div>
+            <span class="sd-label">${sd.label}</span>
+          </div>
+          <div class="sd-head-right">
+            ${countries.map((c,ci)=>{
+              const v=subVal(c,sd.key);
+              const col=CMP_COLS[ci%CMP_COLS.length];
+              return`<span style="font-size:11px;font-weight:700;color:${col};min-width:22px;text-align:right;">${v}</span>`;
+            }).join('<span style="color:#dde2ea;font-size:10px;margin:0 2px;">|</span>')}
+            <span class="sd-chev" id="cmpchev-${sdIdx}">▾</span>
+          </div>
+        </div>
+        <div class="sd-body" id="cmpsdb-${sdIdx}">`;
+
+      inds.forEach(ind=>{
+        const indChartId=`cmpind-${sd.key}-${ind.key}`;
+        subsHtml+=`<div style="padding:12px 14px 14px;border-bottom:1px solid #f3f4f6;min-height:0;">
+          <div style="font-size:12.5px;font-weight:600;color:var(--txt);margin-bottom:2px;">${ind.label}</div>
+          <div style="font-size:10.5px;color:var(--mut);margin-bottom:8px;">${ind.sdg} · ${ind.src} · ${ind.unit}</div>
+
+          <div id="${indChartId}"></div>
+        </div>`;
+      });
+      subsHtml+=`</div></div>`;
+    });
+    subsHtml+=`</div>`;
+  });
+
+  // ── Assemble page ──────────────────────────────────────────────────────────
+  document.getElementById('cmpd-body').innerHTML=`
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;">${scoreCards}</div>
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        Domain trends — 2017 to 2026
+        <span class="badge hist-badge">Historical</span><span class="badge pred-badge">Projected</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">${legend}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;">${domTrendChartsHtml}</div>
+    </div>
+    ${subsHtml}`;
+
+  // ── Render charts after DOM is ready ──────────────────────────────────────
+  const _chartMode=cmpChartMode; // capture mode now, not when setTimeout fires
+  setTimeout(()=>{
+
+    // Domain trend charts — one per domain, all countries
+    DOMAIN_ROWS.forEach(d=>{
+      const ctx=document.getElementById('cmpd-dt-'+d.key);
+      if(!ctx) return;
+      const allY=YEARS;
+      const datasets=countries.flatMap((c,ci)=>{
+        const col=CMP_COLS[ci%CMP_COLS.length];
+        const vals=YEARS.map((_,i)=>getTS(c,domIndMap[d.key])[i]);
+        // Anchor to domain score
+        const anchor=c[d.key];
+        const base=vals[HE];
+        const norm=vals.map(v=>Math.round(Math.max(0,Math.min(100,v+(anchor-base)))));
+        return[
+          {label:c.name,data:norm.map((v,i)=>i<=HE?v:null),borderColor:col,backgroundColor:col+'15',fill:false,borderWidth:2,tension:0.3,pointRadius:2,pointBackgroundColor:col},
+          {label:'_proj',data:norm.map((v,i)=>i>=HE?v:null),borderColor:col,borderDash:[4,3],borderWidth:1.5,tension:0.3,pointRadius:1.5,pointStyle:'circle',pointBackgroundColor:'white',pointBorderColor:col,showLine:true},
+        ];
+      });
+      try{cmpChartInstances['dt-'+d.key]=new Chart(ctx.getContext('2d'),{
+        type:'line',data:{labels:YEARS,datasets},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:i=>i.dataset.label.startsWith('_')?null:' '+i.dataset.label+': '+i.raw}}},
+          scales:{
+            x:{grid:{display:false},ticks:{font:{size:8},color:'#9aa4ae',autoSkip:true,maxTicksLimit:5,maxRotation:0}},
+            y:{grid:{color:'#f0f1f3'},ticks:{font:{size:8},color:'#9aa4ae'}}
+          }}
+      });}catch(e){console.warn(e);}
+    });
+
+    // Indicator charts — SVG with confidence band, matching country detail style
+    document.querySelectorAll('[id^="cmpind-"]').forEach(el=>{
+      const parts=el.id.split('-');
+      const indKey=parts[2];
+      const ind=INDICATORS.find(x=>x.key===indKey);
+      if(!ind) return;
+
+      // Shared Y scale across all countries for this indicator
+      const allVals=countries.flatMap(c=>{
+        const h=YEARS.slice(0,HE+1).map((_,i)=>getTS(c,ind.key)[i]);
+        const p=YEARS.slice(HE).map((_,i)=>getTS(c,ind.key)[HE+i]);
+        return[...h,...p];
+      });
+      const rawMin=Math.min(...allVals), rawMax=Math.max(...allVals);
+      const range=Math.max(rawMax-rawMin,10);
+      const yMin=Math.max(0,Math.floor((rawMin-range*0.18)/5)*5);
+      const yMax=Math.min(100,Math.ceil((rawMax+range*0.18)/5)*5);
+
+      // Helper: build one SVG chart for one country
+      function buildIndSVG(c,col){
+        const histVals=YEARS.slice(0,HE+1).map((_,i)=>getTS(c,ind.key)[i]);
+        const projVals=YEARS.slice(HE).map((_,i)=>getTS(c,ind.key)[HE+i]);
+        const allY=[...histVals,...projVals.slice(1)];
+        // Confidence
+        const deltas=histVals.slice(1).map((v,i)=>v-histVals[i]);
+        const variance=deltas.reduce((s,d)=>s+d*d,0)/deltas.length;
+        const confPct=Math.round(Math.max(40,Math.min(85,85-variance*0.8)));
+        const confLabel=confPct>=75?'High':confPct>=60?'Moderate':'Low';
+        const confCol=confPct>=75?'#2a7a3a':confPct>=60?'#7a6a30':'#c0392b';
+        const bandMax=Math.round((100-confPct)*0.4);
+
+        const CW=320,CH=160,PAD={t:6,b:28,l:34,r:10};
+        const tW=CW-PAD.l-PAD.r,tH=CH-PAD.t-PAD.b;
+        const xS=i=>PAD.l+(i/(allY.length-1))*tW;
+        const yS=v=>PAD.t+(1-(Math.max(yMin,Math.min(yMax,v))-yMin)/(yMax-yMin||1))*tH;
+
+        const yStep=Math.ceil((yMax-yMin)/3/5)*5||5;
+        const yTicks=[];
+        for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep) yTicks.push(y);
+        const xLabelIdxs=YEARS.reduce((a,yr,i)=>{if([2017,2019,2021,2023,2025].includes(yr))a.push(i);return a;},[]);
+
+        const histPts=histVals.map((v,i)=>`${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+        const projPts=projVals.map((v,i)=>`${xS(HE+i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+        const areaBase=yS(yMin).toFixed(1);
+        const areaPath=`${xS(0).toFixed(1)},${areaBase} ${histPts} ${xS(HE).toFixed(1)},${areaBase}`;
+        const divX=xS(HE).toFixed(1);
+
+        // Confidence band
+        const bandUpper=projVals.map((v,i)=>`${xS(HE+i).toFixed(1)},${yS(v+bandMax*(i/(projVals.length-1))).toFixed(1)}`);
+        const bandLower=[...projVals].reverse().map((v,ri)=>{const i=projVals.length-1-ri;return`${xS(HE+i).toFixed(1)},${yS(v-bandMax*(i/(projVals.length-1))).toFixed(1)}`;});
+        const bandPath=[...bandUpper,...bandLower].join(' ');
+
+        return`<div style="margin-bottom:0;">
+          <svg width="100%" height="${CH}px" viewBox="0 0 ${CW} ${CH}" style="display:block;overflow:visible;pointer-events:all;">
+            ${yTicks.map(y=>`<line x1="${PAD.l}" y1="${yS(y).toFixed(1)}" x2="${CW-PAD.r}" y2="${yS(y).toFixed(1)}" stroke="#eef0f3" stroke-width="1"/>
+              <text x="${PAD.l-4}" y="${(yS(y)+3.5).toFixed(1)}" text-anchor="end" font-size="8" fill="#b0b8c2">${y}</text>`).join('')}
+            ${xLabelIdxs.map(i=>`<text x="${xS(i).toFixed(1)}" y="${(CH-PAD.b+10).toFixed(1)}" text-anchor="middle" font-size="8" fill="#b0b8c2">${YEARS[i]}</text>`).join('')}
+            <line x1="${divX}" y1="${PAD.t}" x2="${divX}" y2="${CH-PAD.b}" stroke="#dde2ea" stroke-width="1" stroke-dasharray="3,2"/>
+            <polygon points="${areaPath}" fill="${col}" opacity="0.07"/>
+            <polygon points="${bandPath}" fill="${col}" opacity="0.12"/>
+            <polyline points="${histPts}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${projPts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+            ${histVals.map((v,i)=>`<circle cx="${xS(i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="4" fill="${col}" opacity="0.85"></circle><circle cx="${xS(i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="14" fill="transparent" class="cmp-tip-dot" data-tip="${YEARS[i]}: ${v}" pointer-events="all" style="cursor:pointer;"></circle>`).join('')}
+            ${projVals.slice(1).map((v,i)=>`<circle cx="${xS(HE+1+i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="3.5" fill="white" stroke="${col}" stroke-width="1.2"></circle><circle cx="${xS(HE+1+i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="14" fill="transparent" class="cmp-tip-dot" data-tip="${YEARS[HE+1+i]} (proj): ${v}" pointer-events="all" style="cursor:pointer;"></circle>`).join('')}
+          </svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
+            <span style="font-size:9px;color:var(--mut);display:flex;align-items:center;gap:3px;">
+              <span style="width:12px;height:2px;background:${col};display:inline-block;border-radius:1px;"></span>Historical
+            </span>
+            <span style="font-size:9px;color:var(--mut);display:flex;align-items:center;gap:3px;">
+              <svg width="12" height="4" style="display:inline-block;"><line x1="0" y1="2" x2="12" y2="2" stroke="${col}" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Projected
+            </span>
+            <span style="font-size:9px;color:var(--mut);display:flex;align-items:center;gap:3px;">
+              <span style="width:12px;height:6px;background:${col};opacity:.15;display:inline-block;border-radius:1px;"></span>±${bandMax}pt
+            </span>
+            <span style="margin-left:auto;background:#f4f5f7;border-radius:5px;padding:2px 7px;display:flex;align-items:center;gap:5px;">
+              <span style="font-size:8.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;">Confidence</span>
+              <span style="font-size:11px;font-weight:700;color:${confCol};">${confLabel}</span>
+              <span style="font-size:9px;color:${confCol};">${confPct}%</span>
+            </span>
+          </div>
+        </div>`;
+      }
+
+      if(_chartMode==='overlay'){
+
+        // Build year-band data for tooltip: {yearIdx -> [{name,col,val,proj}]}
+        const allYears=[...YEARS.slice(0,HE+1),...YEARS.slice(HE+1)];
+        const yearData=allYears.map((yr,yi)=>{
+          return countries.map((c,ci)=>{
+            const col=CMP_COLS[ci%CMP_COLS.length];
+            const val=getTS(c,ind.key)[yi]; // getTS covers full YEARS range
+            const isProj=yi>HE;
+            return{name:c.name,col,val,isProj};
+          });
+        });
+
+        function buildCombinedSVG(){
+          const CW=320,CH=150,PAD={t:6,b:28,l:34,r:10};
+          const tW=CW-PAD.l-PAD.r, tH=CH-PAD.t-PAD.b;
+          const nPts=allYears.length;
+          const xS=i=>PAD.l+(i/(nPts-1))*tW;
+          const yS=v=>PAD.t+(1-(Math.max(yMin,Math.min(yMax,v))-yMin)/(yMax-yMin||1))*tH;
+          const bandW=tW/(nPts-1);
+
+          const yStep=Math.ceil((yMax-yMin)/3/5)*5||5;
+          const yTicks=[];
+          for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep) yTicks.push(y);
+          const xLabelIdxs=allYears.reduce((a,yr,i)=>{if([2017,2019,2021,2023,2025].includes(yr))a.push(i);return a;},[]);
+          const divX=xS(HE).toFixed(1);
+
+          let svgBody=``;
+          // gridlines
+          svgBody+=yTicks.map(y=>`<line x1="${PAD.l}" y1="${yS(y).toFixed(1)}" x2="${CW-PAD.r}" y2="${yS(y).toFixed(1)}" stroke="#eef0f3" stroke-width="1"/>
+            <text x="${PAD.l-4}" y="${(yS(y)+3.5).toFixed(1)}" text-anchor="end" font-size="8" fill="#b0b8c2">${y}</text>`).join('');
+          svgBody+=xLabelIdxs.map(i=>`<text x="${xS(i).toFixed(1)}" y="${(CH-PAD.b+10).toFixed(1)}" text-anchor="middle" font-size="8" fill="#b0b8c2">${allYears[i]}</text>`).join('');
+          svgBody+=`<line x1="${divX}" y1="${PAD.t}" x2="${divX}" y2="${CH-PAD.b}" stroke="#dde2ea" stroke-width="1" stroke-dasharray="3,2"/>`;
+
+          // Lines and dots
+          countries.forEach((c,ci)=>{
+            const col=CMP_COLS[ci%CMP_COLS.length];
+            const histVals=YEARS.slice(0,HE+1).map((_,i)=>getTS(c,ind.key)[i]);
+            const projVals=YEARS.slice(HE).map((_,i)=>getTS(c,ind.key)[HE+i]);
+            const deltas=histVals.slice(1).map((v,i)=>v-histVals[i]);
+            const variance=deltas.reduce((s,d)=>s+d*d,0)/deltas.length;
+            const confPct=Math.round(Math.max(40,Math.min(85,85-variance*0.8)));
+            const bandMax=Math.round((100-confPct)*0.4);
+            const bandUpper=projVals.map((v,i)=>`${xS(HE+i).toFixed(1)},${yS(v+bandMax*(i/(projVals.length-1))).toFixed(1)}`);
+            const bandLower=[...projVals].reverse().map((v,ri)=>{const i=projVals.length-1-ri;return`${xS(HE+i).toFixed(1)},${yS(v-bandMax*(i/(projVals.length-1))).toFixed(1)}`;});
+            svgBody+=`<polygon points="${[...bandUpper,...bandLower].join(' ')}" fill="${col}" opacity="0.1"/>`;
+            const histPts=histVals.map((v,i)=>`${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+            const projPts=projVals.map((v,i)=>`${xS(HE+i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+            const areaBase=yS(yMin).toFixed(1);
+            svgBody+=`<polygon points="${xS(0).toFixed(1)},${areaBase} ${histPts} ${xS(HE).toFixed(1)},${areaBase}" fill="${col}" opacity="0.05"/>`;
+            svgBody+=`<polyline points="${histPts}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+            svgBody+=`<polyline points="${projPts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>`;
+            svgBody+=histVals.map((v,i)=>`<circle cx="${xS(i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="3.5" fill="${col}" opacity="0.85"/>`).join('');
+            svgBody+=projVals.slice(1).map((v,i)=>`<circle cx="${xS(HE+1+i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="3" fill="white" stroke="${col}" stroke-width="1.2"/>`).join('');
+          });
+
+          // Invisible year-band rectangles ON TOP for hover — one per year
+          // Encode all country values for that year as data-tip
+          svgBody+=allYears.map((yr,yi)=>{
+            const cx=parseFloat(xS(yi).toFixed(1));
+            const x=(cx - bandW/2).toFixed(1);
+            const tipLines=yearData[yi].map(d=>`${d.name}: ${d.val}${d.isProj?' (proj)':''}`).join(' | ');
+            const tipText=`${yr}: ${tipLines}`;
+            return`<rect x="${x}" y="${PAD.t}" width="${bandW.toFixed(1)}" height="${tH}" fill="transparent" class="cmp-year-band" data-yi="${yi}" data-tip="${tipText}" style="cursor:crosshair;" pointer-events="all"/>`;
+          }).join('');
+
+          return`<div class="cmp-chart-wrap" style="position:relative;">
+            <svg width="100%" height="${CH}px" viewBox="0 0 ${CW} ${CH}" style="display:block;overflow:visible;" pointer-events="all">${svgBody}</svg>
+            <div id="cmp-year-line" style="display:none;position:absolute;top:${PAD.t}px;width:1px;background:rgba(0,0,0,.2);height:${tH}px;pointer-events:none;"></div>
+          </div>`;
+        }
+
+        const summaryRows=countries.map((c,ci)=>{
+          const col=CMP_COLS[ci%CMP_COLS.length];
+          const v=indVal(c,ind.key);
+          const hist=YEARS.slice(0,HE+1).map((_,i)=>getTS(c,ind.key)[i]);
+          const delta=v-hist[0];
+          const deltaCol=delta>3?'#2a7a3a':delta<-3?'#c0392b':'#817d77';
+          const deltas2=hist.slice(1).map((vv,i)=>vv-hist[i]);
+          const variance=deltas2.reduce((s,d)=>s+d*d,0)/deltas2.length;
+          const confPct=Math.round(Math.max(40,Math.min(85,85-variance*0.8)));
+          const confLabel=confPct>=75?'High':confPct>=60?'Moderate':'Low';
+          const confCol=confPct>=75?'#2a7a3a':confPct>=60?'#7a6a30':'#c0392b';
+          const bandMax=Math.round((100-confPct)*0.4);
+          return`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:5px;min-width:100px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0;"></span>
+              <span style="font-size:12px;font-weight:600;color:${col};">${c.name}</span>
+            </span>
+            <span style="font-size:16px;font-weight:700;color:var(--txt);">${v}</span>
+            <span style="font-size:11px;font-weight:600;color:${deltaCol};">${delta>0?'+':''}${delta} since 2017</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:4px;background:#f4f5f7;border-radius:5px;padding:2px 8px;">
+              <span style="font-size:8.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;">Confidence</span>
+              <span style="font-size:11px;font-weight:700;color:${confCol};">${confLabel}</span>
+              <span style="font-size:9px;color:${confCol};">${confPct}% ±${bandMax}pt</span>
+            </span>
+          </div>`;
+        }).join('');
+
+        const legRow=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f3f4f6;">
+          ${countries.map((c,ci)=>{const col=CMP_COLS[ci%CMP_COLS.length];return`<span style="display:flex;align-items:center;gap:5px;font-size:11px;"><span style="width:16px;height:2px;background:${col};display:inline-block;border-radius:1px;"></span><strong style="color:${col};">${c.name}</strong></span>`;}).join('')}
+          <span style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--mut);margin-left:auto;"><svg width="14" height="4"><line x1="0" y1="2" x2="14" y2="2" stroke="#999" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Projected</span>
+        </div>`;
+
+        el.innerHTML=legRow+buildCombinedSVG()+`<div style="margin-top:4px;">${summaryRows}</div>`;
+
+        // Year-band hover: single mouseover on the wrap div
+        const wrap=el.querySelector('.cmp-chart-wrap');
+        if(wrap){
+          wrap.addEventListener('mousemove',function(e){
+            const band=e.target.closest ? e.target.closest('.cmp-year-band') : (e.target.classList.contains('cmp-year-band')?e.target:null);
+            if(band){
+              // Build rich tooltip
+              const yi=parseInt(band.dataset.yi);
+              const yr=allYears[yi];
+              const isProj=yi>HE;
+              const lines=yearData[yi].map(d=>`<span style="display:flex;align-items:center;gap:6px;margin-top:3px;"><span style="width:8px;height:8px;border-radius:50%;background:${d.col};flex-shrink:0;"></span><span style="color:#cde;">${d.name}:</span><strong style="color:#fff;">${d.val}</strong>${d.isProj?'<span style="color:#f0b44c;font-size:9px;margin-left:2px;">proj</span>':''}</span>`).join('');
+              const t=document.getElementById('cmp-svg-tip');
+              if(t){
+                t.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px;">${yr}${isProj?' (projected)':''}</div>${lines}`;
+                t.style.display='block';
+                t.style.left=Math.min(e.clientX+16,window.innerWidth-200)+'px';
+                t.style.top=Math.max(e.clientY-20,8)+'px';
+              }
+            } else {
+              hideCmpTip();
+            }
+          });
+          wrap.addEventListener('mouseleave',hideCmpTip);
+        }
+
+      } else {
+        // Separate: one SVG per country side by side
+        const svgs=countries.map((c,ci)=>{
+          const col=CMP_COLS[ci%CMP_COLS.length];
+          const v=indVal(c,ind.key);
+          const hist=YEARS.slice(0,HE+1).map((_,i)=>getTS(c,ind.key)[i]);
+          const delta=v-hist[0];
+          const deltaCol=delta>3?'#2a7a3a':delta<-3?'#c0392b':'#817d77';
+          return`<div style="flex:1;min-width:200px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0;"></span>
+              <span style="font-size:11px;font-weight:600;color:${col};">${c.name}</span>
+              <span style="font-size:14px;font-weight:700;color:var(--txt);margin-left:4px;">${v}</span>
+              <span style="font-size:10.5px;font-weight:600;color:${deltaCol};">${delta>0?'+':''}${delta}</span>
+            </div>
+            ${buildIndSVG(c,col)}
+          </div>`;
+        }).join('');
+        el.innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;">${svgs}</div>`;
+        el.querySelectorAll('.cmp-chart-wrap').forEach(wrap=>{
+          wrap.addEventListener('mouseover',function(e){
+            const tip=e.target.getAttribute && e.target.getAttribute('data-tip');
+            if(tip) showCmpTip(e,tip);
+          });
+          wrap.addEventListener('mousemove',function(e){
+            const tip=e.target.getAttribute && e.target.getAttribute('data-tip');
+            if(tip) showCmpTip(e,tip);
+          });
+          wrap.addEventListener('mouseout',function(e){
+            if(e.target.getAttribute && e.target.getAttribute('data-tip')) hideCmpTip();
+          });
+        });
+      }
+    });
+  },100);
+}
+
+
+
+function showCmpTip(ev,text){
+  const t=document.getElementById('cmp-svg-tip');
+  if(!t) return;
+  t.innerHTML=`<div style="font-size:12px;">${text}</div>`;
+  t.style.display='block';
+  t.style.left=Math.min(ev.clientX+14,window.innerWidth-200)+'px';
+  t.style.top=Math.max(ev.clientY-36,8)+'px';
+}
+function hideCmpTip(){
+  const t=document.getElementById('cmp-svg-tip');
+  if(t) t.style.display='none';
+}
+// Delegated listener — works even on dynamically inserted SVG circles
+document.addEventListener('mouseover',function(e){
+  const dot=e.target.closest('.cmp-tip-dot');
+  if(dot && dot.dataset.tip) showCmpTip(e, dot.dataset.tip);
+});
+document.addEventListener('mousemove',function(e){
+  const dot=e.target.closest('.cmp-tip-dot');
+  if(dot){
+    const t=document.getElementById('cmp-svg-tip');
+    if(t && t.style.display==='block'){
+      t.style.left=Math.min(e.clientX+14,window.innerWidth-180)+'px';
+      t.style.top=(e.clientY-36)+'px';
+    }
+  }
+});
+document.addEventListener('mouseout',function(e){
+  if(e.target.closest('.cmp-tip-dot')) hideCmpTip();
+});
+function editCmpCountries(){
+  const panel=document.getElementById('cmpd-edit-panel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+  updateEditChips();
+  document.getElementById('cmpd-edit-input').value='';
+  document.getElementById('cmpd-edit-dropdown').style.display='none';
+}
+
+function updateEditChips(){
+  document.getElementById('cmpd-edit-chips').innerHTML=cmpSelected.map(id=>{
+    const c=DATA.find(x=>x.id===id);
+    const ci=cmpSelected.indexOf(id);
+    const col=CMP_COLS[ci%CMP_COLS.length];
+    return`<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;background:${col}20;color:${col};border:1px solid ${col}60;font-size:12px;font-weight:500;">
+      ${c.name}
+      <button onclick="removeCmpEditCountry(${id})" style="background:none;border:none;cursor:pointer;font-size:13px;color:${col};padding:0;line-height:1;">×</button>
+    </span>`;
+  }).join('');
+}
+
+function removeCmpEditCountry(id){
+  cmpSelected=cmpSelected.filter(x=>x!==id);
+  updateCmpChips();
+  updateEditChips();
+}
+
+function cmpEditSearch(q){
+  const dd=document.getElementById('cmpd-edit-dropdown');
+  if(!q.trim()){dd.style.display='none';return;}
+  const matches=DATA.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,10);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(c=>{
+    const sel=cmpSelected.includes(c.id);
+    return`<div class="cmp-dd-item${sel?' disabled':''}" onclick="${sel?'':('addEditCountry('+c.id+')')}">
+      ${c.name} <span style="font-size:10px;color:var(--mut);">${REG[c.region]}</span>
+      ${sel?'<span style="float:right;font-size:10px;color:var(--mut);">Added</span>':''}
+    </div>`;
+  }).join('');
+  dd.style.display='block';
+}
+
+function addEditCountry(id){
+  if(cmpSelected.includes(id)||cmpSelected.length>=6) return;
+  cmpSelected.push(id);
+  document.getElementById('cmpd-edit-input').value='';
+  document.getElementById('cmpd-edit-dropdown').style.display='none';
+  updateCmpChips();
+  updateEditChips();
+}
+
+function applyEditSelection(){
+  if(cmpSelected.length<2) return;
+  cmpCountries=cmpSelected.map(id=>DATA.find(c=>c.id===id));
+  document.getElementById('cmpd-title').textContent=cmpCountries.map(c=>c.name).join(' vs ')+' — Country Comparison';
+  document.getElementById('cmpd-edit-panel').style.display='none';
+  renderCmpDetail();
+  window.scrollTo(0,0);
+}
+
+function toggleCmpSub(i){
+  const b=document.getElementById('cmpsdb-'+i);
+  const ch=document.getElementById('cmpchev-'+i);
+  if(!b) return;
+  b.classList.toggle('open');
+  if(ch) ch.classList.toggle('open',b.classList.contains('open'));
+  // Trigger chart resize after open
+  if(b.classList.contains('open')){
+    setTimeout(()=>Object.values(cmpChartInstances).forEach(c=>{try{c.resize();}catch(e){}}),50);
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#cmp-select-bar')){
+    const dd=document.getElementById('cmp-country-dropdown');
+    if(dd) dd.style.display='none';
+  }
+});
+
+
+// Delegated listener for SVG circle tooltips
+function isCmpDot(el){
+  return el && el.classList && el.classList.contains('cmp-tip-dot');
+}
+document.addEventListener('mouseover',function(e){
+  const el=e.target;
+  if(isCmpDot(el) && el.dataset && el.dataset.tip) showCmpTip(e, el.dataset.tip);
+});
+document.addEventListener('mousemove',function(e){
+  if(isCmpDot(e.target)){
+    const t=document.getElementById('cmp-svg-tip');
+    if(t && t.style.display==='block'){
+      t.style.left=Math.min(e.clientX+14,window.innerWidth-180)+'px';
+      t.style.top=(e.clientY-36)+'px';
+    }
+  }
+});
+document.addEventListener('mouseout',function(e){
+  if(isCmpDot(e.target)) hideCmpTip();
+});
+buildOvIndSel();
+renderTable();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+# ----------------------------
+# OS / editor noise
+# ----------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----------------------------
+# Python artifacts
+# ----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ----------------------------
+# Node / frontend artifacts
+# ----------------------------
+node_modules/
+dashboard/node_modules/
+dist/
+build/
+coverage/
+dashboard/dist/
+dashboard/.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ----------------------------
+# Environment / secrets
+# ----------------------------
+.env
+.env.*
+!.env.example
+dashboard/.env
+dashboard/.env.*
+!dashboard/.env.example
+src/fetch/.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*credentials*.json
+*service-account*.json
+.secrets*
+
+# ----------------------------
+# Runtime and local outputs
+# ----------------------------
+*.log
+*.pid
+*.seed
+*.tmp
+*.temp
+
+# ----------------------------
+# Generated data and exports
+# Keep data structure docs/placeholders, and allow ND-GAIN zip only.
+# ----------------------------
+data/clean/**
+!data/clean/.gitkeep
+
+data/processed/**
+!data/processed/.gitkeep
+
+data/organized/**
+!data/organized/.gitkeep
+!data/organized/README.md
+!data/organized/v1/
+!data/organized/v1/.gitkeep
+
+data/raw/**
+!data/raw/README.md
+!data/raw/nd-gain/
+data/raw/nd-gain/**
+!data/raw/nd-gain/ndgain_countryindex_2026.zip
+!data/raw/world-bank/
+!data/raw/world-bank/.gitkeep
+!data/raw/world-bank-imf-concessionality/
+!data/raw/world-bank-imf-concessionality/.gitkeep
+!data/raw/owid-state-capacity/
+!data/raw/owid-state-capacity/.gitkeep
+!data/raw/undp-hdr/
+!data/raw/undp-hdr/.gitkeep
+!data/raw/unsdg/
+!data/raw/unsdg/.gitkeep
+
