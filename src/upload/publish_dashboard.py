@@ -318,6 +318,7 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     wide["overall"] = wide.apply(_overall, axis=1)
 
     codes = inputs.country_codes.copy()
+    codes["id"] = codes["iso_numeric"].astype(int)
     codes_lookup = codes.set_index("iso3")
 
     for iso3, group in wide.groupby("country_code"):
@@ -389,33 +390,85 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
 
 
 def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
-    """
-    Assemble `timeseries.json`.
+    # dict[str, dict[str, list[Optional[float]]]]
+    def _keep_aggregate_rows(df: pd.DataFrame) -> pd.DataFrame:
+        mask = pd.Series(True, index=df.index)
+        if "sex" in df.columns:
+            mask &= df["sex"].isna() | df["sex"].isin({"BOTHSEX"})
+        if "age" in df.columns:
+            mask &= df["age"].isna() | df["age"].isin({"ALLAGE", "_T"})
+        if "location" in df.columns:
+            mask &= df["location"].isna() | df["location"].isin({"ALLAREA"})
+        
+        return df[mask]
 
-    Shape:
-        {
-          "<ISO3>": {
-            "<indicator_key>": [val_year_0, val_year_1, ..., val_year_N]
-          }
-        }
+    
+    from src.calculating.pillar_taxonomy import load_taxonomy
+    taxonomy = load_taxonomy()
+    series_to_key = {t.series_code: t.frontend_key for t in taxonomy if t.series_code}
+    all_indicator_keys = [t.frontend_key for t in taxonomy]
 
-    Requirements:
-      - Top-level keys: every iso3 from `countries.json`.
-      - Second-level keys: every indicator `key` from `meta.indicators`.
-      - Array length == len(years); positions align to `meta.years`.
-      - Values are the SCORED indicator value in [0, 100], inverted to dashboard
-        direction (100 - pipeline_score). null where missing.
-      - For SDG indicators, source is `Indicator_Scores_Full.csv` filtered to
-        aggregate disaggregations only (BOTHSEX/ALLAREA/_T/ALLAGE - see
-        `aggregate._filter_for_composites` for the exact rule).
-      - For non-SDG indicators (gii, ndgain, mpi, state, conces, popdens), use
-        whatever the pipeline emits as their series_code; lookup table in
-        `src/calculating/pillar_taxonomy.NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`.
-    """
-    raise NotImplementedError(
-        "TODO: long->wide pivot of per-indicator scored values per (iso3, year), "
-        "inversion + null-padding to len(years), keyed by frontend_key"
+    df = _keep_aggregate_rows(inputs.indicator_scores).copy()
+    df["pub_score"] = df["score"].apply(
+        lambda x: round(100.0 - x, 1) if pd.notna(x) else float("nan")
     )
+
+    df["frontend_key"] = df["series_code"].map(series_to_key)
+    df = df.dropna(subset=["frontend_key"])
+
+    lookup = (
+        df.groupby(["country_code", "frontend_key", "year"])["pub_score"]
+        .first()
+    )
+
+    valid_iso3s = (
+        set(inputs.pillar_scores["country_code"].unique())
+        & set(inputs.country_codes["iso3"].unique())
+    )
+
+    result: TimeseriesPayload = {}
+    for iso3 in sorted(valid_iso3s):
+        result[iso3] = {}
+        for fkey in all_indicator_keys:
+            arr = []
+            for yr in inputs.years:
+                try:
+                    val = lookup.loc[(iso3, fkey, yr)]
+                    arr.append(None if pd.isna(val) else float(val))
+                except KeyError:
+                    arr.append(None)
+            result[iso3][fkey] = arr
+    
+    return result
+
+
+    # """
+    # Assemble `timeseries.json`.
+
+    # Shape:
+    #     {
+    #       "<ISO3>": {
+    #         "<indicator_key>": [val_year_0, val_year_1, ..., val_year_N]
+    #       }
+    #     }
+
+    # Requirements:
+    #   - Top-level keys: every iso3 from `countries.json`.
+    #   - Second-level keys: every indicator `key` from `meta.indicators`.
+    #   - Array length == len(years); positions align to `meta.years`.
+    #   - Values are the SCORED indicator value in [0, 100], inverted to dashboard
+    #     direction (100 - pipeline_score). null where missing.
+    #   - For SDG indicators, source is `Indicator_Scores_Full.csv` filtered to
+    #     aggregate disaggregations only (BOTHSEX/ALLAREA/_T/ALLAGE - see
+    #     `aggregate._filter_for_composites` for the exact rule).
+    #   - For non-SDG indicators (gii, ndgain, mpi, state, conces, popdens), use
+    #     whatever the pipeline emits as their series_code; lookup table in
+    #     `src/calculating/pillar_taxonomy.NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`.
+    # """
+    # raise NotImplementedError(
+    #     "TODO: long->wide pivot of per-indicator scored values per (iso3, year), "
+    #     "inversion + null-padding to len(years), keyed by frontend_key"
+    # )
 
 
 # ---------------------------------------------------------------------------
@@ -428,22 +481,85 @@ def validate_payload(
     countries: CountriesPayload,
     timeseries: TimeseriesPayload,
 ) -> None:
-    """
-    Assert every contract invariant from docs/data-contract.md §7.
+    
+    expected_indicators = {ind["key"] for ind in meta["indicators"]}
+    num_years = len(meta["years"])
 
-    Raises a descriptive ValueError on the first failure; aborts the publish.
+    # Check meta has 8 regions, 7 pillars, 17 subdomains, 28 indicators
+    for field, expected in [("regions", 8), ("pillars", 7), ("subdomains", 17), ("indicators", 28)]:
+        if len(meta[field]) != expected:
+            raise ValueError(f"meta.{field}: expected {expected}, got {len(meta[field])}")
 
-    Checks:
-      1. meta has 8 regions, 7 pillars, 17 subdomains, 28 indicators.
-      2. Every country.region is in meta.regions[].code.
-      3. set(timeseries.keys()) == set(c["iso3"] for c in countries).
-      4. For every iso3 in timeseries: keys() == set(meta.indicators[*].key)
-         AND every value array has len == len(meta.years).
-      5. All non-null numeric scores are in [0, 100].
-    """
-    raise NotImplementedError(
-        "TODO: implement the 5 invariant checks; raise ValueError with a precise locator on failure"
-    )
+    # Check every country.region is in meta.regions[].code
+    valid_regions = {r["code"] for r in meta["regions"]}
+
+    for c in countries:
+        if c["region"] not in valid_regions:
+            raise ValueError(f"countries[{c['iso3']}].region = {c['region']!r} not in meta.regions")
+
+    # Check set(timeseries.keys()) == set(c["iso3"] for c in countries)
+    ts_iso3s = set(timeseries.keys())
+    c_iso3s = {c["iso3"] for c in countries}
+    if ts_iso3s != c_iso3s:
+        missing_in_ts = c_iso3s - ts_iso3s
+        extra_in_ts = ts_iso3s - c_iso3s
+        raise ValueError(
+            f"timeseries ISO3 keys do not match countries: "
+            f"missing in timeseries: {missing_in_ts}, extra in timeseries: {extra_in_ts}"
+        )
+        
+    # Check for every iso3 in timeseries: keys() == set(meta.indicators[*].key)
+    for iso3, indicators_dict in timeseries.items():
+        actual = set(indicators_dict.keys())
+
+        if actual != expected_indicators:
+            missing_indicators = expected_indicators - actual
+            extra_indicators = actual - expected_indicators
+            raise ValueError(
+                f"timeseries[{iso3}] indicators keys do not match meta.indicators: "
+                f"missing: {missing_indicators}, extra: {extra_indicators}"
+            )
+        for ind_key, arr in indicators_dict.items():
+            if len(arr) != num_years:
+                raise ValueError(
+                    f"timeseries[{iso3}][{ind_key}] length={len(arr)}, expected {num_years}"
+                )
+    
+    # Check all non-null numeric scores are in [0, 100]
+    for c in countries:
+        iso3 = c["iso3"]
+        for pillar, val in c["scores"].items():
+            if val is not None and not (0.0 <= val <= 100.0):
+                raise ValueError(f"countries[{iso3}].scores[{pillar}] = {val} out of range [0, 100]")
+    
+        if c["overall"] is not None and not (0.0 <= c["overall"] <= 100.0):
+            raise ValueError(f"countries[{iso3}].overall = {c['overall']} out of range [0, 100]")
+        
+        for i, v in enumerate(c["trend"]):
+            if v is not None and not (0.0 <= v <= 100.0):
+                raise ValueError(f"countries[{iso3}].trend[{i}] = {v} out of range [0, 100]")
+   
+    for iso3, indicators_dict in timeseries.items():
+        for fkey, arr in indicators_dict.items():
+            for i, v in enumerate(arr):
+                if v is not None and not (0.0 <= v <= 100.0):
+                    raise ValueError(f"timeseries[{iso3}][{fkey}][{i}] = {v} out of range [0, 100]")
+    # """
+    # Assert every contract invariant from docs/data-contract.md §7.
+
+    # Raises a descriptive ValueError on the first failure; aborts the publish.
+
+    # Checks:
+    #   1. meta has 8 regions, 7 pillars, 17 subdomains, 28 indicators.
+    #   2. Every country.region is in meta.regions[].code.
+    #   3. set(timeseries.keys()) == set(c["iso3"] for c in countries).
+    #   4. For every iso3 in timeseries: keys() == set(meta.indicators[*].key)
+    #      AND every value array has len == len(meta.years).
+    #   5. All non-null numeric scores are in [0, 100].
+    # """
+    # raise NotImplementedError(
+    #     "TODO: implement the 5 invariant checks; raise ValueError with a precise locator on failure"
+    # )
 
 
 # ---------------------------------------------------------------------------
