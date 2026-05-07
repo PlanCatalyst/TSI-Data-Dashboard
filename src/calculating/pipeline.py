@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from .factory import IndicatorScorerFactory
-from .pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
-from .pillar_taxonomy import series_code_to_filename
+from src.calculating.factory import IndicatorScorerFactory
+from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
+from src.calculating.pillar_taxonomy import series_code_to_filename
 
 
 def score_indicators(interim_path: Path) -> pd.DataFrame:

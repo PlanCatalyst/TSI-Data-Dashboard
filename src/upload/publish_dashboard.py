@@ -45,6 +45,12 @@ import pandas as pd
 import yaml
 import json
 
+import os
+from dotenv import load_dotenv
+from azure.identity import ClientSecretCredential
+from azure.storage.blob import BlobServiceClient, ContentSettings
+
+
 # ---------------------------------------------------------------------------
 # Type aliases for the published payloads. These mirror docs/data-contract.md.
 # ---------------------------------------------------------------------------
@@ -216,7 +222,7 @@ def build_meta(inputs: PublishInputs) -> MetaPayload:
                 ikey = indicator["frontend_key"]
                 ilabel = indicator["name"]
                 isdg = ""
-                if indicator["id"] != "null":
+                if indicator["id"] is not None and indicator["id"].startswith("SDG"):
                     isdg = "SDG " + indicator["id"]
                 else:
                     isdg = indicator["id"]
@@ -575,46 +581,99 @@ def publish(
     *,
     dry_run: bool = False,
 ) -> None:
-    """
-    End-to-end publish:
+    
+    load_dotenv()
+    inputs = load_inputs(repo_root, pipeline_run_id)
+    meta = build_meta(inputs)
+    countries = build_countries(inputs)
+    timeseries = build_timeseries(inputs)
+    validate_payload(meta, countries, timeseries)
 
-      1. load_inputs(repo_root, pipeline_run_id)
-      2. meta       = build_meta(inputs)
-      3. countries  = build_countries(inputs)
-      4. timeseries = build_timeseries(inputs)
-      5. validate_payload(meta, countries, timeseries)        -- aborts on failure
-      6. write to /tmp first, then upload all 3 blobs with:
-            Cache-Control: public, max-age=3600
-            Content-Type:  application/json; charset=utf-8
-      7. If dry_run, write to repo_root/data/organized/v1/ instead of uploading.
+    payloads = [
+        ("meta.json", meta),
+        ("countries.json", countries),
+        ("timeseries.json", timeseries),
+    ]
 
-    Auth:
-      Reuse `UploadValidated`-style ClientSecretCredential pattern from
-      `src/upload/upload_validated.py`. Env vars:
-        AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
-        AZURE_STORAGE_ACCOUNT_URL.
-
-    Container setup (one-time, manual):
-      - Create `dashboard-public` container with anonymous BLOB read.
-      - Apply CORS rule: AllowedOrigins = [<wix domain>, http://localhost:5173,
-        http://localhost:4173]; AllowedMethods=GET; AllowedHeaders=*.
-
-    Note:
-      The local pre-publish output target is the organized data layer
-      (`data/organized/v1/`) so frontend integration can validate payload shape
-      before Azure upload.
-
-    See docs/data-contract.md for the full shape spec; this skeleton is the
-    code-level mirror.
-    """
-    raise NotImplementedError(
-        "TODO: orchestrate load -> build -> validate -> write/upload. "
-        "When implementing, lift the auth pattern from src/upload/upload_validated.py"
+    if dry_run:
+        output_dir = repo_root / "data" / "organized" / prefix
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for name, payload in payloads:
+            (output_dir / name).write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        return
+    
+    # Azure upload
+    credential = ClientSecretCredential(
+        tenant_id=os.getenv("AZURE_TENANT_ID"),
+        client_id=os.getenv("AZURE_CLIENT_ID"),
+        client_secret=os.getenv("AZURE_CLIENT_SECRET"),
     )
+    container = BlobServiceClient(
+        account_url=os.getenv("AZURE_STORAGE_ACCOUNT_URL"),
+        credential=credential,
+    ).get_container_client(target_container)
+
+    settings = ContentSettings(
+        content_type="application/json; charset=utf-8",
+        cache_control="public, max-age=3600",
+    )
+
+    for name, payload in payloads:
+        data = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
+        container.get_blob_client(prefix + name).upload_blob(
+            data, overwrite=True, content_settings=settings
+        )
+        
+    # """
+    # End-to-end publish:
+
+    #   1. load_inputs(repo_root, pipeline_run_id)
+    #   2. meta       = build_meta(inputs)
+    #   3. countries  = build_countries(inputs)
+    #   4. timeseries = build_timeseries(inputs)
+    #   5. validate_payload(meta, countries, timeseries)        -- aborts on failure
+    #   6. write to /tmp first, then upload all 3 blobs with:
+    #         Cache-Control: public, max-age=3600
+    #         Content-Type:  application/json; charset=utf-8
+    #   7. If dry_run, write to repo_root/data/organized/v1/ instead of uploading.
+
+    # Auth:
+    #   Reuse `UploadValidated`-style ClientSecretCredential pattern from
+    #   `src/upload/upload_validated.py`. Env vars:
+    #     AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+    #     AZURE_STORAGE_ACCOUNT_URL.
+
+    # Container setup (one-time, manual):
+    #   - Create `dashboard-public` container with anonymous BLOB read.
+    #   - Apply CORS rule: AllowedOrigins = [<wix domain>, http://localhost:5173,
+    #     http://localhost:4173]; AllowedMethods=GET; AllowedHeaders=*.
+
+    # Note:
+    #   The local pre-publish output target is the organized data layer
+    #   (`data/organized/v1/`) so frontend integration can validate payload shape
+    #   before Azure upload.
+
+    # See docs/data-contract.md for the full shape spec; this skeleton is the
+    # code-level mirror.
+    # """
+    # raise NotImplementedError(
+    #     "TODO: orchestrate load -> build -> validate -> write/upload. "
+    #     "When implementing, lift the auth pattern from src/upload/upload_validated.py"
+    # )
 
 
 if __name__ == "__main__":
-    raise SystemExit(
-        "publish_dashboard.py is currently a contract skeleton. "
-        "See module docstring and docs/data-contract.md."
+    import sys, os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
+    from src.pipeline.utils import project_root
+    publish(
+        repo_root=project_root(),
+        pipeline_run_id="test-dry-run",
+        dry_run=True,
     )
+    print("Dry run complete. Check data/organized/v1/")
