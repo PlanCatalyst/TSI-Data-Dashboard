@@ -158,6 +158,8 @@ def load_inputs(
     df_indicator_scores = pd.read_csv(repo_root / "data" / "interim" / "validated" / "Indicator_Scores_Full.csv")
 
     years = [int(y) for y in (years or sorted(df_pillar_scores["year"].unique()))]
+    for year in years:
+        print(year)
     return PublishInputs(
         yaml_cfg = data,
         country_codes = df_country_codes,
@@ -313,12 +315,23 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
 
     
     # Calculate overall mean of the 7 pillars, but only if all 7 pillars are present (non-null) for that country-year; otherwise overall is null.
+    # def _overall(row):
+    #   vals = [row[pk] for pk in _PILLAR_KEYS]
+    #   if any(pd.isna(v) for v in vals):
+    #       return float("nan")
+    #   else:
+    #       return round(float(sum(vals)) / len(vals), 1)
+
+      
+    # Calculation that works around the ctx and pri indicators that are currently always null for every country
+    _GAPPED_PILLARS = {"ctx", "pri"}  # rep indicators lack series_code; exclude from null-check, remove "ag", "climate", "women" to see countries.json filled with non-nulls
+
     def _overall(row):
-      vals = [row[pk] for pk in _PILLAR_KEYS]
-      if any(pd.isna(v) for v in vals):
-          return float("nan")
-      else:
-          return round(float(sum(vals)) / len(vals), 1)
+        if any(pd.isna(row[pk]) for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS):
+            return float("nan")
+        available = [row[pk] for pk in _PILLAR_KEYS if pd.notna(row[pk])]
+        return round(sum(available) / len(available), 1) if available else float("nan")
+
       
     
     wide["overall"] = wide.apply(_overall, axis=1)
