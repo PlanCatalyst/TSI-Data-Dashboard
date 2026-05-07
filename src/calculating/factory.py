@@ -1,4 +1,4 @@
-from .scorers import (
+from src.calculating.scorers import (
     SimpleDirectionalScorer, RatioThresholdScorer, 
     InverseRatioScorer, RatioGoalInverseScorer, 
     DensityScorer, GoalRatioScorer

@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from .base import IndicatorScorer
+from src.calculating.base import IndicatorScorer
 
 
 class SimpleDirectionalScorer(IndicatorScorer):

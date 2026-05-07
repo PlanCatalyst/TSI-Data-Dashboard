@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .pillar_taxonomy import (
+from src.calculating.pillar_taxonomy import (
     series_code_to_pillar_subdomain,
     subdomain_to_pillar,
 )
