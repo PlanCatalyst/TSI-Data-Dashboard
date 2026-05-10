@@ -9,6 +9,15 @@ Thumbs.db
 *.swo
 
 # ----------------------------
+# CC
+# ----------------------------
+CLAUDE.md
+.claude
+CLAUDE.local.md
+MAY-CONTEXT.md
+.claude/settings.local.json
+
+# ----------------------------
 # Python artifacts
 # ----------------------------
 __pycache__/
@@ -79,6 +88,9 @@ src/fetch/.env
 # ----------------------------
 data/clean/**
 !data/clean/.gitkeep
+
+data/interim/**
+!data/interim/.gitkeep
 
 data/processed/**
 !data/processed/.gitkeep
