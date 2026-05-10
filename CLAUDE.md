@@ -1,16 +1,97 @@
-# PlanCatalyst Project Operating Context
+# CLAUDE.md
 
-This document is written as a machine-readable orientation file for contributors
-and coding agents in the new repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Mission
 
 Deliver a reliable backend-to-frontend contract for the PlanCatalyst dashboard:
 
-1. Fetch and normalize source data.
+1. Fetch and normalize source data (UN SDG, World Bank, ND-GAIN, ...).
 2. Score and aggregate by the 7-pillar taxonomy.
-3. Publish versioned JSON payloads to Azure Blob.
+3. Publish versioned JSON payloads (`meta.json`, `countries.json`, `timeseries.json`) to Azure Blob.
 4. Serve those payloads to a React frontend embedded in Wix.
+
+The dashboard is a decision-support product for identifying country-level need. It is **not** an impact attribution system.
+
+## Repository Layout
+
+Two top-level deliverables in one repo:
+
+- **`src/`** — Python data pipeline (the backend). Stages: `fetch/`, `clean/`, `calculating/`, `upload/`, orchestrated by `pipeline/`. Config lives in `src/config/settings.yaml`.
+- **`dashboard/`** — React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs.
+- **`indicators/`** — taxonomy source of truth: `indicators.yaml` (pillar/subdomain/indicator hierarchy), `country_codes.csv` (canonical name + iso3 + numeric id), `SCORING_AUDIT.md` (scoring direction + known gaps).
+- **`docs/`** — `data-contract.md` (authoritative payload schema), `PRINCIPLES.md`, `repo-architecture.md`.
+- **`data/`** — local-only artifacts: `raw/` (per-source raw payloads), `clean/` (per-source cleaned CSVs), `interim/validated/` (scored), `organized/` (local pre-publish JSON in `dry_run`).
+
+## Common Commands
+
+### Python pipeline (from repo root)
+
+```zsh
+# One-time setup
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run end-to-end pipeline (fetch -> clean -> score -> upload)
+python3 -m src.pipeline.run_pipeline
+
+# Run only the scoring/aggregation stage against existing cleaned CSVs
+python3 -m src.calculating.pipeline
+
+# Run only the cleaning stage against existing data/raw/ (debug mode)
+python3 -m src.clean.clean_data
+```
+
+### Frontend (from `dashboard/`)
+
+```zsh
+npm install
+npm run dev      # vite dev server
+npm run build    # tsc -b && vite build
+npm run preview  # preview built bundle
+```
+
+### Tests/Lint
+
+There is currently no test runner or linter wired up in this repo (no `pytest`, `ruff`, `eslint`, or CI config). Don't claim test coverage; if a change needs verification, run the relevant pipeline stage and inspect the CSV/JSON output.
+
+## Pipeline Architecture
+
+```
+fetch -> clean -> score/aggregate -> publish contract JSON -> Azure Blob -> React frontend -> Wix iframe
+```
+
+Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipeline/run_pipeline.py`):
+
+1. **Fetch** (`src/fetch/`) — abstract-factory clients hit UN SDG, World Bank, and ND-GAIN. Per-source raw payloads land under `data/raw/<source>/` when `runtime.save_raw: true`.
+2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`.
+3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads cleaned UN SDG CSV, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
+4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
+5. **Publish** (`src/upload/publish_dashboard.py`) — **currently a contract skeleton with `NotImplementedError` stubs.** Target: assemble `meta.json` / `countries.json` / `timeseries.json`, validate, and atomically upload to the public `dashboard-public/v1/` container. The frontend reads only these three files.
+
+### The publish boundary is the only place orientation flips
+
+The pipeline emits **vulnerability-oriented** scores ("higher = more need") all the way through `data/interim/validated/`. The publish step converts to dashboard orientation (`higher_is_better`) via `published = round(100 - pipeline_score, 1)`. Do not invert anywhere else; do not "fix" scorers in `src/calculating/` to flip direction. See `indicators/SCORING_AUDIT.md`.
+
+### Indicator taxonomy bridges two naming worlds
+
+`src/calculating/pillar_taxonomy.py` is the single source mapping:
+
+- yaml/frontend world: `frontend_key` (e.g. `"uhc"`, `"tb"`) inside `health, ag, si, women, climate, ctx, pri`.
+- pipeline world: source-specific `series_code` (e.g. `"SH_ACS_UNHC_25"`, `"EN.POP.DNST"`).
+
+SDG indicators bridge automatically through `SDG_ID_TO_SERIES_CODE`; non-SDG indicators (gii, ndgain, mpi, popdens, state, conces) bridge through `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`. When wiring a new source, add its `series_code` to one of these maps so pillar aggregation picks it up automatically.
+
+## Key Dev-Loop Knobs (`src/config/settings.yaml`)
+
+- `runtime.fetch_raw: false` — skip API calls, reuse existing `data/raw/` files. **Default in this repo; set to `true` only when fetching fresh upstream data.** UN SDG fetch is slow and rate-limited; avoid unnecessary re-fetches.
+- `runtime.upload_azure: false` — disable Azure upload for local dry runs.
+- `runtime.save_raw` / `runtime.save_cleaned` — control whether raw/clean CSVs persist to disk between stages.
+- `runtime.interim_data.<source>` — paths to cleaned CSVs that downstream stages consume.
+- `azure.container_name` (`validated-scores`) vs `publish.dashboard_container_name` (`dashboard-public`) — backend artifacts vs frontend payloads. They are different containers with different access policies.
+
+Azure auth: `.env` at repo root with `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_STORAGE_ACCOUNT_URL`. Never commit `.env`.
 
 ## Source of Truth Hierarchy
 
@@ -25,27 +106,33 @@ When documents disagree, resolve in this order (lower number wins):
 7. `docs/PRINCIPLES.md` (synthesis: mission, locked decisions, autonomy rules)
 8. `.claude/skills/*/SKILL.md` (agent skills — synthesis layer, never new authority)
 
-## Agent Skills
+## Hard Invariants (Treat As Laws)
 
-Project-scoped skills for AI coding agents live in `.claude/skills/` (mirrored
-to `.cursor/skills/` via symlinks). Start with `plancatalyst-orientation`.
-See `.claude/skills/README.md` for the full index.
+1. Frontend reads only `/v1/*.json` from Blob. Never let it read pipeline internals (`data/clean/`, `data/interim/validated/`).
+2. `iso3` is the canonical join key across all three contract files. Numeric `id` is retained only for TopoJSON map keys.
+3. Missing observations are JSON `null`. Never `0`, `NaN`, empty string, or omitted key.
+4. Frontend-facing scores are `higher_is_better` and live in `[0, 100]`. Inversion happens at exactly one place: the publish boundary in `src/upload/publish_dashboard.py`.
+5. Validation gates upload — if `validate_payload` raises, the upload aborts and the previous `/v1/` snapshot stays live. Never partially publish.
+6. Contract-breaking changes require a path/version bump (`/v1` → `/v2`) and updating `docs/data-contract.md` *first*, then publisher, then frontend.
+7. Secrets never enter git; `.env` remains local.
 
-## Current Product State
+## Caution Areas
 
-- Frontend contract target: `/v1/meta.json`, `/v1/countries.json`, `/v1/timeseries.json`
-- Frontend scoring semantics: `higher_is_better`
-- Country key: `iso3` canonical; numeric id retained for map compatibility
-- Projections: research in progress, not enabled for MVP payload
-- Known implementation gaps: see `indicators/SCORING_AUDIT.md` section on gaps
+- UN SDG fetch is slow and rate-limited. Run with `runtime.fetch_raw: false` unless you specifically need fresh data.
+- Some UN SDG indicators (e.g. 3.d.1 IHR capacity) require per-dimension fetch; configured in `src/config/unsdg_indicator_classes.yaml` (`fetch_by_dimension: true`).
+- Null-heavy countries are expected for some indicators; do not coerce to zero to make a chart render.
+- Keep indicator key mappings synchronized with `indicators/indicators.yaml`. New indicators should arrive with fetch + clean + scorer wiring (or an explicit "blocked, owner X, ETA Y" entry in `SCORING_AUDIT.md`).
+- Don't reintroduce the legacy 3-level (domain/sector/subsector) hierarchy as the primary contract shape. Compatibility CSVs may exist transitionally; the contract is 7 pillars × 17 subdomains × 28 indicators.
 
-## Critical Invariants
+## Current Known Gaps
 
-1. Frontend consumes only published JSON, not internal CSV artifacts.
-2. Contract changes are versioned; breaking changes require major bump and new path.
-3. Missing observations are `null`.
-4. Publish step enforces scoring direction expected by frontend.
-5. Secrets never enter git; `.env` remains local.
+From `indicators/SCORING_AUDIT.md`:
+
+- `gii`, `mpi`: missing UNDP HDR ingestion path.
+- `ndgain`: component data exists; composite score path incomplete.
+- `state`, `conces`: no complete data/scorer wiring.
+- `popdens`: scorer formula mismatch vs taxonomy notes.
+- `publish_dashboard.py`: skeleton only; needs full implementation against `docs/data-contract.md`.
 
 ## Team Execution Model
 
@@ -58,24 +145,6 @@ See `.claude/skills/README.md` for the full index.
 
 Detailed deliverables and milestones live in `TEAM-TASKS.md`.
 
-## Work Priorities (Order)
+## Agent Skills
 
-1. Contract correctness and publish validation.
-2. Source coverage closure for missing indicators.
-3. Frontend parity and robust error/null handling.
-4. Automation, alerts, and operational reliability.
-5. Projections readiness assessment for post-MVP release.
-
-## Caution Areas
-
-- UN SDG fetch is slow and rate-limited; avoid unnecessary re-fetches.
-- Null-heavy countries are expected for some indicators; do not coerce to zero.
-- Keep indicator key mappings synchronized with `indicators/indicators.yaml`.
-- Validate payload counts and key completeness before upload.
-
-## Definition of Project Success
-
-- Contract-valid JSON is published from automated pipeline runs.
-- Hosted frontend reads Blob payloads without local hacks.
-- Coverage gaps are either closed or explicitly exception-tracked with owner + ETA.
-- Team can operate without Thomas in daily decision loops using docs/runbooks.
+Project-scoped skills for AI coding agents live in `.claude/skills/` (mirrored to `.cursor/skills/` via symlinks). Start with `plancatalyst-orientation`. See `.claude/skills/README.md` for the full index.

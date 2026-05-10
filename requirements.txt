@@ -1,0 +1,8 @@
+pandas
+numpy
+PyYAML
+python-dotenv
+requests
+tenacity
+azure-identity
+azure-storage-blob
