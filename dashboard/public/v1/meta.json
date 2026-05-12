@@ -1,0 +1,503 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-05-10T19:25:47.840553+00:00",
+  "pipelineRunId": "test-dry-run",
+  "scoringDirection": "higher_is_better",
+  "years": [
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "projections": {
+    "enabled": false,
+    "firstProjectedYear": null,
+    "note": "Projection band coming soon."
+  },
+  "regions": [
+    {
+      "code": "afe",
+      "label": "Africa Eastern & Southern"
+    },
+    {
+      "code": "afw",
+      "label": "Africa Western & Central"
+    },
+    {
+      "code": "eap",
+      "label": "East Asia & Pacific"
+    },
+    {
+      "code": "eca",
+      "label": "Europe & Central Asia"
+    },
+    {
+      "code": "lcr",
+      "label": "Latin America & Caribbean"
+    },
+    {
+      "code": "mna",
+      "label": "Middle East & North Africa"
+    },
+    {
+      "code": "sar",
+      "label": "South Asia"
+    },
+    {
+      "code": "nam",
+      "label": "North America"
+    }
+  ],
+  "pillars": [
+    {
+      "key": "health",
+      "label": "Healthcare",
+      "color": "#0079c1",
+      "repIndicator": "uhc"
+    },
+    {
+      "key": "ag",
+      "label": "Agriculture",
+      "color": "#7a9a1f",
+      "repIndicator": "food"
+    },
+    {
+      "key": "si",
+      "label": "Social infrastructure",
+      "color": "#435d7f",
+      "repIndicator": "water"
+    },
+    {
+      "key": "women",
+      "label": "Gender equality",
+      "color": "#817d77",
+      "repIndicator": "gii"
+    },
+    {
+      "key": "climate",
+      "label": "Climate adaptation",
+      "color": "#7a6a30",
+      "repIndicator": "ndgain"
+    },
+    {
+      "key": "ctx",
+      "label": "Country context",
+      "color": "#a05020",
+      "repIndicator": "state"
+    },
+    {
+      "key": "pri",
+      "label": "Socio-economic performance",
+      "color": "#3a5a6a",
+      "repIndicator": "conces"
+    }
+  ],
+  "subdomains": [
+    {
+      "key": "phc",
+      "label": "Resilient primary healthcare systems",
+      "pillar": "health"
+    },
+    {
+      "key": "infect",
+      "label": "Infectious disease control",
+      "pillar": "health"
+    },
+    {
+      "key": "mnch",
+      "label": "Maternal, newborn & child health",
+      "pillar": "health"
+    },
+    {
+      "key": "nutr",
+      "label": "Nutrition",
+      "pillar": "health"
+    },
+    {
+      "key": "repro",
+      "label": "Reproductive health & family planning",
+      "pillar": "health"
+    },
+    {
+      "key": "hrisk",
+      "label": "Health risk reduction & management",
+      "pillar": "health"
+    },
+    {
+      "key": "foodsec",
+      "label": "Food security",
+      "pillar": "ag"
+    },
+    {
+      "key": "agrivc",
+      "label": "Agricultural systems & value chains",
+      "pillar": "ag"
+    },
+    {
+      "key": "wash",
+      "label": "Water, sanitation & hygiene",
+      "pillar": "si"
+    },
+    {
+      "key": "energy",
+      "label": "Off-grid power & clean energy",
+      "pillar": "si"
+    },
+    {
+      "key": "digfin",
+      "label": "Digital financial inclusion",
+      "pillar": "si"
+    },
+    {
+      "key": "women",
+      "label": "Gender equality",
+      "pillar": "women"
+    },
+    {
+      "key": "climate",
+      "label": "Climate adaptation",
+      "pillar": "climate"
+    },
+    {
+      "key": "statecap",
+      "label": "State & partner capacity",
+      "pillar": "ctx"
+    },
+    {
+      "key": "poverty",
+      "label": "Poverty & livelihoods",
+      "pillar": "ctx"
+    },
+    {
+      "key": "ctxmisc",
+      "label": "Additional country context",
+      "pillar": "ctx"
+    },
+    {
+      "key": "macrosec",
+      "label": "Socio-economic performance",
+      "pillar": "pri"
+    }
+  ],
+  "indicators": [
+    {
+      "key": "uhc",
+      "label": "Coverage of essential health services",
+      "sdg": "3.8.1",
+      "source": "SDG Indicators Database",
+      "unit": "Index score, geometric means of 14 tracer indicators, 0 - 100",
+      "pillar": "health",
+      "subdomain": "phc",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "tb",
+      "label": "Tuberculosis incidence per 100,000 population",
+      "sdg": "3.3.2",
+      "source": "SDG Indicators Database",
+      "unit": "Rate per 100,000 population",
+      "pillar": "health",
+      "subdomain": "infect",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "mal",
+      "label": "Incidence of malaria",
+      "sdg": "3.3.3",
+      "source": "SDG Indicators Database",
+      "unit": "Cases per 1,000 population at risk",
+      "pillar": "health",
+      "subdomain": "infect",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "mmr",
+      "label": "Maternal Mortality Ratio",
+      "sdg": "3.1.1",
+      "source": "SDG Indicators Database",
+      "unit": "Maternal deaths per 100,000 live births",
+      "pillar": "health",
+      "subdomain": "mnch",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "u5mr",
+      "label": "Under 5 Mortality Ratio",
+      "sdg": "3.2.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "health",
+      "subdomain": "mnch",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "stunt",
+      "label": "Prevalence of stunting",
+      "sdg": "2.2.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "health",
+      "subdomain": "nutr",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "maln",
+      "label": "Prevalence of malnutrition",
+      "sdg": "2.2.2",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "health",
+      "subdomain": "nutr",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "anaem",
+      "label": "Prevalence of anemia in women aged 15 to 49 years",
+      "sdg": "2.2.3",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "health",
+      "subdomain": "nutr",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "contra",
+      "label": "Proportion of women of reproductive age (aged 15–49 years) who have their need for family planning satisfied with modern methods",
+      "sdg": "3.7.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "health",
+      "subdomain": "repro",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "abr",
+      "label": "Adolescent birth rate (aged 15–19 years) per 1,000 women in that age group",
+      "sdg": "3.7.2",
+      "source": "SDG Indicators Database",
+      "unit": "Rate per 1000 girls aged 15-19",
+      "pillar": "health",
+      "subdomain": "repro",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "ihr",
+      "label": "International Health Regulations (IHR) capacity and health emergency preparedness",
+      "sdg": "3.d.1",
+      "source": "SDG Indicators Database",
+      "unit": "Index score, 0 - 100",
+      "pillar": "health",
+      "subdomain": "hrisk",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "food",
+      "label": "Prevalence of moderate or severe food insecurity in the population, based on the Food Insecurity Experience Scale (FIES)",
+      "sdg": "2.1.2",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "ag",
+      "subdomain": "foodsec",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "susag",
+      "label": "Proportion of agricultural area under productive and sustainable agriculture",
+      "sdg": "2.4.1",
+      "source": "SDG Indicators Database",
+      "unit": "Score from 1-5, represents status with respect to sustainable agriculture",
+      "pillar": "ag",
+      "subdomain": "foodsec",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "agoda",
+      "label": "Total official flows to the agriculture sector",
+      "sdg": "2.a.2",
+      "source": "SDG Indicators Database",
+      "unit": "Millions of constant 2022 USD",
+      "pillar": "ag",
+      "subdomain": "agrivc",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "water",
+      "label": "Proportion of population using safely managed drinking water services",
+      "sdg": "6.1.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "si",
+      "subdomain": "wash",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "sanit",
+      "label": "Proportion of population not using safely managed sanitation services",
+      "sdg": "6.2.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "si",
+      "subdomain": "wash",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "washmort",
+      "label": "Mortality rate attributed to unsafe water, unsafe sanitation, and lack of hygiene",
+      "sdg": "3.9.2",
+      "source": "SDG Indicators Database",
+      "unit": "Rate per 100,000 population",
+      "pillar": "si",
+      "subdomain": "wash",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "elec",
+      "label": "Proportion of population with access to electricity",
+      "sdg": "7.1.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "si",
+      "subdomain": "energy",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "clean",
+      "label": "Proportion of population with primary reliance on clean fuels and technology",
+      "sdg": "7.1.2",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "si",
+      "subdomain": "energy",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "renew",
+      "label": "Renewable energy share in the total final energy consumption",
+      "sdg": "7.2.1",
+      "source": "SDG Indicators Database",
+      "unit": "Percentage of final consumption energy",
+      "pillar": "si",
+      "subdomain": "energy",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "finc",
+      "label": "Proportion of adults (15 years and older) with an account at a bank or other financial institution or with a mobile-money-service provider",
+      "sdg": "8.10.2",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "si",
+      "subdomain": "digfin",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "gii",
+      "label": "Gender Inequality Index",
+      "sdg": null,
+      "source": "UNDP Human Development Reports",
+      "unit": "Index score, 0 - 100, represents inequality level",
+      "pillar": "women",
+      "subdomain": "women",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "ndgain",
+      "label": "ND-GAIN Vulnerability Index",
+      "sdg": null,
+      "source": "University of Notre Dame",
+      "unit": "Index score, 0 - 100, represents vulnerability level",
+      "pillar": "climate",
+      "subdomain": "climate",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "state",
+      "label": "State Capacity Index",
+      "sdg": null,
+      "source": "Our World in Data",
+      "unit": "Index score, higher scores mean more capacity",
+      "pillar": "ctx",
+      "subdomain": "statecap",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "pov",
+      "label": "Proportion of the population living below the national poverty line by sex, age, employment status and geographic location (urban/rural)",
+      "sdg": "1.2.1",
+      "source": "SDG Indicators Database",
+      "unit": "Proportion (or percentage (%)",
+      "pillar": "ctx",
+      "subdomain": "poverty",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "mpi",
+      "label": "Global Multidimensional Poverty Index (MPI)",
+      "sdg": null,
+      "source": "UNDP Human Development Reports",
+      "unit": "Multidimensional index score, higher score represents a greater level of multidimensional poverty",
+      "pillar": "ctx",
+      "subdomain": "poverty",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "popdens",
+      "label": "Population density",
+      "sdg": null,
+      "source": "World Bank",
+      "unit": "Number of people per square km",
+      "pillar": "ctx",
+      "subdomain": "ctxmisc",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    },
+    {
+      "key": "conces",
+      "label": "Concessionality Index",
+      "sdg": null,
+      "source": "Multiple (WorldBank, IMF)",
+      "unit": "Index score",
+      "pillar": "pri",
+      "subdomain": "macrosec",
+      "rawDirection": "lower_is_better",
+      "scoredDirection": "higher_is_better"
+    }
+  ]
+}

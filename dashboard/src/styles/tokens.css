@@ -6,4 +6,18 @@
   --border: #d5dde5;
   --brand: #0079c1;
   --radius: 10px;
+
+  /* Mock design tokens */
+  --blue: #0079c1;
+  --blue-dk: #005d96;
+  --blue-lt: #e6f3fb;
+  --green: #b2cd5a;
+  --green-dk: #7a9a1f;
+  --green-lt: #f3f8e6;
+  --slate: #435d7f;
+  --slate-lt: #edf0f5;
+  --stone: #817d77;
+  --bd: #dde2ea;
+  --txt: #1e2a35;
+  --mut: #5f6e7c;
 }
