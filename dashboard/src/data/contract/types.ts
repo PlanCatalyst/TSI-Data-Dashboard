@@ -10,6 +10,12 @@ export type Pillar = {
   repIndicator: string;
 };
 
+export type Subdomain = {
+  key: string;
+  label: string;
+  pillar: string;
+};
+
 export type Indicator = {
   key: string;
   label: string;
@@ -28,14 +34,15 @@ export type MetaPayload = {
   pipelineRunId: string;
   scoringDirection: "higher_is_better";
   years: number[];
-  regions: Region[];
-  pillars: Pillar[];
-  indicators: Indicator[];
   projections: {
     enabled: boolean;
     firstProjectedYear: number | null;
     note: string;
   };
+  regions: Region[];
+  pillars: Pillar[];
+  subdomains: Subdomain[];
+  indicators: Indicator[];
 };
 
 export type CountryScores = Record<string, number | null>;

@@ -15,6 +15,10 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 function assertContractShape(meta: MetaPayload, countries: CountriesPayload, timeseries: TimeseriesPayload) {
+  const [major] = meta.schemaVersion.split(".");
+  if (major !== "1") {
+    throw new Error(`Unsupported schema version: ${meta.schemaVersion}`);
+  }
   if (!Array.isArray(meta.years) || meta.years.length === 0) {
     throw new Error("meta.years is missing or empty");
   }
