@@ -104,7 +104,7 @@
   width: 100%;
   max-width: 100%;
 }
-.ind-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.ind-table { border-collapse: collapse; font-size: 12px; table-layout: auto; }
 .ind-table th {
   text-align: left;
   padding: 6px 5px;
