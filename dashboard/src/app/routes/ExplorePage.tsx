@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
+import { TrendsPanel } from "./TrendsPanel";
 
 const REG_COLORS: Record<string, string> = {
   afe: "#0079c1",
@@ -150,6 +151,7 @@ export function ExplorePage() {
               </div>
             ))}
           </div>
+          <TrendsPanel filtered={filtered} regionLabel={regionLabel} />
         </div>
       </div>
     </section>
