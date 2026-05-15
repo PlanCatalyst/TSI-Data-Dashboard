@@ -14,6 +14,33 @@ const REG_COLORS: Record<string, string> = {
   nam: "#2a7a3a",
 };
 
+function trendDelta(trend: Array<number | null>): number | null {
+  const vals = trend.filter((v): v is number => v != null);
+  return vals.length >= 2 ? vals[vals.length - 1] - vals[0] : null;
+}
+
+function TrendLabel({ trend }: { trend: Array<number | null> }) {
+  const d = trendDelta(trend);
+  if (d == null) return <span className="trend-fl">—</span>;
+  if (d > 3)  return <span className="trend-up">▲ Improving</span>;
+  if (d < -3) return <span className="trend-dn">↓ Declining</span>;
+  return <span className="trend-fl">→ Stable</span>;
+}
+
+function DomainBar({ val, color }: { val: number | null; color: string }) {
+  if (val == null) return <span style={{ color: "var(--mut)" }}>—</span>;
+  return (
+    <div className="spark-wrap">
+      <div className="spark-bg">
+        <div className="spark-fill" style={{ width: `${val}%`, background: color }} />
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#1e2a35", minWidth: 24, textAlign: "right" }}>
+        {val}
+      </span>
+    </div>
+  );
+}
+
 type SortDir = 1 | -1;
 
 function cmpString(a: string, b: string, dir: SortDir) {
@@ -55,6 +82,7 @@ export function ExplorePage() {
       if (sortCol === "name")    return cmpString(a.name, b.name, sortDir);
       if (sortCol === "region")  return cmpString(regionLabel[a.region] ?? a.region, regionLabel[b.region] ?? b.region, sortDir);
       if (sortCol === "overall") return cmpNumeric(a.overall, b.overall, sortDir);
+      if (sortCol === "trend")   return cmpNumeric(trendDelta(a.trend), trendDelta(b.trend), sortDir);
       return cmpNumeric(a.scores[sortCol] ?? null, b.scores[sortCol] ?? null, sortDir);
     });
   }
@@ -72,8 +100,20 @@ export function ExplorePage() {
     count: filtered.filter(c => c.region === r.code).length,
   })).filter(r => r.count > 0);
 
+  const n = meta.years.length;
+
   return (
     <section>
+      <div className="hero">
+        <h1>Country Development Indicators — Explore</h1>
+        <p>Explore healthcare, agriculture, social infrastructure, and other indicators across PlanCatalyst countries.</p>
+        <div className="hero-meta">
+          <div><div className="hstat-num">{countries.length}</div><div className="hstat-lbl">Countries</div></div>
+          <div><div className="hstat-num">{meta.indicators.length}</div><div className="hstat-lbl">Indicators</div></div>
+          <div><div className="hstat-num">{meta.pillars.length}</div><div className="hstat-lbl">Pillars</div></div>
+          <div><div className="hstat-num">{meta.years[0]}–{meta.years[n - 1]}</div><div className="hstat-lbl">Time range</div></div>
+        </div>
+      </div>
       <div className="fbar">
         <span className="fbar-lbl">Region</span>
         <button
@@ -108,6 +148,7 @@ export function ExplorePage() {
                   <tr>
                     <th className="th-sort" onClick={() => handleSort("name")}>Country {sortArrow("name")}</th>
                     <th className="th-sort" onClick={() => handleSort("region")}>Region {sortArrow("region")}</th>
+                    <th className="th-sort" onClick={() => handleSort("trend")}>Trend {sortArrow("trend")}</th>
                     <th className="th-sort" onClick={() => handleSort("overall")}>Overall {sortArrow("overall")}</th>
                     {meta.pillars.map(p => (
                       <th key={p.key} className="th-sort" onClick={() => handleSort(p.key)}>
@@ -121,9 +162,12 @@ export function ExplorePage() {
                     <tr key={c.iso3}>
                       <td className="country-link">{c.name}</td>
                       <td>{regionLabel[c.region] ?? c.region}</td>
-                      <td>{c.overall ?? "—"}</td>
+                      <td><TrendLabel trend={c.trend} /></td>
+                      <td><DomainBar val={c.overall} color="#1e2a35" /></td>
                       {meta.pillars.map(p => (
-                        <td key={p.key}>{c.scores[p.key] ?? "—"}</td>
+                        <td key={p.key}>
+                          <DomainBar val={c.scores[p.key] ?? null} color={p.color} />
+                        </td>
                       ))}
                     </tr>
                   ))}
