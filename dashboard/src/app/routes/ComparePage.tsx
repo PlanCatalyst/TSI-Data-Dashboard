@@ -323,7 +323,7 @@ export function ComparePage() {
                   {meta.pillars.map(p => (
                     <div key={p.key} style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "center", gap: 6, padding: "4px 12px" }}>
                       <span style={{ fontSize: 11, color: "var(--mut)" }}>{p.label}</span>
-                      <DomainBar val={pillarScores[c.iso3]?.[p.key] ?? null} color={p.color} />
+                      <DomainBar val={c.scores[p.key] ?? pillarScores[c.iso3]?.[p.key] ?? null} color={p.color} />
                     </div>
                   ))}
                 </div>
