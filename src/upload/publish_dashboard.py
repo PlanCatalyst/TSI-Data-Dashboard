@@ -323,8 +323,10 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     #       return round(float(sum(vals)) / len(vals), 1)
 
       
-    # Calculation that works around the ctx and pri indicators that are currently always null for every country
-    _GAPPED_PILLARS = {"ctx", "pri"}  # rep indicators lack series_code; exclude from null-check, remove "ag", "climate", "women" to see countries.json filled with non-nulls
+    # Pillars with no data at all are excluded from the null-check so they don't
+    # blank out overall for every country. This set shrinks automatically as more
+    # pillar data lands (e.g. when women/climate/ctx/pri are wired up).
+    _GAPPED_PILLARS = {pk for pk in _PILLAR_KEYS if wide[pk].isna().all()}
 
     def _overall(row):
         if any(pd.isna(row[pk]) for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS):
@@ -408,42 +410,95 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     # )
 
 
-def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
-    # dict[str, dict[str, list[Optional[float]]]]
-    def _keep_aggregate_rows(df: pd.DataFrame) -> pd.DataFrame:
-        mask = pd.Series(True, index=df.index)
-        if "sex" in df.columns:
-            mask &= df["sex"].isna() | df["sex"].isin({"BOTHSEX"})
-        if "age" in df.columns:
-            mask &= df["age"].isna() | df["age"].isin({"ALLAGE", "_T"})
-        if "location" in df.columns:
-            mask &= df["location"].isna() | df["location"].isin({"ALLAREA"})
-        
-        return df[mask]
+def _prefer_aggregate_value(g: pd.DataFrame, col: str, aggregate_val: str) -> pd.DataFrame:
+    if col not in g.columns:
+        return g
+    non_null = g[col].dropna()
+    if aggregate_val in non_null.values:
+        return g[g[col] == aggregate_val]
+    return g
 
-    
+
+def _filter_for_composites(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Restrict to appropriate rows for composite calculation.
+
+    Rule:
+    - For each country/year/indicator, if aggregate codes (BOTHSEX, ALLAREA,
+      _T, etc.) exist, use only those.
+    - If an indicator is only reported for a single category (e.g. FEMALE
+      only for SH_STA_MORT), keep that category; do not drop it just because
+      BOTHSEX/ALLAREA are absent.
+    """
+    groups = []
+    for _, g in df.groupby(
+        ["country_code", "country_name", "year", "series_code"],
+        dropna=False,
+    ):
+        # Prefer BOTHSEX when present; otherwise keep MALE/FEMALE/etc.
+        g = _prefer_aggregate_value(g, "sex", "BOTHSEX")
+        # Prefer ALLAREA when present; otherwise keep URBAN/RURAL/etc.
+        g = _prefer_aggregate_value(g, "location", "ALLAREA")
+        # Prefer _T for quantile and education_level when present.
+        g = _prefer_aggregate_value(g, "quantile", "_T")
+        g = _prefer_aggregate_value(g, "education_level", "_T")
+        # Age: if ALLAGE exists for this indicator, prefer it; otherwise keep
+        # the age bands that are present (e.g., <5Y for child indicators).
+        age_values = g["age"].dropna().unique()
+        if "ALLAGE" in age_values:
+            g = g[g["age"] == "ALLAGE"]
+        groups.append(g)
+
+    if not groups:
+        return df.iloc[0:0]
+
+    return pd.concat(groups, axis=0)
+
+
+def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
+    print("building timeseries: ")
+    for year in inputs.years:
+        print(year)
+
     from src.calculating.pillar_taxonomy import load_taxonomy
     taxonomy = load_taxonomy()
     series_to_key = {t.series_code: t.frontend_key for t in taxonomy if t.series_code}
+
     all_indicator_keys = [t.frontend_key for t in taxonomy]
 
-    df = _keep_aggregate_rows(inputs.indicator_scores).copy()
+    df = _filter_for_composites(inputs.indicator_scores).copy()
+    print("Rows after disagg filter:", len(df))
+
+    print("Unique series_codes:", df["series_code"].unique()[:10])
+
     df["pub_score"] = df["score"].apply(
         lambda x: round(100.0 - x, 1) if pd.notna(x) else float("nan")
     )
 
     df["frontend_key"] = df["series_code"].map(series_to_key)
     df = df.dropna(subset=["frontend_key"])
+    print("Rows after frontend_key map:", len(df))
+
+    print("Unique frontend_keys:", df["frontend_key"].unique()[:10])
 
     lookup = (
         df.groupby(["country_code", "frontend_key", "year"])["pub_score"]
         .first()
     )
 
+
     valid_iso3s = (
         set(inputs.pillar_scores["country_code"].unique())
         & set(inputs.country_codes["iso3"].unique())
     )
+
+    print("Sample lookup index (first 5):", lookup.index.tolist()[:5])
+    print("Sample lookup values (first 5):", lookup.values[:5].tolist())
+    print("Non-null values in lookup:", lookup.notna().sum(), "out of", len(lookup))
+    print("Non-null pub_score per frontend_key:\n", df.groupby("frontend_key")["pub_score"].apply(lambda x: x.notna().sum()))
+    print("Sample valid_iso3s:", sorted(valid_iso3s)[:5])
+    print("inputs.years:", inputs.years[:5] if hasattr(inputs.years, '__getitem__') else list(inputs.years)[:5])
+    print("Sample all_indicator_keys (first 5):", all_indicator_keys[:5])
 
     result: TimeseriesPayload = {}
     for iso3 in sorted(valid_iso3s):
