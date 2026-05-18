@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Iterable, Optional
 
 import pandas as pd
 
@@ -9,8 +10,40 @@ from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subd
 from src.calculating.pillar_taxonomy import series_code_to_filename
 
 
-def score_indicators(interim_path: Path) -> pd.DataFrame:
-    df = pd.read_csv(interim_path)
+def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
+    """Load and concatenate one or more cleaned interim CSVs.
+
+    Non-SDG sources (UNDP HDR, OWID, ...) write the same minimum schema
+    (country_code, country_name, year, value, indicator, series_code) but
+    may not have every UN SDG column. Missing columns are filled with NA so
+    the downstream groupby on series_code still works.
+    """
+    frames: list[pd.DataFrame] = []
+    for p in paths:
+        if p is None:
+            continue
+        path = Path(p)
+        if not path.exists():
+            continue
+        frames.append(pd.read_csv(path))
+    if not frames:
+        raise FileNotFoundError("No interim CSVs found for scoring")
+    return pd.concat(frames, ignore_index=True, sort=False)
+
+
+def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] = None) -> pd.DataFrame:
+    df = _load_interim_frames([interim_path, *(extra_paths or [])])
+
+    # Only score rows whose series_code is one the factory knows about.
+    # Component-only rows (e.g. ND-GAIN per-indicator scores written for
+    # transparency) carry a NaN series_code and would otherwise fall through
+    # to the default SimpleDirectionalScorer with nonsensical results.
+    known = set(IndicatorScorerFactory()._scorers.keys())  # noqa: SLF001
+    if "series_code" in df.columns:
+        df = df[df["series_code"].isin(known)].copy()
+    else:
+        # No series_code column at all - nothing to score.
+        df = df.iloc[0:0].copy()
 
     factory = IndicatorScorerFactory()
     scores = []
@@ -47,10 +80,11 @@ def write_indicator_files(scored_df: pd.DataFrame, validated_dir: Path) -> None:
 def run_pipeline(
     interim_csv: Path,
     validated_dir: Path,
+    extra_interim_csvs: Optional[Iterable[Path]] = None,
 ) -> None:
     validated_dir.mkdir(parents=True, exist_ok=True)
 
-    scored_df = score_indicators(interim_csv)
+    scored_df = score_indicators(interim_csv, extra_interim_csvs)
 
     # Phase 1 – full indicator scores with all disaggregations.
     scored_path = validated_dir / "Indicator_Scores_Full.csv"
@@ -94,5 +128,10 @@ if __name__ == "__main__":
         raise ValueError("settings.yaml missing runtime.interim_data.unsdg")
     interim_csv = repo_root / unsdg_rel
     validated_dir = repo_root / validated_rel
-    run_pipeline(interim_csv, validated_dir)
+    extras = [
+        repo_root / rel
+        for key, rel in interim_data.items()
+        if key != "unsdg" and rel
+    ]
+    run_pipeline(interim_csv, validated_dir, extra_interim_csvs=extras)
 

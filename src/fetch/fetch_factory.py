@@ -4,6 +4,8 @@ from .base_fetch import DataFetcher
 from .un_sdg_fetch import UNSDGFetcher
 from .nd_gain_fetch import NDGAINFetcher
 from .world_bank_fetch import WorldBankFetcher
+from .undp_hdr_fetch import UNDPHDRFetcher
+from .wb_wgi_fetch import WBWGIFetcher
 
 import yaml
 import logging
@@ -26,7 +28,9 @@ class DataFetcherFactory:
         self._clients: Dict[str, Type[DataFetcher]] = {
             'unsdg': UNSDGFetcher,
             'ndgain': NDGAINFetcher,
-            'worldbank': WorldBankFetcher
+            'worldbank': WorldBankFetcher,
+            'undp_hdr': UNDPHDRFetcher,
+            'wb_wgi': WBWGIFetcher,
         }
      
     def create_client(self, client_type: str, **kwargs) -> DataFetcher:
@@ -65,6 +69,10 @@ class DataFetcherFactory:
         source = 'api_paths'
         if client_type_lower == 'ndgain':
             source = 'zip_path'
+        elif client_type_lower == 'undp_hdr':
+            source = 'api_paths'
+        elif client_type_lower == 'wb_wgi':
+            source = 'api_paths'
 
         extra_kwargs = dict(kwargs)
         if client_type_lower == 'unsdg':

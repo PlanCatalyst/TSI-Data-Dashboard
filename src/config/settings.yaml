@@ -127,6 +127,73 @@ ndgain: # name must match client_factory.py
     retry_backoff_factor: 0.3
 
 # ====================================================================
+# UNDP HDR Settings
+# ====================================================================
+# UNDP Human Development Reports publishes static per-release CSV/XLSX
+# files. We download each file by URL and let the cleaner pick the
+# indicator columns it cares about. Adding a new HDR indicator (e.g. MPI)
+# is a config-only change: add an entry under `files`.
+undp_hdr: # name must match fetch_factory.py
+  api_paths:
+    base: "https://hdr.undp.org"
+
+  files:
+    - alias: "composite_indices"
+      # 2025 HDR release. Wide CSV with year-suffix columns (e.g. gii_2023).
+      # Use latin-1 when reading; HDR ships non-ASCII characters in country names.
+      url: "https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Composite_indices_complete_time_series.csv"
+      version: "2025 HDR"
+      format: "wide_year_suffix"
+      indicators:
+        # Gender Inequality Index. Raw scale 0-1; lower = more equal.
+        - { series_code: "GII_INDEX", column_prefix: "gii_" }
+
+    - alias: "mpi"
+      # 2025 Global MPI Tables (October 2025). Table 2 has the
+      # changes-over-time view: one row per (country, survey wave).
+      # Each country has 1-2 survey-year observations, NOT an annual panel.
+      url: "https://hdr.undp.org/sites/default/files/publications/additional-files/2025-10/2025_gMPI_Table1and2.xlsx"
+      version: "2025 Global MPI (October 2025)"
+      format: "ophi_mpi_table"
+      indicators:
+        # Multidimensional Poverty Index. Raw scale 0-1; higher = more poverty.
+        # Country names need name->iso3 resolution (HDR uses UN long forms).
+        - { series_code: "MPI_INDEX", sheet: "gMPI_Table2", country_col: 0, year_col: 2, value_col: 4, data_start_row: 5 }
+
+  settings:
+    request_timeout: 60
+    max_retries: 3
+    retry_backoff_factor: 0.5
+
+# ====================================================================
+# World Bank Worldwide Governance Indicators (WGI) Settings
+# ====================================================================
+# WGI is published as a per-release bulk XLSX (not in the regular World
+# Bank API). Today we use the Government Effectiveness sheet (`ge`) as
+# our state-capacity proxy. The XLSX already publishes a 0-100
+# normalized score column ("Governance score (0-100)") which we use
+# directly. To add other WGI dimensions (Rule of Law, Voice and
+# Accountability, etc.), just add another entry under indicators.
+wb_wgi: # name must match fetch_factory.py
+  api_paths:
+    base: "https://www.worldbank.org"
+
+  files:
+    - alias: "wgi_dataset"
+      url: "https://www.worldbank.org/content/dam/sites/govindicators/doc/wgidataset_with_sourcedata-2025.xlsx"
+      version: "WGI 2025 release (data 1996-2024)"
+      indicators:
+        # Government Effectiveness. Used as state-capacity proxy. The 0-100
+        # score column is already a percentile-normalized favorability
+        # score (higher = better governance).
+        - { series_code: "WGI_GOVEFF", sheet: "ge" }
+
+  settings:
+    request_timeout: 60
+    max_retries: 3
+    retry_backoff_factor: 0.5
+
+# ====================================================================
 # General Settings
 # ====================================================================
 paths:
@@ -166,6 +233,8 @@ runtime:
     unsdg: "data/clean/unsdg/un_sdg_clean.csv"
     ndgain: "data/clean/ndgain/nd_gain_clean.csv"
     worldbank: "data/clean/world-bank/world_bank_clean.csv"
+    undp_hdr: "data/clean/undp-hdr/undp_hdr_clean.csv"
+    wb_wgi: "data/clean/world-bank/wb_wgi_clean.csv"
 
   # Page size for World Bank API pagination.
   per_page: 1000
@@ -181,6 +250,10 @@ runtime:
     unsdg: "un_sdg_raw.json"
     worldbank: "world_bank_raw.json"
     ndgain: "nd_gain_raw.json"
+    # UNDP HDR fetcher writes a manifest JSON alongside the downloaded files.
+    undp_hdr: "undp_hdr_manifest.json"
+    # WGI fetcher manifest (XLSX downloads).
+    wb_wgi: "wb_wgi_manifest.json"
 
 paths_by_source:
   raw:
@@ -190,6 +263,7 @@ paths_by_source:
     undp_hdr: "data/raw/undp-hdr/"
     owid_state_capacity: "data/raw/owid-state-capacity/"
     wb_imf_concessionality: "data/raw/world-bank-imf-concessionality/"
+    wb_wgi: "data/raw/world-bank/"
 
 azure:
   # Private backend artifacts container.
