@@ -49,24 +49,26 @@ Columns:
 | 19 | clean     | si      | energy   | EG_EGY_CLEAN    | + | higher=need | yes | InverseRatio(30.4) |
 | 20 | renew     | si      | energy   | EG_FEC_RNEW     | + | higher=need | yes | InverseRatio(20.0) |
 | 21 | finc      | si      | digfin   | FB_BNK_ACCSS    | + | higher=need | yes | InverseRatio(45.0) |
-| 22 | gii       | women   | women    | GII_INDEX       | - | higher=need | yes | RatioThreshold(0.32). **Data not yet in pipeline** (UNDP source pending). |
-| 23 | ndgain    | climate | climate  | ND_GAIN_VULN    | - | higher=need | yes | RatioThreshold(0.46). **Composite not yet built** — pipeline currently produces ND-GAIN sub-components (`id_ecos_*`, `id_food_*`, etc.), not the aggregated vulnerability score. |
-| 24 | state     | ctx     | statecap | (no series_code) | + | — | yes (after impl) | **No scorer registered** in `factory.py`. Raw direction: higher = better (greater state capacity). |
+| 22 | gii       | women   | women    | GII_INDEX       | - | higher=need | yes | RatioThreshold(0.32). **Live (2026-05-17)** — UNDP HDR 2023-24 composite-indices CSV, 1990–2022, 166 countries. See `docs/source-candidates.md`. |
+| 23 | ndgain    | climate | climate  | ND_GAIN_VULN    | - | higher=need | yes | RatioThreshold(0.46). **Live (2026-05-17)** — pulls ND-GAIN's published composite from `resources/vulnerability/vulnerability.csv` in the 2026 ZIP, 187 countries, 1995–2023. Component / sector rows remain in the cleaned CSV un-scored (defensive series_code filter). |
+| 24 | state     | ctx     | statecap | WGI_GOVEFF      | + | higher=need | yes | SimpleDirectional (100 - value). **Live (2026-05-17)** — source switched from Hanson-Sigman (stopped 2015) to World Bank WGI Government Effectiveness (current through 2024); WGI's 0-100 score used directly. See `docs/source-candidates.md`. |
 | 25 | pov       | ctx     | poverty  | SI_POV_NAHC     | - | higher=need | yes | RatioThreshold(10, 10) |
-| 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Data not yet in pipeline** (UNDP source pending). |
+| 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Live (2026-05-17)** — UNDP HDR + OPHI 2025 Global MPI Table 2, 88 countries, 1–3 survey waves each (2001–2024). See `docs/source-candidates.md`. |
 | 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST / POP_DENSITY | ? | see note | ambiguous | **Scorer mismatch**: `DensityScorer` emits `(value / 0.7) * 100`, which does not match the banded formula in [indicators.yaml](indicators.yaml) (>=250 -> 100, >=100 -> 75, >=75 -> 50, >=25 -> 25, else 0). Semantically population density has no universal good/bad direction. |
-| 28 | conces    | pri     | macrosec | (no series_code) | ? | — | yes (after impl) | **No scorer registered** in `factory.py`. Raw direction depends on the index construction (Concessionality Index has four sub-pillars; need to confirm with PlanCatalyst). |
+| 28 | conces    | pri     | macrosec | (no series_code) | ? | — | yes (after impl) | **Deferred future task (2026-05-17)**. Inputs (WB + IMF series) exist, but the Concessionality Index is a PlanCatalyst-defined composite whose formula is not specified in `indicators.yaml`. See `docs/source-candidates.md` for the six open methodology questions that must be answered before implementation. |
 
 ## Implementation gaps for the pipeline team
 
 Tracking these so nothing falls through the cracks after handoff:
 
-- **Missing scorers** (2): `state` (State Capacity Index), `conces` (Concessionality Index). Data source and formula notes live in [indicators.yaml](indicators.yaml).
-- **Missing data in pipeline** (2): `gii` (GII from UNDP HDR), `mpi` (MPI from UNDP HDR). Needs a new fetch module for the UNDP HDR bulk export.
-- **ND-GAIN not composited** (1): `ndgain` — pipeline fetches and cleans the raw ND-GAIN component indicators but does not yet aggregate them into the overall vulnerability score. The scorer exists but has no input.
+- **Missing scorers** (1): `conces` (Concessionality Index) — deferred future task. Inputs are available but the composite construction formula is not specified in `indicators.yaml` and must be defined by PlanCatalyst before implementation. See `docs/source-candidates.md` for the open methodology questions. `state` now uses `WGI_GOVEFF` (live as of 2026-05-17).
+- **Missing data in pipeline** (0): `gii` and `mpi` are both live as of 2026-05-17. `gii` uses the 2025 HDR composite-indices CSV; `mpi` uses the 2025 OPHI/UNDP Global MPI Table 2 XLSX (88 countries, survey-wave granularity). Note: MPI is not an annual panel — display logic decision still open.
+- **ND-GAIN composite** (was 1, now 0): `ndgain` is live as of 2026-05-17 — pipeline now reads ND-GAIN's published composite directly from `resources/vulnerability/vulnerability.csv` rather than recomputing from components. Matches ND-GAIN's canonical published numbers by construction.
 - **Pop density scorer mismatch** (1): `popdens` — the scorer in [src/calculating/scorers.py](src/calculating/scorers.py) (`DensityScorer`) does not implement the banded 0/25/50/75/100 formula documented in [indicators.yaml](indicators.yaml). Pick one as canonical and reconcile.
 
-Net: **21 of 28 indicators** currently flow end-to-end through scoring as of this audit. 7 have either no data, no scorer, or a mismatched scorer.
+Net: **25 of 28 indicators** currently flow end-to-end through scoring as of 2026-05-17 (gii, mpi, ndgain composite, state all went live; state was sourced from WGI Government Effectiveness after Hanson-Sigman was found stale). 3 still have either no data, no scorer, or a mismatched scorer:
+- `conces` — deferred future task (PlanCatalyst formula needed).
+- `popdens` — scorer/series-code mismatch documented elsewhere in this file; the World Bank cleaner does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Quick fix once `popdens` canonical series_code is agreed.
 
 ## Why invert at publish rather than in `src/calculating/`
 

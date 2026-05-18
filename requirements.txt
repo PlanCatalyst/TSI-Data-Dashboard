@@ -6,3 +6,4 @@ requests
 tenacity
 azure-identity
 azure-storage-blob
+openpyxl  # for UNDP HDR MPI XLSX ingestion

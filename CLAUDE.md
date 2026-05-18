@@ -18,9 +18,10 @@ The dashboard is a decision-support product for identifying country-level need. 
 Two top-level deliverables in one repo:
 
 - **`src/`** — Python data pipeline (the backend). Stages: `fetch/`, `clean/`, `calculating/`, `upload/`, orchestrated by `pipeline/`. Config lives in `src/config/settings.yaml`.
-- **`dashboard/`** — React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs.
+- **`dashboard/`** — React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs. Page routes live in `dashboard/src/app/routes/` (`AboutPage`, `ComparePage`, `ExplorePage`, `MapPage`, `TrendsPanel`); shared UI in `dashboard/src/components/` (`charts/`, `map/`, `panels/`, `states/`, `tables/`); contract loaders in `dashboard/src/data/`.
 - **`indicators/`** — taxonomy source of truth: `indicators.yaml` (pillar/subdomain/indicator hierarchy), `country_codes.csv` (canonical name + iso3 + numeric id), `SCORING_AUDIT.md` (scoring direction + known gaps).
 - **`docs/`** — `data-contract.md` (authoritative payload schema), `PRINCIPLES.md`, `repo-architecture.md`.
+- **`scripts/`** — ad-hoc utilities (one-off conversions, debugging helpers). Not part of the production pipeline; safe to edit without contract concerns.
 - **`data/`** — local-only artifacts: `raw/` (per-source raw payloads), `clean/` (per-source cleaned CSVs), `interim/validated/` (scored), `organized/` (local pre-publish JSON in `dry_run`).
 
 ## Common Commands
@@ -52,6 +53,8 @@ npm run build    # tsc -b && vite build
 npm run preview  # preview built bundle
 ```
 
+See `RUNNING.md` at repo root for the full local-setup walkthrough (Python venv, `.env` values, frontend dev server, dry-run vs. live-publish toggles).
+
 ### Tests/Lint
 
 There is currently no test runner or linter wired up in this repo (no `pytest`, `ruff`, `eslint`, or CI config). Don't claim test coverage; if a change needs verification, run the relevant pipeline stage and inspect the CSV/JSON output.
@@ -68,7 +71,7 @@ Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipe
 2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`.
 3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads cleaned UN SDG CSV, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
 4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
-5. **Publish** (`src/upload/publish_dashboard.py`) — **currently a contract skeleton with `NotImplementedError` stubs.** Target: assemble `meta.json` / `countries.json` / `timeseries.json`, validate, and atomically upload to the public `dashboard-public/v1/` container. The frontend reads only these three files.
+5. **Publish** (`src/upload/publish_dashboard.py`) — **partially implemented; signatures are the binding contract, internals are in flight (Christina).** `build_meta` / `build_countries` / `build_timeseries` have working bodies and the `NotImplementedError` raises are commented out, but the end-to-end `publish()` path (validation gate + atomic blob swap into `dashboard-public/v1/`) is not yet trusted for production. Treat it as fixture-generation quality, not production-ready. The frontend reads only the three files this module emits.
 
 ### The publish boundary is the only place orientation flips
 
@@ -104,7 +107,6 @@ When documents disagree, resolve in this order (lower number wins):
 5. `HANDOFF.md` (project context and historical decisions)
 6. `README.md` (purpose and quickstart)
 7. `docs/PRINCIPLES.md` (synthesis: mission, locked decisions, autonomy rules)
-8. `.claude/skills/*/SKILL.md` (agent skills — synthesis layer, never new authority)
 
 ## Hard Invariants (Treat As Laws)
 
@@ -132,7 +134,7 @@ From `indicators/SCORING_AUDIT.md`:
 - `ndgain`: component data exists; composite score path incomplete.
 - `state`, `conces`: no complete data/scorer wiring.
 - `popdens`: scorer formula mismatch vs taxonomy notes.
-- `publish_dashboard.py`: skeleton only; needs full implementation against `docs/data-contract.md`.
+- `publish_dashboard.py`: builders are wired (meta/countries/timeseries) but the validation gate and atomic blob swap into `dashboard-public/v1/` aren't production-trusted yet. Owner: Christina.
 
 ## Team Execution Model
 
@@ -144,7 +146,3 @@ From `indicators/SCORING_AUDIT.md`:
 - Co-PM: Azure platform, CORS, automation, operations
 
 Detailed deliverables and milestones live in `TEAM-TASKS.md`.
-
-## Agent Skills
-
-Project-scoped skills for AI coding agents live in `.claude/skills/` (mirrored to `.cursor/skills/` via symlinks). Start with `plancatalyst-orientation`. See `.claude/skills/README.md` for the full index.
