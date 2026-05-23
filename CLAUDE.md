@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Deliver a reliable backend-to-frontend contract for the PlanCatalyst dashboard:
 
-1. Fetch and normalize source data (UN SDG, World Bank, ND-GAIN, ...).
+1. Fetch and normalize source data (UN SDG, World Bank API, ND-GAIN, UNDP HDR, World Bank WGI).
 2. Score and aggregate by the 7-pillar taxonomy.
 3. Publish versioned JSON payloads (`meta.json`, `countries.json`, `timeseries.json`) to Azure Blob.
 4. Serve those payloads to a React frontend embedded in Wix.
@@ -67,9 +67,9 @@ fetch -> clean -> score/aggregate -> publish contract JSON -> Azure Blob -> Reac
 
 Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipeline/run_pipeline.py`):
 
-1. **Fetch** (`src/fetch/`) — abstract-factory clients hit UN SDG, World Bank, and ND-GAIN. Per-source raw payloads land under `data/raw/<source>/` when `runtime.save_raw: true`.
-2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`.
-3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads cleaned UN SDG CSV, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
+1. **Fetch** (`src/fetch/`) — abstract-factory clients for UN SDG (API), World Bank (API), ND-GAIN (local ZIP), UNDP HDR (static CSV/XLSX), and World Bank WGI (static XLSX). Per-source raw payloads land under `data/raw/<source>/` when `runtime.save_raw: true`.
+2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`. Cleaner output schema is `country_code, country_name, year, value, indicator, series_code` (plus source-specific extras). Rows whose `series_code` isn't registered in `IndicatorScorerFactory` persist in the CSV but are defensively skipped by scoring.
+3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads the UN SDG cleaned CSV plus any additional interim CSVs listed under `runtime.interim_data` (ND-GAIN, UNDP HDR, WGI, etc.), concatenates them, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
 4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
 5. **Publish** (`src/upload/publish_dashboard.py`) — **partially implemented; signatures are the binding contract, internals are in flight (Christina).** `build_meta` / `build_countries` / `build_timeseries` have working bodies and the `NotImplementedError` raises are commented out, but the end-to-end `publish()` path (validation gate + atomic blob swap into `dashboard-public/v1/`) is not yet trusted for production. Treat it as fixture-generation quality, not production-ready. The frontend reads only the three files this module emits.
 
@@ -128,13 +128,13 @@ When documents disagree, resolve in this order (lower number wins):
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md`:
+From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
 
-- `gii`, `mpi`: missing UNDP HDR ingestion path.
-- `ndgain`: component data exists; composite score path incomplete.
-- `state`, `conces`: no complete data/scorer wiring.
-- `popdens`: scorer formula mismatch vs taxonomy notes.
+- **Coverage now at 25/28 live.** `gii`, `mpi`, `ndgain` composite, and `state` all went live this session via new `UNDPHDRFetcher/Cleaner`, ND-GAIN's published `resources/vulnerability/vulnerability.csv` composite, and `WBWGIFetcher/Cleaner` for state capacity (sourced from WGI Government Effectiveness after Hanson-Sigman was found stale at 2015).
+- `conces`: **deferred future task.** Inputs exist (WB + IMF series) but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions live in `docs/source-candidates.md`. Owner: PM to route to PlanCatalyst.
+- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring; quick fix once canonical series_code is agreed.
 - `publish_dashboard.py`: builders are wired (meta/countries/timeseries) but the validation gate and atomic blob swap into `dashboard-public/v1/` aren't production-trusted yet. Owner: Christina.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3 (pre-existing; re-running `python3 -m src.clean.clean_data` after a fresh UN SDG fetch fixes it).
 
 ## Team Execution Model
 
