@@ -49,7 +49,7 @@ then processes and publishes only when updates exist.
 Azure Container Registry, Logic Apps
 - **Backend:** Python data pipeline
 - **Frontend:** React dashboard embedded in Wix
-- **Data sources:** UN SDG, World Bank, ND-GAIN, and additional indexed sources
+- **Data sources:** UN SDG, World Bank, ND-GAIN, UNDP Human Development Reports (HDI/GII/MPI), World Bank Worldwide Governance Indicators (WGI), and additional indexed sources
 
 ## Team
 

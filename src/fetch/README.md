@@ -1,12 +1,20 @@
 # Data Fetching Module
-These scripts are used to fetch data from the UN SDG, ND-GAIN, and World Bank APIs.
+These scripts fetch data from UN SDG, World Bank API, ND-GAIN, UNDP HDR, and World Bank Worldwide Governance Indicators (WGI).
 
 ## Module Information
 
 ## Overview
-This module is responsible for fetching the raw data from the World Bank, UN SDG, and ND-GAIN fetching clients.
+This module is responsible for fetching the raw data from five fetching clients:
 
-Each `DataFetcher` client gathers a payload of indicator data records, and structures it appropriately for the corresponding `DataCleaner` object to clean. The raw data is passed by variable, and is NOT persisted to disk.
+| Source key | Class | Transport |
+|---|---|---|
+| `unsdg` | `UNSDGFetcher` | UN SDG REST API |
+| `worldbank` | `WorldBankFetcher` | World Bank REST API |
+| `ndgain` | `NDGAINFetcher` | local bulk ZIP (`data/raw/nd-gain/`) |
+| `undp_hdr` | `UNDPHDRFetcher` | per-release static CSV/XLSX over HTTPS |
+| `wb_wgi` | `WBWGIFetcher` | per-release static XLSX over HTTPS |
+
+Each `DataFetcher` client gathers a payload of indicator data records, and structures it appropriately for the corresponding `DataCleaner` object to clean. The raw data is passed by variable, and is NOT persisted to disk by default (set `runtime.save_raw: true` to also write it out for debugging).
 
 ## Running this Module
 To run the fetching module, refer to the [pipeline README](../pipeline/README.md).
@@ -53,6 +61,21 @@ We use all raw indicators in resources/indicators/ because they:
 * Enable time-series modeling and forecasting once combined with UN SDG/World Bank data
 
 These composites give the dashboard meaningful, policy-relevant climate development metrics that can be tracked and forecasted over time.
+
+### UNDP Human Development Reports (HDR)
+The UNDP HDR data center publishes per-release static files containing the Human Development Index family (HDI, GII, IHDI, GDI, PHDI) plus a separate Global Multidimensional Poverty Index (MPI) table assembled with OPHI. We currently use:
+
+- **2025 HDR composite-indices CSV** (`HDR25_Composite_indices_complete_time_series.csv`) — wide-format CSV with year-suffix columns (`gii_1990` … `gii_2023`). Source of the `GII_INDEX` series. Latin-1 encoded.
+- **2025 Global MPI Tables XLSX** (`2025_gMPI_Table1and2.xlsx`) — OPHI-style multi-sheet workbook. Table 2 carries changes-over-time per country with one row per (country, survey wave). Source of the `MPI_INDEX` series.
+
+The `UNDPHDRFetcher` downloads each configured file by URL into `data/raw/undp-hdr/<alias>.<ext>` and writes a manifest JSON describing what landed. The cleaner picks the right indicator columns / sheet per series_code. Adding another HDR indicator (e.g. HDI) is a config-only change in `settings.yaml` — just add another file entry or another `indicators:` row under an existing file.
+
+### World Bank Worldwide Governance Indicators (WGI)
+WGI was deprecated from the regular World Bank API in 2024 and is now published as a per-release bulk XLSX on the WGI homepage. We use:
+
+- **WGI 2025 release** (`wgidataset_with_sourcedata-2025.xlsx`) — 1996–2024 panel for 214 economies, with six dimensions on six sheets (`va`, `pv`, `ge`, `rq`, `rl`, `cc`). Each sheet ships a pre-normalized 0-100 "Governance score" column we consume directly.
+
+Today we use only the Government Effectiveness sheet (`ge`) as our state-capacity proxy → `WGI_GOVEFF`. To add another WGI dimension, add an entry under `wb_wgi.files[*].indicators` in `settings.yaml`.
 
 ### World Bank Group
 The World Bank publishes one of the __largest collections of global development, economic, demographic, and environmental time-series__. Each metric is defined as an indicator (e.g., GDP per capita, CO₂ emissions, school enrollment), and nearly all indicators provide annual values by country, often spanning decades.

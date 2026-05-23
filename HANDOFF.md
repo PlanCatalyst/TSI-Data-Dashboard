@@ -35,15 +35,16 @@ Contract source of truth:
 
 ## 4) Current known gaps to close
 
-From `indicators/SCORING_AUDIT.md`:
+From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
 
-- `gii`: missing UNDP HDR ingestion path
-- `mpi`: missing UNDP HDR ingestion path
-- `ndgain`: component data exists; composite score path incomplete
-- `state`: no complete data/scorer wiring
-- `conces`: no complete data/scorer wiring
-- `popdens`: scorer formula mismatch vs taxonomy notes
-- `publish_dashboard.py`: partially scaffolded, not fully implemented
+- ~~`gii`: missing UNDP HDR ingestion path~~ **Closed 2026-05-17** — live via `UNDPHDRFetcher` (2025 HDR composite-indices CSV).
+- ~~`mpi`: missing UNDP HDR ingestion path~~ **Closed 2026-05-17** — live via `UNDPHDRFetcher` (2025 OPHI Global MPI Table 2 XLSX).
+- ~~`ndgain`: component data exists; composite score path incomplete~~ **Closed 2026-05-17** — pipeline now reads ND-GAIN's published `resources/vulnerability/vulnerability.csv` composite directly.
+- ~~`state`: no complete data/scorer wiring~~ **Closed 2026-05-17** — source switched from Hanson-Sigman (stale at 2015) to World Bank WGI Government Effectiveness (current through 2024); live via `WBWGIFetcher`.
+- `conces`: **deferred future task.** Inputs (WB + IMF series) exist but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions in `docs/source-candidates.md` need PlanCatalyst answers before implementation.
+- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Quick fix once canonical series_code is agreed.
+- `publish_dashboard.py`: partially scaffolded, not fully implemented.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` uses numeric country codes instead of ISO3 (pre-existing; re-running the cleaner after a fresh UN SDG fetch fixes it).
 
 ## 5) Legacy output policy
 

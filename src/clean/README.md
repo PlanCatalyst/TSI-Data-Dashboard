@@ -1,7 +1,9 @@
 # Data Cleaning Module
 
 ## Overview
-This module is responsible for cleaning the raw data from the corresponding fetching clients: World Bank, UN SDG, and ND-GAIN.
+This module is responsible for cleaning the raw data from the corresponding fetching clients: UN SDG, World Bank API, ND-GAIN, UNDP HDR, and World Bank WGI.
+
+Every cleaner emits the same minimum tidy schema so downstream scoring can concatenate them: `country_code, country_name, year, value, indicator, series_code` (source-specific extras may appear after these). Country names are canonicalized against `indicators/country_codes.csv` via `src/utils/country_names.py`. Country codes are ISO3 (`iso3`); only the `series_code` column is consulted by `IndicatorScorerFactory`.
 
 The data is passed from the fetching module to the cleaning module by reference. The raw data is **not** stored in production, it can be stored only for development for faster debugging.
 
@@ -47,7 +49,8 @@ This module implements the abstract factory pattern to create the appropriate cl
 - 8.10.2 – [https://unstats.un.org/sdgs/metadata/files/Metadata-08-10-02.pdf](https://unstats.un.org/sdgs/metadata/files/Metadata-08-10-02.pdf)
 - Gender Inequality Index – [https://hdr.undp.org/sites/default/files/2023-24_HDR/hdr2023-24_technical_notes.pdf](https://hdr.undp.org/sites/default/files/2023-24_HDR/hdr2023-24_technical_notes.pdf)
 - ND-GAIN Vulnerability Index – [https://gain.nd.edu/assets/522870/nd_gain_countryindextechreport_2023_01.pdf](https://gain.nd.edu/assets/522870/nd_gain_countryindextechreport_2023_01.pdf)
-- State Capacity Index – [http://www-personal.umich.edu/~jkhanson/state_capacity.html](http://www-personal.umich.edu/~jkhanson/state_capacity.html)
+- ~~State Capacity Index (Hanson-Sigman, frozen at 2015)~~ — superseded 2026-05-17.
+- Government Effectiveness (state capacity proxy) — [https://www.worldbank.org/en/publication/worldwide-governance-indicators](https://www.worldbank.org/en/publication/worldwide-governance-indicators)
 - 1.2.1 – [https://unstats.un.org/sdgs/metadata/files/Metadata-01-02-01.pdf](https://unstats.un.org/sdgs/metadata/files/Metadata-01-02-01.pdf)
 - Global Multidimensional Poverty Index (MPI) – [https://hdr.undp.org/mpi-2024-faqs](https://hdr.undp.org/mpi-2024-faqs)
 
