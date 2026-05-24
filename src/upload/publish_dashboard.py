@@ -1,36 +1,25 @@
 """
-Publish dashboard JSON to Azure Blob - SKELETON / CONTRACT.
+Publish dashboard JSON to Azure Blob.
 
-Status: NOT a complete implementation. This module exists as the canonical
-target shape for the team's full implementation post-handoff. All function
-bodies are `TODO` stubs that document the expected behaviour. The signatures
-and the data shapes they construct are the binding contract.
-
-Why a skeleton:
-- Pins the [docs/data-contract.md](../../docs/data-contract.md) shapes in code
-  so reviewers can diff against typed signatures, not prose.
-- Lets the frontend team build against deterministic, locally-generated
-  fixtures (call `build_meta()` / `build_countries()` / `build_timeseries()`
-  in a test, dump JSON, fetch from disk).
-- Makes the publish boundary the place where pipeline-direction
-  ("higher = more need") flips to dashboard-direction
-  ("higher = more favourable"). See
-  [indicators/SCORING_AUDIT.md](../../indicators/SCORING_AUDIT.md).
-
-Run order (when fully implemented):
+Run order:
     1. Pipeline writes to data/interim/validated/ (pillar+subdomain CSVs +
        Indicator_Scores_Full.csv).
-    2. `publish()` reads those + `indicators/country_codes.csv` +
-       `indicators/indicators.yaml`.
-    3. Builds meta/countries/timeseries dicts; validates against the contract;
-       uploads to the `dashboard-public` Azure container under `/v1/`.
-    4. Existing `/v1/` is overwritten atomically (publish each blob, then swap
-       a `manifest.json` last so partial uploads never go live).
+    2. publish() reads those + indicators/country_codes.csv +
+       indicators/indicators.yaml.
+    3. Builds meta/countries/timeseries dicts, validates against the contract,
+       uploads to the dashboard-public Azure container under /v1/.
+    4. Uploads meta.json, countries.json, timeseries.json, then writes
+       manifest.json last — a partial upload never marks the snapshot complete.
+
+Usage:
+    python -m src.upload.publish_dashboard                          # dry run
+    python -m src.upload.publish_dashboard --azure                  # upload to Azure
+    python -m src.upload.publish_dashboard --azure --run-id <id>   # with run ID
 
 Conventions:
 - All numeric scores in the published JSON are in [0, 100], higher is better.
-- `null` for missing data; never `NaN`, never `0` as sentinel.
-- `iso3` is the canonical country join key; `id` (ISO numeric) is included for
+- null for missing data; never NaN, never 0 as sentinel.
+- iso3 is the canonical country join key; id (ISO numeric) is included for
   the TopoJSON map.
 """
 
@@ -158,34 +147,15 @@ def load_inputs(
     df_indicator_scores = pd.read_csv(repo_root / "data" / "interim" / "validated" / "Indicator_Scores_Full.csv")
 
     years = [int(y) for y in (years or sorted(df_pillar_scores["year"].unique()))]
-    for year in years:
-        print(year)
     return PublishInputs(
-        yaml_cfg = data,
-        country_codes = df_country_codes,
-        pillar_scores = df_pillar_scores,
-        subdomain_scores = df_subdomain_scores,
-        indicator_scores = df_indicator_scores,
-        years = years,
-        pipeline_run_id = pipeline_run_id,
+        yaml_cfg=data,
+        country_codes=df_country_codes,
+        pillar_scores=df_pillar_scores,
+        subdomain_scores=df_subdomain_scores,
+        indicator_scores=df_indicator_scores,
+        years=years,
+        pipeline_run_id=pipeline_run_id,
     )
-
-
-    # """
-    # Read all upstream artifacts needed to publish.
-
-    # Inputs:
-    #   indicators/indicators.yaml         -> taxonomy
-    #   indicators/country_codes.csv       -> ISO3/numeric/region join table
-    #   data/interim/validated/pillarscores.csv
-    #   data/interim/validated/subdomainscores.csv
-    #   data/interim/validated/Indicator_Scores_Full.csv
-    # """
-
-
-    # raise NotImplementedError(
-    #     "TODO: read yaml + country_codes.csv + pipeline-validated CSVs into a PublishInputs"
-    # )
 
 
 # ---------------------------------------------------------------------------
@@ -257,39 +227,13 @@ def build_meta(inputs: PublishInputs) -> MetaPayload:
         "projections": {
             "enabled": False,
             "firstProjectedYear": None,
-            "note": "Projection band coming soon."
+            "note": "Projection band coming soon.",
         },
         "regions": _REGIONS,
         "pillars": pillars,
         "subdomains": subdomains,
         "indicators": indicators,
-    }    
-
-    # """
-    # Assemble `meta.json`.
-
-    # Shape (see docs/data-contract.md §2):
-    #     {
-    #       "schemaVersion":     CONTRACT_VERSION,
-    #       "generatedAt":       ISO-8601 UTC,
-    #       "pipelineRunId":     str,
-    #       "scoringDirection":  "higher_is_better",
-    #       "years":             [int, ...]                  # ascending,
-    #       "projections":       {"enabled": bool,
-    #                             "firstProjectedYear": int|null,
-    #                             "note": str},
-    #       "regions":           [{"code": str, "label": str}, ...],   # 8
-    #       "pillars":           [{"key", "label", "color", "repIndicator"}, ...],   # 7
-    #       "subdomains":        [{"key", "label", "pillar"}, ...],    # 17
-    #       "indicators":        [{"key", "label", "sdg", "source", "unit",
-    #                              "pillar", "subdomain", "rawDirection",
-    #                              "scoredDirection"}, ...]            # 28
-    #     }
-    # """
-    # raise NotImplementedError(
-    #     "TODO: project yaml + run metadata into the meta.json shape; pillars must "
-    #     "include color + repIndicator (lift from data-contract.md §2 example or wire to settings)"
-    # )
+    }
 
 
 def build_countries(inputs: PublishInputs) -> CountriesPayload:
@@ -323,8 +267,10 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     #       return round(float(sum(vals)) / len(vals), 1)
 
       
-    # Calculation that works around the ctx and pri indicators that are currently always null for every country
-    _GAPPED_PILLARS = {"ctx", "pri"}  # rep indicators lack series_code; exclude from null-check, remove "ag", "climate", "women" to see countries.json filled with non-nulls
+    # Pillars with no data at all are excluded from the null-check so they don't
+    # blank out overall for every country. This set shrinks automatically as more
+    # pillar data lands (e.g. when women/climate/ctx/pri are wired up).
+    _GAPPED_PILLARS = {pk for pk in _PILLAR_KEYS if wide[pk].isna().all()}
 
     def _overall(row):
         if any(pd.isna(row[pk]) for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS):
@@ -374,71 +320,71 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
 
     return sorted(countries, key=lambda x: x["name"])
 
- 
-    # """
-    # Assemble `countries.json`.
 
-    # For each country present in `country_codes.csv` AND in pillar_scores:
+def _prefer_aggregate_value(g: pd.DataFrame, col: str, aggregate_val: str) -> pd.DataFrame:
+    if col not in g.columns:
+        return g
+    non_null = g[col].dropna()
+    if aggregate_val in non_null.values:
+        return g[g[col] == aggregate_val]
+    return g
 
-    #     {
-    #       "id":      int,                 # ISO-3166-1 numeric
-    #       "iso3":    str,                 # 3-letter
-    #       "name":    str,                 # from country_codes.csv
-    #       "region":  str,                 # one of 8 WB codes
-    #       "scores":  {"health":float|null, "ag":..., "si":..., "women":...,
-    #                   "climate":..., "ctx":..., "pri":...},
-    #       "overall": float|null,          # mean of the 7 pillar scores
-    #       "trend":   [float|null, ...]    # length == len(years)
-    #     }
+# SDG aggregate disaggregation rules
+def _filter_for_composites(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Restrict to appropriate rows for composite calculation.
 
-    # Requirements:
-    #   - Use the LATEST year present in pillar_scores for the snapshot scores
-    #     (the per-country `scores` block).
-    #   - `overall` is null if any pillar score is null.
-    #   - `trend[i]` is the country's per-year overall computed from that year's
-    #     pillar scores; null if any pillar is null in year i.
-    #   - All scores must be inverted from pipeline orientation:
-    #         published = round(100 - pipeline_score, 1)
-    #     See indicators/SCORING_AUDIT.md.
-    #   - Round all numeric outputs to 1 decimal.
-    # """
-    # raise NotImplementedError(
-    #     "TODO: pivot pillar_scores wide on pillar_key, join country_codes, "
-    #     "compute overall + trend, invert direction (100-x), round to 1dp"
-    # )
+    Rule:
+    - For each country/year/indicator, if aggregate codes (BOTHSEX, ALLAREA,
+      _T, etc.) exist, use only those.
+    - If an indicator is only reported for a single category (e.g. FEMALE
+      only for SH_STA_MORT), keep that category; do not drop it just because
+      BOTHSEX/ALLAREA are absent.
+    """
+    groups = []
+    for _, g in df.groupby(
+        ["country_code", "country_name", "year", "series_code"],
+        dropna=False,
+    ):
+        # Prefer BOTHSEX when present; otherwise keep MALE/FEMALE/etc.
+        g = _prefer_aggregate_value(g, "sex", "BOTHSEX")
+        # Prefer ALLAREA when present; otherwise keep URBAN/RURAL/etc.
+        g = _prefer_aggregate_value(g, "location", "ALLAREA")
+        # Prefer _T for quantile and education_level when present.
+        g = _prefer_aggregate_value(g, "quantile", "_T")
+        g = _prefer_aggregate_value(g, "education_level", "_T")
+        # Age: if ALLAGE exists for this indicator, prefer it; otherwise keep
+        # the age bands that are present (e.g., <5Y for child indicators).
+        age_values = g["age"].dropna().unique()
+        if "ALLAGE" in age_values:
+            g = g[g["age"] == "ALLAGE"]
+        groups.append(g)
+
+    if not groups:
+        return df.iloc[0:0]
+
+    return pd.concat(groups, axis=0)
 
 
 def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
-    # dict[str, dict[str, list[Optional[float]]]]
-    def _keep_aggregate_rows(df: pd.DataFrame) -> pd.DataFrame:
-        mask = pd.Series(True, index=df.index)
-        if "sex" in df.columns:
-            mask &= df["sex"].isna() | df["sex"].isin({"BOTHSEX"})
-        if "age" in df.columns:
-            mask &= df["age"].isna() | df["age"].isin({"ALLAGE", "_T"})
-        if "location" in df.columns:
-            mask &= df["location"].isna() | df["location"].isin({"ALLAREA"})
-        
-        return df[mask]
-
-    
     from src.calculating.pillar_taxonomy import load_taxonomy
     taxonomy = load_taxonomy()
     series_to_key = {t.series_code: t.frontend_key for t in taxonomy if t.series_code}
+
     all_indicator_keys = [t.frontend_key for t in taxonomy]
 
-    df = _keep_aggregate_rows(inputs.indicator_scores).copy()
+    df = _filter_for_composites(inputs.indicator_scores).copy()
     df["pub_score"] = df["score"].apply(
         lambda x: round(100.0 - x, 1) if pd.notna(x) else float("nan")
     )
 
     df["frontend_key"] = df["series_code"].map(series_to_key)
     df = df.dropna(subset=["frontend_key"])
-
     lookup = (
         df.groupby(["country_code", "frontend_key", "year"])["pub_score"]
         .first()
     )
+
 
     valid_iso3s = (
         set(inputs.pillar_scores["country_code"].unique())
@@ -459,35 +405,6 @@ def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
             result[iso3][fkey] = arr
     
     return result
-
-
-    # """
-    # Assemble `timeseries.json`.
-
-    # Shape:
-    #     {
-    #       "<ISO3>": {
-    #         "<indicator_key>": [val_year_0, val_year_1, ..., val_year_N]
-    #       }
-    #     }
-
-    # Requirements:
-    #   - Top-level keys: every iso3 from `countries.json`.
-    #   - Second-level keys: every indicator `key` from `meta.indicators`.
-    #   - Array length == len(years); positions align to `meta.years`.
-    #   - Values are the SCORED indicator value in [0, 100], inverted to dashboard
-    #     direction (100 - pipeline_score). null where missing.
-    #   - For SDG indicators, source is `Indicator_Scores_Full.csv` filtered to
-    #     aggregate disaggregations only (BOTHSEX/ALLAREA/_T/ALLAGE - see
-    #     `aggregate._filter_for_composites` for the exact rule).
-    #   - For non-SDG indicators (gii, ndgain, mpi, state, conces, popdens), use
-    #     whatever the pipeline emits as their series_code; lookup table in
-    #     `src/calculating/pillar_taxonomy.NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`.
-    # """
-    # raise NotImplementedError(
-    #     "TODO: long->wide pivot of per-indicator scored values per (iso3, year), "
-    #     "inversion + null-padding to len(years), keyed by frontend_key"
-    # )
 
 
 # ---------------------------------------------------------------------------
@@ -563,22 +480,6 @@ def validate_payload(
             for i, v in enumerate(arr):
                 if v is not None and not (0.0 <= v <= 100.0):
                     raise ValueError(f"timeseries[{iso3}][{fkey}][{i}] = {v} out of range [0, 100]")
-    # """
-    # Assert every contract invariant from docs/data-contract.md §7.
-
-    # Raises a descriptive ValueError on the first failure; aborts the publish.
-
-    # Checks:
-    #   1. meta has 8 regions, 7 pillars, 17 subdomains, 28 indicators.
-    #   2. Every country.region is in meta.regions[].code.
-    #   3. set(timeseries.keys()) == set(c["iso3"] for c in countries).
-    #   4. For every iso3 in timeseries: keys() == set(meta.indicators[*].key)
-    #      AND every value array has len == len(meta.years).
-    #   5. All non-null numeric scores are in [0, 100].
-    # """
-    # raise NotImplementedError(
-    #     "TODO: implement the 5 invariant checks; raise ValueError with a precise locator on failure"
-    # )
 
 
 # ---------------------------------------------------------------------------
@@ -615,68 +516,63 @@ def publish(
             (output_dir / name).write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
             )
+        print(f"Dry run complete. Files written to {output_dir}")
         return
-    
-    # Azure upload
+
+    # Azure upload — validate credentials before attempting any upload.
+    tenant_id = os.getenv("AZURE_TENANT_ID")
+    client_id = os.getenv("AZURE_CLIENT_ID")
+    client_secret = os.getenv("AZURE_CLIENT_SECRET")
+    account_url = os.getenv("AZURE_STORAGE_ACCOUNT_URL")
+    missing = [k for k, v in {
+        "AZURE_TENANT_ID": tenant_id,
+        "AZURE_CLIENT_ID": client_id,
+        "AZURE_CLIENT_SECRET": client_secret,
+        "AZURE_STORAGE_ACCOUNT_URL": account_url,
+    }.items() if not v]
+    if missing:
+        raise EnvironmentError(f"Missing required env vars: {', '.join(missing)}")
+
     credential = ClientSecretCredential(
-        tenant_id=os.getenv("AZURE_TENANT_ID"),
-        client_id=os.getenv("AZURE_CLIENT_ID"),
-        client_secret=os.getenv("AZURE_CLIENT_SECRET"),
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret,
     )
     container = BlobServiceClient(
-        account_url=os.getenv("AZURE_STORAGE_ACCOUNT_URL"),
+        account_url=account_url,
         credential=credential,
     ).get_container_client(target_container)
 
-    settings = ContentSettings(
+    blob_settings = ContentSettings(
         content_type="application/json; charset=utf-8",
         cache_control="public, max-age=3600",
     )
 
+    # Upload the three payload files first, then write manifest.json last.
+    # A reader that checks for manifest.json will never see a partial publish.
     for name, payload in payloads:
-        data = json.dumps(
-            payload, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         container.get_blob_client(prefix + name).upload_blob(
-            data, overwrite=True, content_settings=settings
+            data, overwrite=True, content_settings=blob_settings,
         )
-        
-    # """
-    # End-to-end publish:
+        print(f"Uploaded {prefix + name} ({len(data):,} bytes)")
 
-    #   1. load_inputs(repo_root, pipeline_run_id)
-    #   2. meta       = build_meta(inputs)
-    #   3. countries  = build_countries(inputs)
-    #   4. timeseries = build_timeseries(inputs)
-    #   5. validate_payload(meta, countries, timeseries)        -- aborts on failure
-    #   6. write to /tmp first, then upload all 3 blobs with:
-    #         Cache-Control: public, max-age=3600
-    #         Content-Type:  application/json; charset=utf-8
-    #   7. If dry_run, write to repo_root/data/organized/v1/ instead of uploading.
-
-    # Auth:
-    #   Reuse `UploadValidated`-style ClientSecretCredential pattern from
-    #   `src/upload/upload_validated.py`. Env vars:
-    #     AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
-    #     AZURE_STORAGE_ACCOUNT_URL.
-
-    # Container setup (one-time, manual):
-    #   - Create `dashboard-public` container with anonymous BLOB read.
-    #   - Apply CORS rule: AllowedOrigins = [<wix domain>, http://localhost:5173,
-    #     http://localhost:4173]; AllowedMethods=GET; AllowedHeaders=*.
-
-    # Note:
-    #   The local pre-publish output target is the organized data layer
-    #   (`data/organized/v1/`) so frontend integration can validate payload shape
-    #   before Azure upload.
-
-    # See docs/data-contract.md for the full shape spec; this skeleton is the
-    # code-level mirror.
-    # """
-    # raise NotImplementedError(
-    #     "TODO: orchestrate load -> build -> validate -> write/upload. "
-    #     "When implementing, lift the auth pattern from src/upload/upload_validated.py"
-    # )
+    manifest = {
+        "schemaVersion": CONTRACT_VERSION,
+        "publishedAt": datetime.now(timezone.utc).isoformat(),
+        "pipelineRunId": pipeline_run_id,
+        "files": [prefix + name for name, _ in payloads],
+    }
+    manifest_data = json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8")
+    container.get_blob_client(prefix + "manifest.json").upload_blob(
+        manifest_data,
+        overwrite=True,
+        content_settings=ContentSettings(
+            content_type="application/json; charset=utf-8",
+            cache_control="no-cache",
+        ),
+    )
+    print(f"Uploaded {prefix}manifest.json — publish complete")
 
 
 if __name__ == "__main__":
@@ -684,9 +580,15 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
     from src.pipeline.utils import project_root
+
+    # Usage:
+    #   python -m src.upload.publish_dashboard            # dry run (default)
+    #   python -m src.upload.publish_dashboard --azure    # upload to Azure Blob
+    azure = "--azure" in sys.argv
+    run_id = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--run-id" and i + 1 < len(sys.argv)), "manual-run")
+
     publish(
         repo_root=project_root(),
-        pipeline_run_id="test-dry-run",
-        dry_run=True,
+        pipeline_run_id=run_id,
+        dry_run=not azure,
     )
-    print("Dry run complete. Check data/organized/v1/")
