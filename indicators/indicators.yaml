@@ -546,19 +546,24 @@ pillars:
         indicators:
           - frontend_key: state
             id: null
-            name: "State Capacity Index"
+            name: "Government Effectiveness (state capacity proxy)"
             definition: >
-              Measures state capacity by combining 21 different indicators related to three key
-              dimensions: extractive capacity, coercive capacity, and administrative capacity.
-              Higher values indicate greater state capacity.
+              World Bank Worldwide Governance Indicators (WGI) Government Effectiveness: captures
+              perceptions of the quality of public services, the quality of the civil service and
+              the degree of its independence from political pressures, the quality of policy
+              formulation and implementation, and the credibility of the government's commitment to
+              such policies. Used as the dashboard's state-capacity proxy because the original
+              Hanson-Sigman State Capacity Index froze in 2015 and is unsuitable for current
+              decision-support. WGI is annually updated through 2024 and methodologically stable.
               Consult the documentation:
-              http://www-personal.umich.edu/~jkhanson/state_capacity.html
-            available_for_all_countries: "No, 31 reporting, only missing Palestine"
-            unit_or_measure: "Index score, higher scores mean more capacity"
-            data_source: "Our World in Data"
+              https://www.worldbank.org/en/publication/worldwide-governance-indicators
+            available_for_all_countries: "Yes; 213 economies in the 2024 release"
+            unit_or_measure: "0-100 Governance score (higher = better governance)"
+            data_source: "World Bank Worldwide Governance Indicators (WGI)"
             scoring: >
-              Ratio of the country value to the global average of 0.7, adjusting the scale to
-              positive values. Results normalized to 0, 100.
+              Use WGI's pre-normalized 0-100 Governance score directly. SimpleDirectionalScorer
+              produces vulnerability = 100 - value; the publish boundary flips back so the
+              frontend sees the original 0-100 favorability score.
 
       - key: poverty
         label: "Poverty & livelihoods"

@@ -47,7 +47,7 @@ NON_SDG_FRONTEND_KEY_TO_SERIES_CODE: Dict[str, Optional[str]] = {
     "ndgain": "ND_GAIN_VULN",
     "mpi": "MPI_INDEX",
     "popdens": "EN.POP.DNST",
-    "state": None,
+    "state": "WGI_GOVEFF",
     "conces": None,
 }
 

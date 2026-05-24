@@ -8,11 +8,20 @@ from src.pipeline.terminal_output import TerminalOutput
 from src.clean.base_clean import DataCleaner
 from src.utils.country_names import get_canonical_name
 
+# Map from the `indicator` tag added by the fetcher to the canonical pipeline
+# series_code that scorer factory + pillar_taxonomy use. Only the overall
+# vulnerability composite has a scorer wired today; sector composites are
+# kept available for future use but flow through as un-scored rows.
+_NDGAIN_INDICATOR_TO_SERIES_CODE: Dict[str, str] = {
+    "vulnerability": "ND_GAIN_VULN",
+}
+
+
 class NDGAINCleaner(DataCleaner):
     """
     Clean ND-GAIN data
     """
-    
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
 
@@ -71,14 +80,21 @@ class NDGAINCleaner(DataCleaner):
             # Sort by country, indicator, and year
             df_long = df_long.sort_values(['country_code', 'indicator', 'year']).reset_index(drop=True)
             
+            # Add series_code so the scoring pipeline can pick up the
+            # vulnerability composite. Component / sector rows get NaN and
+            # are skipped by `score_indicators`.
+            df_long["series_code"] = df_long["indicator"].map(_NDGAIN_INDICATOR_TO_SERIES_CODE)
+
             # Reorder columns for consistency with other clients
-            df_long = df_long[['country_code', 'country_name', 'indicator', 'year', 'value']]
+            df_long = df_long[['country_code', 'country_name', 'indicator', 'year', 'value', 'series_code']]
             df_long["country_name"] = df_long.apply(
                 lambda r: get_canonical_name(str(r["country_code"]), str(r.get("country_name") or "")),
                 axis=1,
             )
-            
+
+            n_composite = int(df_long["series_code"].eq("ND_GAIN_VULN").sum())
             TerminalOutput.summary("  Extracted", f"{len(df_long)} rows")
+            TerminalOutput.summary("  ND_GAIN_VULN composite rows", str(n_composite))
             TerminalOutput.complete("Converted to DataFrame")
 
             return df_long
