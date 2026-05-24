@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-05-10T19:25:47.840553+00:00",
+  "generatedAt": "2026-05-17T20:16:08.380122+00:00",
   "pipelineRunId": "test-dry-run",
   "scoringDirection": "higher_is_better",
   "years": [

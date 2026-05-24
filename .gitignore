@@ -1,4 +1,10 @@
 # ----------------------------
+# Frontend env overrides (Vite convention — never commit local secrets)
+# ----------------------------
+dashboard/.env.local
+dashboard/.env.*.local
+
+# ----------------------------
 # OS / editor noise
 # ----------------------------
 .DS_Store
