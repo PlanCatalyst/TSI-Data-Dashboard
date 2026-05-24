@@ -58,10 +58,16 @@ class Orchestrator:
         # ============================================================
         # CALCULATING (scores → data/interim/validated/)
         # ============================================================
-        unsdg_rel = (runtime_cfg.get("interim_data") or {}).get("unsdg")
+        interim_data_cfg = runtime_cfg.get("interim_data") or {}
+        unsdg_rel = interim_data_cfg.get("unsdg")
         validated_rel = paths_cfg.get("data_interim_validated", "data/interim/validated/")
         if unsdg_rel:
-            run_scoring_pipeline(root / unsdg_rel, root / validated_rel)
+            extras = [
+                root / rel
+                for key, rel in interim_data_cfg.items()
+                if key != "unsdg" and rel
+            ]
+            run_scoring_pipeline(root / unsdg_rel, root / validated_rel, extra_interim_csvs=extras)
             
         # ============================================================
         # UPLOAD (validated scoring CSVs to Azure when runtime.upload_azure is true)

@@ -234,6 +234,54 @@ class FetchData:
                 raw_files.get("ndgain", "nd_gain_raw.json")
             )
         
+        """ ##################################################################
+        ### UNDP HDR FETCHING ###
+        ################################################################## """
+
+        fetch_header("UNDP HDR")
+
+        undp_cfg = cfg.get("undp_hdr") or {}
+        undp_files = undp_cfg.get("files") or []
+        undp_manifest: List[Dict[str, Any]] = []
+        if undp_files:
+            undpClient = fetcher_factory.create_client("undp_hdr")
+            undp_out_dir = _source_raw_dir(cfg, "undp_hdr")
+            TerminalOutput.info(f"Downloading {len(undp_files)} HDR files", indent=1)
+            undp_manifest = undpClient.fetch_indicator_data(undp_files, undp_out_dir)
+
+            if runtime.get("save_raw", True):
+                undpClient.save_raw_data(
+                    undp_manifest,
+                    undp_out_dir,
+                    raw_files.get("undp_hdr", "undp_hdr_manifest.json"),
+                )
+        else:
+            TerminalOutput.info("No UNDP HDR files configured; skipping", indent=1)
+
+        """ ##################################################################
+        ### WORLD BANK WGI FETCHING ###
+        ################################################################## """
+
+        fetch_header("World Bank WGI")
+
+        wgi_cfg = cfg.get("wb_wgi") or {}
+        wgi_files = wgi_cfg.get("files") or []
+        wgi_manifest: List[Dict[str, Any]] = []
+        if wgi_files:
+            wgiClient = fetcher_factory.create_client("wb_wgi")
+            wgi_out_dir = _source_raw_dir(cfg, "wb_wgi")
+            TerminalOutput.info(f"Downloading {len(wgi_files)} WGI files", indent=1)
+            wgi_manifest = wgiClient.fetch_indicator_data(wgi_files, wgi_out_dir)
+
+            if runtime.get("save_raw", True):
+                wgiClient.save_raw_data(
+                    wgi_manifest,
+                    wgi_out_dir,
+                    raw_files.get("wb_wgi", "wb_wgi_manifest.json"),
+                )
+        else:
+            TerminalOutput.info("No WGI files configured; skipping", indent=1)
+
         print("\n" + "="*60)
         TerminalOutput.complete("All data sources fetched successfully")
         print("="*60 + "\n")
@@ -242,7 +290,9 @@ class FetchData:
         return {
             "unsdg": unsdg_indicator_list,
             "worldbank": recs,
-            "ndgain": ndgain_indicator_scores
+            "ndgain": ndgain_indicator_scores,
+            "undp_hdr": undp_manifest,
+            "wb_wgi": wgi_manifest,
         }
 
 

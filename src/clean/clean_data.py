@@ -119,6 +119,40 @@ class CleanData:
         if runtime["save_cleaned"]:
             ndGainClient.save_interim(ndgain_cleaned, ndgain_csv_path)
 
+        """ ##################################################################
+        ### UNDP HDR CLEANING ###
+        ################################################################## """
+
+        clean_header("UNDP HDR")
+
+        undp_manifest = (df or {}).get("undp_hdr") or []
+        undp_cleaned = pd.DataFrame()
+        if undp_manifest:
+            undpCleaner = self.cleanFactory.create_cleaner("undp_hdr")
+            undp_cleaned = undpCleaner.clean_data(undp_manifest)
+            undp_path_rel = (runtime.get("interim_data") or {}).get("undp_hdr")
+            if runtime["save_cleaned"] and undp_path_rel and not undp_cleaned.empty:
+                undpCleaner.save_interim(undp_cleaned, Path(undp_path_rel))
+        else:
+            TerminalOutput.info("No UNDP HDR manifest; skipping", indent=1)
+
+        """ ##################################################################
+        ### WORLD BANK WGI CLEANING ###
+        ################################################################## """
+
+        clean_header("World Bank WGI")
+
+        wgi_manifest = (df or {}).get("wb_wgi") or []
+        wgi_cleaned = pd.DataFrame()
+        if wgi_manifest:
+            wgiCleaner = self.cleanFactory.create_cleaner("wb_wgi")
+            wgi_cleaned = wgiCleaner.clean_data(wgi_manifest)
+            wgi_path_rel = (runtime.get("interim_data") or {}).get("wb_wgi")
+            if runtime["save_cleaned"] and wgi_path_rel and not wgi_cleaned.empty:
+                wgiCleaner.save_interim(wgi_cleaned, Path(wgi_path_rel))
+        else:
+            TerminalOutput.info("No WGI manifest; skipping", indent=1)
+
         print("\n" + "="*60)
         TerminalOutput.complete("All data sources cleaned successfully")
         print("="*60 + "\n")
@@ -127,6 +161,8 @@ class CleanData:
             "unsdg": unsdg_cleaned,
             "worldbank": wb_cleaned,
             "ndgain": ndgain_cleaned,
+            "undp_hdr": undp_cleaned,
+            "wb_wgi": wgi_cleaned,
         }
 
     def load_raw_data(self) -> Dict[str, list]:
@@ -168,11 +204,28 @@ class CleanData:
             ndgain_path = raw_dir / "nd_gain_raw.csv"
         with open(ndgain_path, 'r') as f:
             ndgain_data = json.load(f)
-        
+
+        # UNDP HDR manifest is optional (introduced after the original sources).
+        undp_manifest: list = []
+        undp_base = project_root() / by_source.get("undp_hdr", "data/raw/undp-hdr/")
+        undp_path = undp_base / raw_files.get("undp_hdr", "undp_hdr_manifest.json")
+        if undp_path.exists():
+            with open(undp_path, 'r') as f:
+                undp_manifest = json.load(f)
+
+        wgi_manifest: list = []
+        wgi_base = project_root() / by_source.get("wb_wgi", "data/raw/world-bank/")
+        wgi_path = wgi_base / raw_files.get("wb_wgi", "wb_wgi_manifest.json")
+        if wgi_path.exists():
+            with open(wgi_path, 'r') as f:
+                wgi_manifest = json.load(f)
+
         return {
             "unsdg": unsdg_data,
             "worldbank": wb_data,
             "ndgain": ndgain_data,
+            "undp_hdr": undp_manifest,
+            "wb_wgi": wgi_manifest,
         }
 
 if __name__ == "__main__":

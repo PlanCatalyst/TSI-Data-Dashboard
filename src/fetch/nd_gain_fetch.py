@@ -32,31 +32,52 @@ class NDGAINFetcher(DataFetcher):
         ensure_dir(out_dir)
         (out_dir / filename).write_text(json.dumps(records, indent=2), encoding="utf-8")
 
+    # Aggregate score files inside the ND-GAIN ZIP that we want alongside the
+    # per-component indicator files. The cleaner recognizes the `indicator`
+    # tag and assigns a series_code. Only the overall vulnerability composite
+    # currently flows through scoring; sector files are pulled too so they're
+    # available if a future scorer needs them.
+    _AGGREGATE_FILES: Dict[str, str] = {
+        "resources/vulnerability/vulnerability.csv": "vulnerability",
+        "resources/vulnerability/food.csv": "vulnerability_food",
+        "resources/vulnerability/water.csv": "vulnerability_water",
+        "resources/vulnerability/health.csv": "vulnerability_health",
+        "resources/vulnerability/ecosystems.csv": "vulnerability_ecosystems",
+        "resources/vulnerability/habitat.csv": "vulnerability_habitat",
+        "resources/vulnerability/infrastructure.csv": "vulnerability_infrastructure",
+    }
+
     def fetch_indicator_data(self, indicator_codes: List[str] = None, chunkSize: int = 10000) -> List[Dict[str, Any]]:
         """
         Fetches all indicator score data from the ND-GAIN ZIP file.
         Returns raw data as list of dictionaries (similar to API response format).
-        
+
+        Includes both the per-component score files under `resources/indicators/`
+        AND the pre-computed aggregate files under `resources/vulnerability/`
+        (overall vulnerability composite + 6 sector composites). The composite
+        is what ND-GAIN itself publishes as the country vulnerability score and
+        is the canonical input for ND_GAIN_VULN in our scorer factory.
+
         Args:
-            indicator_codes (List[str], optional): List of indicator codes to fetch. 
+            indicator_codes (List[str], optional): List of indicator codes to fetch.
                                                    If None, fetches all available indicators.
-        
+
         Returns:
             List[Dict[str, Any]]: List of records with indicator data
         """
         # Get list of all score files in ZIP
         score_files = self._list_indicator_score_files()
-        
+
         if not score_files:
             TerminalOutput.info("No indicator score files found", indent=1)
             return []
-        
+
         # Load all indicator data
         all_records = []
-        
+
         # Extract ZIP file
         with zipfile.ZipFile(self.base, "r") as zf:
-            
+
             # Iterate over every path leading to a score file for an indicator
             for idx, path in enumerate(score_files, 1):
                 # Extract indicator name from path
@@ -65,13 +86,13 @@ class NDGAINFetcher(DataFetcher):
                     indicator_name = p.parts[2]
                 except IndexError:
                     continue
-                
+
                 # Skip if filtering and this indicator not in filter list
                 if indicator_codes and indicator_name[:7] not in indicator_codes:
                     continue
-                
+
                 TerminalOutput.print_progress(idx, len(score_files), prefix="  Loading indicators: ")
-                
+
                 try:
                     # Open file from zip file object at current iteration path
                     with zf.open(path) as f:
@@ -80,17 +101,33 @@ class NDGAINFetcher(DataFetcher):
                         for chunk in pd.read_csv(f, chunksize=chunkSize):
                             chunk["indicator"] = indicator_name
                             chunk_list.append(chunk)
-                        
+
                         # Combine chunks and convert to records
                         if chunk_list:
                             df = pd.concat(chunk_list, ignore_index=True)
                             records = df.to_dict('records')
                             all_records.extend(records)
-                            
+
                 except Exception as e:
                     TerminalOutput.info(f"Error loading {indicator_name}: {e}", indent=1)
                     continue
-        
+
+            # Pre-computed aggregate (sector + overall) vulnerability scores.
+            # Same wide format as the per-indicator files.
+            zip_names = set(zf.namelist())
+            for agg_path, label in self._AGGREGATE_FILES.items():
+                if agg_path not in zip_names:
+                    TerminalOutput.info(f"  aggregate not in ZIP: {agg_path}", indent=1)
+                    continue
+                try:
+                    with zf.open(agg_path) as f:
+                        df = pd.read_csv(f)
+                        df["indicator"] = label
+                        all_records.extend(df.to_dict("records"))
+                        TerminalOutput.summary(f"  {label}", f"{len(df)} rows")
+                except Exception as e:
+                    TerminalOutput.info(f"  error loading {agg_path}: {e}", indent=1)
+
         TerminalOutput.summary("  Records", f"{len(all_records):,}")
         return all_records
 

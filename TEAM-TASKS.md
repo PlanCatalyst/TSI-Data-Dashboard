@@ -57,12 +57,13 @@ These directives are pre-approved so execution does not stall while Thomas is on
 These gaps block a fully contract-compliant `/v1/` publish and must be tracked during May:
 
 1. `src/upload/publish_dashboard.py` is a contract skeleton and must be implemented before the frontend can rely on live Blob JSON.
-2. `ndgain` has component data, but the ND-GAIN Vulnerability Index composite still needs to be produced and wired to `ND_GAIN_VULN`.
-3. `gii` and `mpi` need UNDP Human Development Reports ingestion and cleaning paths.
-4. `state` needs a State Capacity Index source path, cleaner, scorer/factory wiring, and taxonomy mapping.
-5. `conces` needs a Concessionality Index source definition, cleaner, scorer/factory wiring, and taxonomy mapping.
-6. `popdens` has a mapping/scoring mismatch to reconcile: taxonomy currently maps to `EN.POP.DNST`, while scorer registration historically used `POP_DENSITY`; the canonical series code and banded formula must be made consistent.
+2. ~~`ndgain` has component data, but the ND-GAIN Vulnerability Index composite still needs to be produced and wired to `ND_GAIN_VULN`.~~ **Closed 2026-05-17** — pipeline now reads ND-GAIN's published `vulnerability.csv` composite directly.
+3. ~~`gii` and `mpi` need UNDP Human Development Reports ingestion and cleaning paths.~~ **Closed 2026-05-17** — both live via the new `UNDPHDRFetcher` / `UNDPHDRCleaner` pair against 2025 HDR composite-indices CSV and 2025 OPHI Global MPI Table 2.
+4. ~~`state` needs a State Capacity Index source path, cleaner, scorer/factory wiring, and taxonomy mapping.~~ **Closed 2026-05-17** — source switched from stale Hanson-Sigman (frozen 2015) to World Bank WGI Government Effectiveness (current through 2024); `WGI_GOVEFF` series wired via new `WBWGIFetcher` / `WBWGICleaner` pair.
+5. **`conces` — future task (deferred 2026-05-17).** Inputs (WB + IMF series) exist but the Concessionality Index is a PlanCatalyst-defined composite whose formula is not specified in `indicators/indicators.yaml`. Six open methodology questions documented in `docs/source-candidates.md` need PlanCatalyst answers before any code goes in. Once the formula is pinned down, implementation is ~1 day on the now-established WB/file-composite patterns. Owner: PM to route to PlanCatalyst, then back to data-coverage owner.
+6. `popdens` has a mapping/scoring mismatch to reconcile: taxonomy currently maps to `EN.POP.DNST`, while scorer registration historically used `POP_DENSITY`; the canonical series code and banded formula must be made consistent. Additionally, the World Bank cleaner does not yet emit a `series_code` column so popdens rows are defensively dropped by the scoring pipeline as of 2026-05-17 — quick fix once the canonical series_code is agreed.
 7. Repo structure must stay aligned with imports and docs: upload code lives in `src/upload/`, active settings live in `src/config/settings.yaml`, and duplicate root-level config/upload copies should not be used.
+8. **Stale on-disk UN SDG cleaned CSV (2026-05-17 discovery)** — `data/clean/unsdg/un_sdg_clean.csv` uses numeric UN M49 country codes (e.g. `4` for Afghanistan) instead of ISO3, even though the current cleaner code does the ISO3 mapping. The file was written before that fix landed. Tyler: re-run `python3 -m src.clean.clean_data` (or full pipeline) to refresh. Until then, UN SDG poverty rows do not join with new ISO3-keyed rows (MPI, GII, WGI, ND-GAIN) at the subdomain rollup.
 
 ---
 
