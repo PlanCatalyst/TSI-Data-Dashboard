@@ -6,6 +6,17 @@ type ContractLoaderOptions = {
 
 const DEFAULT_BASE_URL = "/v1";
 
+// Sends a HEAD request to <url>/meta.json to confirm the endpoint is reachable
+// before committing all three parallel fetches to that base URL.
+async function probeBaseUrl(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}/meta.json`, { method: "HEAD" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
@@ -32,7 +43,24 @@ function assertContractShape(meta: MetaPayload, countries: CountriesPayload, tim
 }
 
 export async function loadDashboardContract(options: ContractLoaderOptions = {}): Promise<DashboardContract> {
-  const baseUrl = options.baseUrl ?? import.meta.env.VITE_CONTRACT_BASE_URL ?? DEFAULT_BASE_URL;
+  let baseUrl: string;
+  if (options.baseUrl) {
+    baseUrl = options.baseUrl;
+    console.log(`[dashboard] Loading contract from explicit baseUrl: ${baseUrl}`);
+  } else {
+    const envUrl = import.meta.env.VITE_CONTRACT_BASE_URL as string | undefined;
+    if (envUrl && await probeBaseUrl(envUrl)) {
+      baseUrl = envUrl;
+      console.log(`[dashboard] Loading contract from Azure: ${baseUrl}`);
+    } else {
+      if (envUrl) {
+        console.warn(`[dashboard] Azure endpoint unreachable (${envUrl}), falling back to local /v1`);
+      } else {
+        console.log(`[dashboard] No VITE_CONTRACT_BASE_URL set, loading contract from local /v1`);
+      }
+      baseUrl = DEFAULT_BASE_URL;
+    }
+  }
   const [meta, countries, timeseries] = await Promise.all([
     fetchJson<MetaPayload>(`${baseUrl}/meta.json`),
     fetchJson<CountriesPayload>(`${baseUrl}/countries.json`),
