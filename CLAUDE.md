@@ -29,7 +29,7 @@ Two top-level deliverables in one repo:
 ### Python pipeline (from repo root)
 
 ```zsh
-# One-time setup
+# One-time setupad
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -146,3 +146,17 @@ From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
 - Co-PM: Azure platform, CORS, automation, operations
 
 Detailed deliverables and milestones live in `TEAM-TASKS.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues at `PlanCatalyst/TSI-Data-Dashboard`, created manually. No team-wide conventions for labels or workflow yet. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Only `wontfix` exists in the repo today; the others will be created by the `triage` skill on first use. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. `CONTEXT.md` and `docs/adr/` live at the repo root; both `src/` (Python pipeline) and `dashboard/` (React frontend) share the same domain vocabulary (pillars, indicators, contract). See `docs/agents/domain.md`.

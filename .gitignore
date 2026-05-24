@@ -16,6 +16,7 @@ CLAUDE.md
 CLAUDE.local.md
 MAY-CONTEXT.md
 .claude/settings.local.json
+docs/agents/
 
 # ----------------------------
 # Python artifacts
