@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import re
-import unicodedata
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +9,7 @@ import pandas as pd
 from src.clean.base_clean import DataCleaner
 from src.pipeline.utils import ensure_dir, project_root
 from src.pipeline.terminal_output import TerminalOutput
+from src.utils.country_identity import name_to_iso3 as _resolve_iso3
 from src.utils.country_names import get_canonical_name
 
 
@@ -27,91 +26,6 @@ _SURVEY_YEAR_RE = re.compile(
     r"^\s*(?:(?:19|20)\d{2})(?:\s*/\s*((?:19|20)\d{2}))?\s*[A-Za-z]?\s*$"
 )
 _ANY_YEAR_RE = re.compile(r"(?:19|20)\d{2}")
-
-# HDR / UN country-name forms that don't match `indicators/country_codes.csv`
-# `name` column verbatim. We resolve those explicitly here. Keep this small
-# and focused on real mismatches we've observed; do not invent.
-_HDR_NAME_TO_ISO3 = {
-    "bolivia (plurinational state of)": "BOL",
-    "iran (islamic republic of)": "IRN",
-    "korea (republic of)": "KOR",
-    "korea (democratic people's republic of)": "PRK",
-    "tanzania (united republic of)": "TZA",
-    "venezuela (bolivarian republic of)": "VEN",
-    "lao people's democratic republic": "LAO",
-    "moldova (republic of)": "MDA",
-    "viet nam": "VNM",
-    "cote d'ivoire": "CIV",
-    "côte d'ivoire": "CIV",
-    "eswatini (kingdom of)": "SWZ",
-    "eswatini": "SWZ",
-    "türkiye": "TUR",
-    "turkiye": "TUR",
-    "state of palestine": "PSE",
-    "palestine, state of": "PSE",
-    "palestine": "PSE",
-    "north macedonia": "MKD",
-    "congo": "COG",
-    "congo (democratic republic of the)": "COD",
-    "democratic republic of the congo": "COD",
-    "saint lucia": "LCA",
-    "saint vincent and the grenadines": "VCT",
-    "gambia (the)": "GMB",
-    "bahamas (the)": "BHS",
-    "russian federation": "RUS",
-    "syrian arab republic": "SYR",
-    "yemen (republic of)": "YEM",
-    "hong kong, china (sar)": "HKG",
-    "united kingdom": "GBR",
-    "united states": "USA",
-    "czechia": "CZE",
-    "czech republic": "CZE",
-    "cabo verde": "CPV",
-    "cape verde": "CPV",
-    "myanmar": "MMR",
-    "timor-leste": "TLS",
-    "sao tome and principe": "STP",
-    "são tomé and príncipe": "STP",
-    "micronesia (federated states of)": "FSM",
-    # `country_codes.csv` uses short forms; HDR uses long forms.
-    "bosnia and herzegovina": "BIH",
-    "trinidad and tobago": "TTO",
-}
-
-
-def _normalize_name(name: str) -> str:
-    """Lowercase, strip diacritics, collapse whitespace and unicode quotes."""
-    if not isinstance(name, str):
-        return ""
-    s = unicodedata.normalize("NFKD", name)
-    s = "".join(c for c in s if not unicodedata.combining(c))
-    # Normalize curly quotes to straight, collapse non-breaking spaces.
-    s = s.replace("’", "'").replace("‘", "'").replace("\xa0", " ")
-    s = re.sub(r"\s+", " ", s).strip().lower()
-    return s
-
-
-@lru_cache(maxsize=1)
-def _name_to_iso3_index() -> Dict[str, str]:
-    """Build a normalized-name -> iso3 index from `indicators/country_codes.csv`
-    plus the curated HDR alias map. First definition wins on collisions."""
-    cc_path = project_root() / "indicators" / "country_codes.csv"
-    idx: Dict[str, str] = {}
-    if cc_path.exists():
-        cc = pd.read_csv(cc_path)
-        for _, row in cc.iterrows():
-            n = _normalize_name(str(row.get("name", "")))
-            if n and n not in idx:
-                idx[n] = str(row["iso3"])
-    for alias, iso3 in _HDR_NAME_TO_ISO3.items():
-        idx.setdefault(alias, iso3)
-    return idx
-
-
-def _resolve_iso3(name: str) -> Optional[str]:
-    if not isinstance(name, str) or not name.strip():
-        return None
-    return _name_to_iso3_index().get(_normalize_name(name))
 
 
 class UNDPHDRCleaner(DataCleaner):
