@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
+import { computePillarScores, computePillarTimeseries, computeSdScores } from "../../data/contract/aggregators";
 import type { CountryPayload, Pillar } from "../../data/contract/types";
 
 const COUNTRY_PALETTE = ["#0079c1", "#e07b35", "#2a7a3a", "#7a5a9a", "#c0392b"];
@@ -128,76 +129,20 @@ export function ComparePage() {
 
   const filtered = countries.filter(c => activeRegion === "all" || c.region === activeRegion);
 
-  // Pillar summary scores: latest non-null value per indicator, averaged per pillar.
-  // Used for summary card bars so data availability gaps in the most recent year don't distort the displayed value.
-  const pillarScores = useMemo(() => {
-    if (!meta) return {} as Record<string, Record<string, number | null>>;
-    const indsByPillar: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsByPillar[ind.pillar] ??= []).push(ind.key);
-    }
-    const result: Record<string, Record<string, number | null>> = {};
-    for (const c of countries) {
-      result[c.iso3] = {};
-      for (const p of meta.pillars) {
-        const keys = indsByPillar[p.key] ?? [];
-        const vals = keys
-          .map(k => (timeseries[c.iso3]?.[k] ?? []).reduceRight<number | null>((acc, v) => acc ?? v, null))
-          .filter((v): v is number => v != null);
-        result[c.iso3][p.key] = vals.length
-          ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
-          : null;
-      }
-    }
-    return result;
-  }, [countries, meta, timeseries]);
+  const pillarScores = useMemo(
+    () => meta ? computePillarScores(countries, meta, timeseries) : {},
+    [countries, meta, timeseries]
+  );
 
-  // Per-year pillar averages computed from all that pillar's indicator timeseries.
-  // Used for trend charts to show year-by-year progression.
-  const pillarTimeseries = useMemo(() => {
-    if (!meta) return {} as Record<string, Record<string, Array<number | null>>>;
-    const indsByPillar: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsByPillar[ind.pillar] ??= []).push(ind.key);
-    }
-    const result: Record<string, Record<string, Array<number | null>>> = {};
-    for (const c of countries) {
-      result[c.iso3] = {};
-      for (const p of meta.pillars) {
-        const keys = indsByPillar[p.key] ?? [];
-        result[c.iso3][p.key] = meta.years.map((_, yi) => {
-          const vals = keys
-            .map(k => (timeseries[c.iso3]?.[k] ?? [])[yi] ?? null)
-            .filter((v): v is number => v != null);
-          return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-        });
-      }
-    }
-    return result;
-  }, [countries, meta, timeseries]);
+  const pillarTimeseries = useMemo(
+    () => meta ? computePillarTimeseries(countries, meta, timeseries) : {},
+    [countries, meta, timeseries]
+  );
 
-  // Subdomain scores derived from latest non-null timeseries value per indicator, averaged per subdomain
-  const sdScores = useMemo(() => {
-    if (!meta) return {} as Record<string, Record<string, number | null>>;
-    const indsBySubdomain: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsBySubdomain[ind.subdomain] ??= []).push(ind.key);
-    }
-    const result: Record<string, Record<string, number | null>> = {};
-    for (const c of filtered) {
-      result[c.iso3] = {};
-      for (const sd of meta.subdomains) {
-        const keys = indsBySubdomain[sd.key] ?? [];
-        const vals = keys
-          .map(k => (timeseries[c.iso3]?.[k] ?? []).reduceRight<number | null>((acc, v) => acc ?? v, null))
-          .filter((v): v is number => v != null);
-        result[c.iso3][sd.key] = vals.length
-          ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
-          : null;
-      }
-    }
-    return result;
-  }, [filtered, meta, timeseries]);
+  const sdScores = useMemo(
+    () => meta ? computeSdScores(filtered, meta, timeseries) : {},
+    [filtered, meta, timeseries]
+  );
 
   if (!meta) return null;
 
