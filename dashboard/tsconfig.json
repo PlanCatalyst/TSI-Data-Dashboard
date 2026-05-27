@@ -14,7 +14,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "types": [
-      "vite/client"
+      "vite/client",
+      "@testing-library/jest-dom"
     ]
   },
   "include": [
