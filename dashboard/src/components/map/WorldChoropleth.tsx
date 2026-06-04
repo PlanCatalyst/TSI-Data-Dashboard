@@ -9,10 +9,13 @@ import { displayOverall } from "../../data/contract/selectors";
 import { LoadingState } from "../states/LoadingState";
 import { ErrorState } from "../states/ErrorState";
 
-// World atlas published by topojson; keys countries by numeric ISO id.
-// Same source the mock loads — kept as a const so the URL is greppable.
-const WORLD_ATLAS_URL =
-  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+// World atlas published by topojson (world-atlas@2, countries-110m); keys
+// countries by numeric ISO id. Self-hosted under public/geo/ rather than
+// fetched from a CDN at runtime: a third-party CDN request is fragile inside
+// the Wix iframe (CSP / ad-blockers) and would blank the map. Served from the
+// same origin as the contract JSON. To refresh: re-download
+// https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json into public/geo/.
+const WORLD_ATLAS_URL = "/geo/countries-110m.json";
 
 const NO_DATA_FILL = "#dde2ea";
 const SELECTED_STROKE = "#0079c1";
