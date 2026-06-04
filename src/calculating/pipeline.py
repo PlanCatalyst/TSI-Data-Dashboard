@@ -8,6 +8,7 @@ import pandas as pd
 from src.calculating.factory import IndicatorScorerFactory
 from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
 from src.calculating.pillar_taxonomy import series_code_to_filename
+from src.utils.country_identity import resolve as _resolve_iso3
 
 
 def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
@@ -33,6 +34,19 @@ def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
 
 def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] = None) -> pd.DataFrame:
     df = _load_interim_frames([interim_path, *(extra_paths or [])])
+
+    # Harmonize the join key to ISO3 across all sources BEFORE aggregation.
+    # UN SDG cleaned rows carry UN M49 numeric codes (e.g. "4"); UNDP HDR /
+    # ND-GAIN / WGI carry ISO3 ("AFG"). Pillar aggregation groups by
+    # country_code and the publisher joins on ISO3 — so without this, the
+    # SDG-derived pillars (health/ag/si) never match the ISO3-keyed
+    # country_codes.csv and silently drop out of the published payload.
+    # resolve() passes ISO3 through and maps M49/name -> ISO3; unresolvable
+    # codes (regional aggregates) become NaN and are dropped downstream.
+    if "country_code" in df.columns:
+        code_map = {c: _resolve_iso3(c) for c in df["country_code"].unique()}
+        df["country_code"] = df["country_code"].map(code_map)
+        df = df.dropna(subset=["country_code"])
 
     # Only score rows whose series_code is one the factory knows about.
     # Component-only rows (e.g. ND-GAIN per-indicator scores written for

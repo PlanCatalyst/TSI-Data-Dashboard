@@ -55,19 +55,18 @@ Columns:
 | 25 | pov       | ctx     | poverty  | SI_POV_NAHC     | - | higher=need | yes | RatioThreshold(10, 10) |
 | 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Live (2026-05-17)** — UNDP HDR + OPHI 2025 Global MPI Table 2, 88 countries, 1–3 survey waves each (2001–2024). See `docs/source-candidates.md`. |
 | 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST / POP_DENSITY | ? | see note | ambiguous | **Scorer mismatch**: `DensityScorer` emits `(value / 0.7) * 100`, which does not match the banded formula in [indicators.yaml](indicators.yaml) (>=250 -> 100, >=100 -> 75, >=75 -> 50, >=25 -> 25, else 0). Semantically population density has no universal good/bad direction. |
-| 28 | conces    | pri     | macrosec | (no series_code) | ? | — | yes (after impl) | **Deferred future task (2026-05-17)**. Inputs (WB + IMF series) exist, but the Concessionality Index is a PlanCatalyst-defined composite whose formula is not specified in `indicators.yaml`. See `docs/source-candidates.md` for the six open methodology questions that must be answered before implementation. |
+| 28 | hdi       | pri     | macrosec | HDI_INDEX       | + | higher=need | yes | InverseIndex `(1 - HDI) * 100`. **Live (2026-06-01)** — replaces the Concessionality Index (`conces`), which had no published global dataset (debt-distress component is low-income-country only, ~67 countries). HDI is the global proxy for "macro socio-economic performance"; sourced from the 2025 UNDP HDR composite-indices CSV (same file as `gii`), ~190 countries, 1990–2023. See `docs/spec-empty-pri-and-overall.md`. |
 
 ## Implementation gaps for the pipeline team
 
 Tracking these so nothing falls through the cracks after handoff:
 
-- **Missing scorers** (1): `conces` (Concessionality Index) — deferred future task. Inputs are available but the composite construction formula is not specified in `indicators.yaml` and must be defined by PlanCatalyst before implementation. See `docs/source-candidates.md` for the open methodology questions. `state` now uses `WGI_GOVEFF` (live as of 2026-05-17).
+- **Missing scorers** (0): the `pri`/`macrosec` indicator was `conces` (Concessionality Index), a deferred composite with no published global dataset. As of 2026-06-01 it is **replaced by `hdi`** (UNDP HDR Human Development Index), scored via `InverseIndexScorer` and live. `state` uses `WGI_GOVEFF` (live 2026-05-17).
 - **Missing data in pipeline** (0): `gii` and `mpi` are both live as of 2026-05-17. `gii` uses the 2025 HDR composite-indices CSV; `mpi` uses the 2025 OPHI/UNDP Global MPI Table 2 XLSX (88 countries, survey-wave granularity). Note: MPI is not an annual panel — display logic decision still open.
 - **ND-GAIN composite** (was 1, now 0): `ndgain` is live as of 2026-05-17 — pipeline now reads ND-GAIN's published composite directly from `resources/vulnerability/vulnerability.csv` rather than recomputing from components. Matches ND-GAIN's canonical published numbers by construction.
 - **Pop density scorer mismatch** (1): `popdens` — the scorer in [src/calculating/scorers.py](src/calculating/scorers.py) (`DensityScorer`) does not implement the banded 0/25/50/75/100 formula documented in [indicators.yaml](indicators.yaml). Pick one as canonical and reconcile.
 
-Net: **25 of 28 indicators** currently flow end-to-end through scoring as of 2026-05-17 (gii, mpi, ndgain composite, state all went live; state was sourced from WGI Government Effectiveness after Hanson-Sigman was found stale). 3 still have either no data, no scorer, or a mismatched scorer:
-- `conces` — deferred future task (PlanCatalyst formula needed).
+Net: **27 of 28 indicators** flow end-to-end through scoring as of 2026-06-01 (gii, mpi, ndgain composite, state live 2026-05-17; `hdi` live 2026-06-01 as the `pri` proxy replacing `conces`). 1 remains with a mismatched scorer:
 - `popdens` — scorer/series-code mismatch documented elsewhere in this file; the World Bank cleaner does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Quick fix once `popdens` canonical series_code is agreed.
 
 ## Why invert at publish rather than in `src/calculating/`
