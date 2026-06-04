@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
+import { displayOverall } from "../../data/contract/selectors";
 import { TrendsPanel } from "./TrendsPanel";
 
 const REG_COLORS: Record<string, string> = {
@@ -54,16 +55,50 @@ function cmpNumeric(a: number | null, b: number | null, dir: SortDir) {
   return dir * (b - a);
 }
 
+// Default column widths (px), matching the reference mock's fixed layout.
+const DEFAULT_COL_W: Record<string, number> = { name: 120, region: 160, trend: 100, overall: 90 };
+const DEFAULT_PILLAR_W = 100;
+const MIN_COL_W = 60;
+
 export function ExplorePage() {
   const { countries, meta } = useDashboardData();
   const [activeRegion, setActiveRegion] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [sortCol, setSortCol] = useState<string>("health");
   const [sortDir, setSortDir] = useState<SortDir>(1);
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
 
   if (!meta) return null;
 
   const regionLabel = Object.fromEntries(meta.regions.map(r => [r.code, r.label]));
+
+  function colW(colId: string) {
+    return colWidths[colId] ?? DEFAULT_COL_W[colId] ?? DEFAULT_PILLAR_W;
+  }
+
+  // Drag-to-resize a column. Reads the live rendered width so the first drag
+  // tracks correctly even before a width has been committed to state.
+  function startResize(e: ReactMouseEvent, colId: string) {
+    e.stopPropagation(); // don't trigger sort
+    e.preventDefault();
+    const th = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
+    const startX = e.clientX;
+    const startW = th ? th.offsetWidth : colW(colId);
+    function doResize(ev: MouseEvent) {
+      const newW = Math.max(MIN_COL_W, startW + (ev.clientX - startX));
+      setColWidths(prev => ({ ...prev, [colId]: newW }));
+    }
+    function stopResize() {
+      window.removeEventListener("mousemove", doResize);
+      window.removeEventListener("mouseup", stopResize);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    window.addEventListener("mousemove", doResize);
+    window.addEventListener("mouseup", stopResize);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir(d => (d === 1 ? -1 : 1));
@@ -77,11 +112,25 @@ export function ExplorePage() {
       : <span className="sort-arrow active">▲</span>;
   }
 
+  function renderTh(colId: string, label: string) {
+    return (
+      <th
+        key={colId}
+        className="th-sort th-resizable"
+        style={{ width: colW(colId), minWidth: MIN_COL_W }}
+        onClick={() => handleSort(colId)}
+      >
+        {label} {sortArrow(colId)}
+        <div className="col-resize" onMouseDown={e => startResize(e, colId)} onClick={e => e.stopPropagation()} />
+      </th>
+    );
+  }
+
   function sortRows(rows: CountryPayload[]) {
     return [...rows].sort((a, b) => {
       if (sortCol === "name")    return cmpString(a.name, b.name, sortDir);
       if (sortCol === "region")  return cmpString(regionLabel[a.region] ?? a.region, regionLabel[b.region] ?? b.region, sortDir);
-      if (sortCol === "overall") return cmpNumeric(a.overall, b.overall, sortDir);
+      if (sortCol === "overall") return cmpNumeric(displayOverall(a), displayOverall(b), sortDir);
       if (sortCol === "trend")   return cmpNumeric(trendDelta(a.trend), trendDelta(b.trend), sortDir);
       return cmpNumeric(a.scores[sortCol] ?? null, b.scores[sortCol] ?? null, sortDir);
     });
@@ -142,19 +191,16 @@ export function ExplorePage() {
       <div className="ov-body">
         <div>
           <div className="card">
+            <div className="card-title">Country indicator summary</div>
             <div className="ind-table-wrap">
-              <table className="ind-table">
+              <table className="ind-table" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                 <thead>
                   <tr>
-                    <th className="th-sort" onClick={() => handleSort("name")}>Country {sortArrow("name")}</th>
-                    <th className="th-sort" onClick={() => handleSort("region")}>Region {sortArrow("region")}</th>
-                    <th className="th-sort" onClick={() => handleSort("trend")}>Trend {sortArrow("trend")}</th>
-                    <th className="th-sort" onClick={() => handleSort("overall")}>Overall {sortArrow("overall")}</th>
-                    {meta.pillars.map(p => (
-                      <th key={p.key} className="th-sort" onClick={() => handleSort(p.key)}>
-                        {p.label} {sortArrow(p.key)}
-                      </th>
-                    ))}
+                    {renderTh("name", "Country")}
+                    {renderTh("region", "Region")}
+                    {renderTh("trend", "Trend")}
+                    {renderTh("overall", "Overall")}
+                    {meta.pillars.map(p => renderTh(p.key, p.label))}
                   </tr>
                 </thead>
                 <tbody>
@@ -163,7 +209,7 @@ export function ExplorePage() {
                       <td className="country-link">{c.name}</td>
                       <td>{regionLabel[c.region] ?? c.region}</td>
                       <td><TrendLabel trend={c.trend} /></td>
-                      <td><DomainBar val={c.overall} color="#1e2a35" /></td>
+                      <td><DomainBar val={displayOverall(c)} color="#1e2a35" /></td>
                       {meta.pillars.map(p => (
                         <td key={p.key}>
                           <DomainBar val={c.scores[p.key] ?? null} color={p.color} />
