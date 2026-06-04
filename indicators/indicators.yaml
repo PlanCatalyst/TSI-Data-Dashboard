@@ -644,15 +644,23 @@ pillars:
         label: "Socio-economic performance"
         scoring: "0 - 100"
         indicators:
-          - frontend_key: conces
+          - frontend_key: hdi
             id: null
-            name: "Concessionality Index"
-            definition: |
-              1 - Country per capita income (6 indicators)
-              2 - Degree of vulnerability and fragility (6 indicators)
-              3 - Risk of debt distress (5 indicators)
-              4 - Noncessionality external debt (3 indicators)
-            available_for_all_countries: "Yes, though indicates that Palestine is missing data"
-            unit_or_measure: "Index score"
-            data_source: "Multiple (WorldBank, IMF)"
-            scoring: "Index score used directly. Results normalized to 0, 100."
+            name: "Human Development Index"
+            definition: >
+              UNDP composite index of national socio-economic development:
+              life expectancy at birth, expected and mean years of schooling,
+              and GNI per capita (PPP). Raw scale 0-1; higher = more developed.
+            available_for_all_countries: "Yes — UNDP HDR publishes HDI for ~190 countries, annual series from 1990."
+            unit_or_measure: "Index (0-1)"
+            data_source: "UNDP Human Development Reports"
+            scoring: >
+              Inverse-normalized to the pipeline's vulnerability orientation:
+              score = (1 - HDI) * 100, so higher score = lower development =
+              greater need. HDI replaces the originally-specified Concessionality
+              Index (frontend_key `conces`), which had no published global dataset
+              — its core debt-distress component is low-income-country only (~67
+              countries), so it could never populate this pillar globally. HDI is
+              the global proxy for "macro socio-economic performance" and is
+              already ingested via the UNDP HDR source (same file as `gii`).
+              See docs/spec-empty-pri-and-overall.md (decision 2026-06-01).

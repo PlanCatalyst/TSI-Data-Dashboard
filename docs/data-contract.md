@@ -79,7 +79,7 @@ bootstrap, caches in React context.
     { "key": "women",    "label": "Gender equality",           "color": "#817d77", "repIndicator": "gii"    },
     { "key": "climate",  "label": "Climate adaptation",        "color": "#7a6a30", "repIndicator": "ndgain" },
     { "key": "ctx",      "label": "Country context",           "color": "#a05020", "repIndicator": "state"  },
-    { "key": "pri",      "label": "Socio-economic performance","color": "#3a5a6a", "repIndicator": "conces" }
+    { "key": "pri",      "label": "Socio-economic performance","color": "#3a5a6a", "repIndicator": "hdi"    }
   ],
   "subdomains": [
     { "key": "phc",      "label": "Resilient primary healthcare systems", "pillar": "health" },
@@ -204,7 +204,7 @@ client-side (matching `subVal` in the client mock).
     "uhc":    [52, 54, 55, 56, 58, 60, 61, 62, 63, null, null],
     "tb":     [40, 41, 43, 45, 46, 48, 50, 51, 52, 53, 54],
     // ... one entry per indicator key ...
-    "conces": [null, null, 47, 48, 49, 50, 51, 52, 53, 53, 54]
+    "hdi":    [null, null, 47, 48, 49, 50, 51, 52, 53, 53, 54]
   },
   "TZA": {
     "uhc":    [/* ... */]

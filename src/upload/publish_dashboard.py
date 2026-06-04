@@ -83,7 +83,7 @@ _PILLAR_DISPLAY: dict[str, dict] = {
     "women":   {"color": "#817d77", "repIndicator": "gii"},
     "climate": {"color": "#7a6a30", "repIndicator": "ndgain"},
     "ctx":     {"color": "#a05020", "repIndicator": "state"},
-    "pri":     {"color": "#3a5a6a", "repIndicator": "conces"},
+    "pri":     {"color": "#3a5a6a", "repIndicator": "hdi"},
 }
 
 # rawDirection describes the raw measurement, not the scored value.
@@ -117,7 +117,7 @@ _RAW_DIRECTIONS: dict[str, str] = {
     "pov":      "lower_is_better",
     "mpi":      "lower_is_better",
     "popdens":  "lower_is_better",
-    "conces":   "lower_is_better",
+    "hdi":      "higher_is_better",
 }
 
 _PILLAR_KEYS = ["health", "ag", "si", "women", "climate", "ctx", "pri"]
@@ -347,13 +347,22 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
         
         meta = codes_lookup.loc[iso3]
         group = group.sort_values("year")
-        latest = group.iloc[-1]
 
-        snapshot = {
-            pk: (None if pd.isna(latest[pk]) else float(latest[pk])) for pk in _PILLAR_KEYS
-        }
+        # Snapshot each pillar at its OWN latest non-null year, not a single
+        # cross-pillar latest row. Pillars are reported on different calendars
+        # (e.g. HDI ends 2023 while WGI/poverty reach 2024); taking one row
+        # would blank every pillar absent in that exact year.
+        def _latest_valid(col: str) -> Optional[float]:
+            s = group[col].dropna()
+            return float(s.iloc[-1]) if len(s) else None
 
-        overall = None if pd.isna(latest["overall"]) else float(latest["overall"])
+        snapshot = {pk: _latest_valid(pk) for pk in _PILLAR_KEYS}
+
+        # Overall from the snapshot's available pillars (mean of present),
+        # consistent with the per-row _overall above. See
+        # docs/spec-empty-pri-and-overall.md for the pending coverage-floor decision.
+        present = [v for v in snapshot.values() if v is not None]
+        overall = round(sum(present) / len(present), 1) if present else None
 
         year_to_overall = {
             int(row["year"]): (None if pd.isna(row["overall"]) else float(row["overall"]))

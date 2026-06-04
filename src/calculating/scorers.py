@@ -121,6 +121,22 @@ class GoalRatioScorer(IndicatorScorer):
         return scores
 
 
+class InverseIndexScorer(IndicatorScorer):
+    """
+    Scorer for a normalized 0-1 index where higher = better (e.g. HDI).
+
+        score = (1 - value) * 100
+
+    Flips a development/wellbeing index into the pipeline's vulnerability
+    orientation: a high-development country (HDI ~0.95) scores ~5 (low need),
+    a low-development country (HDI ~0.40) scores ~60 (high need). No benchmark
+    harmonization — the index is already globally normalized.
+    """
+
+    def score(self, df: pd.DataFrame) -> pd.Series:
+        return self.clamp_0_100((1.0 - df["value"].astype(float)) * 100.0)
+
+
 class DensityScorer(IndicatorScorer):
     """Continuous scoring for population density."""
 
