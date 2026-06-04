@@ -1,17 +1,35 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload, Pillar } from "../../data/contract/types";
+import { displayOverall } from "../../data/contract/selectors";
+import { deferredNoteForIndicators, NO_DATA_FOR_SELECTION } from "../../content/data-notes";
 
 const COUNTRY_PALETTE = ["#0079c1", "#e07b35", "#2a7a3a", "#7a5a9a", "#c0392b"];
 
 function PillarTrendChart({
-  pillar, series, years,
+  pillar, series, years, note,
 }: {
   pillar: Pillar;
   series: { iso3: string; name: string; color: string; data: (number | null)[] }[];
   years: number[];
+  note?: string | null;
 }) {
   const [dotTip, setDotTip] = useState<{ x: number; y: number; yearIdx: number } | null>(null);
+
+  // No country in the current selection has a single non-null point for this
+  // pillar — render an explicit, honest empty state instead of a bare grid that
+  // reads as "all zero".
+  const hasData = series.some(s => s.data.some(v => v != null));
+  if (!hasData) {
+    return (
+      <div style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 8, padding: "10px 12px", minHeight: 130, display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: pillar.color, marginBottom: 6 }}>{pillar.label}</div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--mut)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45, padding: "4px 6px" }}>
+          {note ?? NO_DATA_FOR_SELECTION}
+        </div>
+      </div>
+    );
+  }
 
   const W = 280, H = 110;
   const PAD = { t: 8, b: 24, l: 28, r: 8 };
@@ -128,29 +146,18 @@ export function ComparePage() {
 
   const filtered = countries.filter(c => activeRegion === "all" || c.region === activeRegion);
 
-  // Pillar summary scores: latest non-null value per indicator, averaged per pillar.
-  // Used for summary card bars so data availability gaps in the most recent year don't distort the displayed value.
-  const pillarScores = useMemo(() => {
-    if (!meta) return {} as Record<string, Record<string, number | null>>;
-    const indsByPillar: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsByPillar[ind.pillar] ??= []).push(ind.key);
-    }
-    const result: Record<string, Record<string, number | null>> = {};
-    for (const c of countries) {
-      result[c.iso3] = {};
-      for (const p of meta.pillars) {
-        const keys = indsByPillar[p.key] ?? [];
-        const vals = keys
-          .map(k => (timeseries[c.iso3]?.[k] ?? []).reduceRight<number | null>((acc, v) => acc ?? v, null))
-          .filter((v): v is number => v != null);
-        result[c.iso3][p.key] = vals.length
-          ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
-          : null;
-      }
-    }
-    return result;
-  }, [countries, meta, timeseries]);
+  // Indicator-key lookups used to attach data-honesty notes (deferred vs. simply
+  // absent from this snapshot) to pillars/subdomains that come back empty.
+  const indKeysByPillar = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const ind of meta?.indicators ?? []) (out[ind.pillar] ??= []).push(ind.key);
+    return out;
+  }, [meta]);
+  const indKeysBySubdomain = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const ind of meta?.indicators ?? []) (out[ind.subdomain] ??= []).push(ind.key);
+    return out;
+  }, [meta]);
 
   // Per-year pillar averages computed from all that pillar's indicator timeseries.
   // Used for trend charts to show year-by-year progression.
@@ -318,18 +325,25 @@ export function ComparePage() {
                 <div style={{ padding: "8px 0 10px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "center", gap: 6, padding: "4px 12px" }}>
                     <span style={{ fontSize: 11, color: "var(--mut)" }}>Overall</span>
-                    <DomainBar val={c.overall} color="#1e2a35" />
+                    <DomainBar val={displayOverall(c)} color="#1e2a35" />
                   </div>
                   {meta.pillars.map(p => (
                     <div key={p.key} style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "center", gap: 6, padding: "4px 12px" }}>
                       <span style={{ fontSize: 11, color: "var(--mut)" }}>{p.label}</span>
-                      <DomainBar val={c.scores[p.key] ?? pillarScores[c.iso3]?.[p.key] ?? null} color={p.color} />
+                      <DomainBar val={c.scores[p.key] ?? null} color={p.color} />
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
+
+          <p style={{ marginTop: 12, fontSize: 11, color: "var(--mut)", lineHeight: 1.5, maxWidth: 760 }}>
+            Pillar summary scores above show published values, available once a country has
+            sufficient indicator coverage. The trends and sub-domain breakdown below include
+            every available indicator, so some detail may appear for pillars that do not yet
+            have a published summary score. Blank values are missing data, never zero.
+          </p>
 
           {/* Trend charts */}
           <div style={{ marginTop: 20 }}>
@@ -344,7 +358,8 @@ export function ComparePage() {
                   color: COUNTRY_PALETTE[ci % COUNTRY_PALETTE.length],
                   data: pillarTimeseries[c.iso3]?.[p.key] ?? meta.years.map(() => null),
                 }));
-                return <PillarTrendChart key={p.key} pillar={p} series={series} years={meta.years} />;
+                const note = deferredNoteForIndicators(indKeysByPillar[p.key] ?? []);
+                return <PillarTrendChart key={p.key} pillar={p} series={series} years={meta.years} note={note} />;
               })}
             </div>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, fontSize: 11, color: "var(--mut)" }}>
@@ -367,6 +382,10 @@ export function ComparePage() {
           </div>
           {displayedPillars.map(p => {
             const pillarSubdomains = meta.subdomains.filter(sd => sd.pillar === p.key);
+            const pillarHasData = pillarSubdomains.some(sd =>
+              selectedCountries.some(c => sdScores[c.iso3]?.[sd.key] != null)
+            );
+            const emptyNote = deferredNoteForIndicators(indKeysByPillar[p.key] ?? []) ?? NO_DATA_FOR_SELECTION;
             return (
               <div key={p.key} style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
                 <div style={{ padding: "12px 16px 10px", borderBottom: "1px solid var(--bd)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -381,12 +400,20 @@ export function ComparePage() {
                     ))}
                   </div>
                 </div>
+                {!pillarHasData && (
+                  <div style={{ padding: "10px 16px", fontSize: 11.5, color: "var(--mut)", fontStyle: "italic", lineHeight: 1.5, borderBottom: pillarSubdomains.length ? "1px solid #f3f4f6" : "none", background: "#fafbfc" }}>
+                    {emptyNote}
+                  </div>
+                )}
                 <div>
                   {pillarSubdomains.length === 0 ? (
                     <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
                       No sub-domains defined for this pillar.
                     </div>
-                  ) : pillarSubdomains.map((sd, sdIdx) => (
+                  ) : pillarSubdomains.map((sd, sdIdx) => {
+                    const sdHasData = selectedCountries.some(c => sdScores[c.iso3]?.[sd.key] != null);
+                    const sdDeferred = !sdHasData ? deferredNoteForIndicators(indKeysBySubdomain[sd.key] ?? []) : null;
+                    return (
                     <div
                       key={sd.key}
                       style={{
@@ -395,10 +422,11 @@ export function ComparePage() {
                         borderBottom: sdIdx < pillarSubdomains.length - 1 ? "1px solid #f3f4f6" : "none",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "0 0 170px", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "0 0 170px", minWidth: 0 }}
+                        title={sdDeferred ?? undefined}>
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, display: "inline-block", flexShrink: 0 }} />
                         <span style={{ fontSize: 12, color: "var(--txt)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {sd.label}
+                          {sd.label}{sdDeferred ? " ⓘ" : ""}
                         </span>
                       </div>
                       <div style={{ flex: 1, display: "flex", gap: 16 }}>
@@ -420,7 +448,8 @@ export function ComparePage() {
                         })}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
