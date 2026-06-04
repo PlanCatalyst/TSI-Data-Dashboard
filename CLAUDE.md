@@ -71,7 +71,7 @@ Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipe
 2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`. Cleaner output schema is `country_code, country_name, year, value, indicator, series_code` (plus source-specific extras). Rows whose `series_code` isn't registered in `IndicatorScorerFactory` persist in the CSV but are defensively skipped by scoring.
 3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads the UN SDG cleaned CSV plus any additional interim CSVs listed under `runtime.interim_data` (ND-GAIN, UNDP HDR, WGI, etc.), concatenates them, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
 4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
-5. **Publish** (`src/upload/publish_dashboard.py`) — **partially implemented; signatures are the binding contract, internals are in flight (Christina).** `build_meta` / `build_countries` / `build_timeseries` have working bodies and the `NotImplementedError` raises are commented out, but the end-to-end `publish()` path (validation gate + atomic blob swap into `dashboard-public/v1/`) is not yet trusted for production. Treat it as fixture-generation quality, not production-ready. The frontend reads only the three files this module emits.
+5. **Publish** (`src/upload/publish_dashboard.py`) — **implemented.** Builders, validation, dry-run, and Azure upload exist. **Not yet wired into `orchestrator.py`** — publish is still a manual post-step. Owner: **Anthony**.
 
 ### The publish boundary is the only place orientation flips
 
@@ -131,19 +131,15 @@ When documents disagree, resolve in this order (lower number wins):
 From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
 
 - **Coverage now at 25/28 live.** `gii`, `mpi`, `ndgain` composite, and `state` all went live this session via new `UNDPHDRFetcher/Cleaner`, ND-GAIN's published `resources/vulnerability/vulnerability.csv` composite, and `WBWGIFetcher/Cleaner` for state capacity (sourced from WGI Government Effectiveness after Hanson-Sigman was found stale at 2015).
-- `conces`: **deferred future task.** Inputs exist (WB + IMF series) but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions live in `docs/source-candidates.md`. Owner: PM to route to PlanCatalyst.
-- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring; quick fix once canonical series_code is agreed.
-- `publish_dashboard.py`: builders are wired (meta/countries/timeseries) but the validation gate and atomic blob swap into `dashboard-public/v1/` aren't production-trusted yet. Owner: Christina.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3 (pre-existing; re-running `python3 -m src.clean.clean_data` after a fresh UN SDG fetch fixes it).
+- `conces`: **deferred future task.** Inputs exist (WB + IMF series) but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions live in `docs/source-candidates.md`. Owner: **Thomas** routes to PlanCatalyst → **Anthony** implements.
+- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Owner: **Anthony**.
+- Orchestrator does not call `publish_dashboard` yet. Owner: **Anthony**.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3 (re-run cleaner after fresh UN SDG fetch). Owner: **Anthony**.
 
 ## Team Execution Model
 
-- Adeline: frontend UX/design parity
-- Christina: frontend integration + backend/API publish integration
-- Tyler: cleaning reliability + backend pipeline co-owner
-- Caroline: source coverage closure
-- Kayden: projections research only (no backend infra ownership)
-- Co-PM: Azure platform, CORS, automation, operations
+- **Thomas:** PM · full-stack · frontend presentability · Wix E2E
+- **Anthony:** Co-PM · Azure · indicators · cleaning · publish · automation
 
 Detailed deliverables and milestones live in `TEAM-TASKS.md`.
 

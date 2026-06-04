@@ -9,7 +9,7 @@ It is a companion to:
 - `CLAUDE.md` (machine-readable orientation)
 - `README.md` (purpose and quickstart)
 - `HANDOFF.md` (historical context)
-- `TEAM-TASKS.md` (May execution plan and ownership)
+- `TEAM-TASKS.md` (June execution plan and ownership)
 - `docs/data-contract.md` (authoritative payload schema)
 - `indicators/SCORING_AUDIT.md` (scoring directionality)
 
@@ -37,16 +37,17 @@ encountering one of these should proceed, not pause to ask:
 2. **Frontend blueprint**: `PlanCatalyst TSI Data Dashboard Final.html` is
   client-approved. Match its UX intent unless a strict implementation
    constraint forces deviation.
-3. **Coverage target**: all 28 indicators live by May 31. Permanent placeholder
-  status is unacceptable; explicit-with-ETA placeholder is acceptable.
-4. **Projection Transparency**: All projections should exist within a reasonable margin of error; projections that are intentionally blank should be handled with user feedback explaining *why* there
-5. **Publish phasing**: Phase A is local `dry_run` to `data/organized/v1/`.
+3. **Coverage target:** all 28 indicators live for MVP, or explicit
+  client-approved exceptions documented in `SCORING_AUDIT.md` (e.g. `conces`).
+4. **Projection transparency:** Projections are **disabled for MVP**
+  (`meta.projections.enabled === false`). Post-MVP projection work is owned by
+  **Anthony / Thomas**.
+5. **Publish phasing:** Phase A is local `dry_run` to `data/organized/v1/`.
   Phase B is Azure upload. Do not skip Phase A.
-6. **Repo hygiene**: upload code lives in `src/upload/`, active settings live
+6. **Repo hygiene:** upload code lives in `src/upload/`, active settings live
   in `src/config/settings.yaml`. Do not create root-level duplicates.
-7. **Decision routing while PM is away**: Co-PM is default unblock owner.
-  Contract-semantic decisions are co-decided by Christina + Tyler and
-   recorded in `docs/`.
+7. **Decision routing:** **Thomas** (PM) and **Anthony** (Co-PM) are default
+  unblock owners. Contract-semantic decisions are recorded in `docs/`.
 
 ## 3. Hard Invariants (Treat As Laws)
 

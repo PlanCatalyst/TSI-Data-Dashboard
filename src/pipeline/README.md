@@ -10,15 +10,17 @@ Core sequence:
 1. Fetch
 2. Clean
 3. Score/Aggregate
-4. Publish contract JSON
-5. Optional projections processing
+4. Upload validated CSVs (optional Azure)
+5. **Publish contract JSON** ← not yet wired in orchestrator; run manually via
+   `python3 -m src.upload.publish_dashboard [--azure]` until Anthony wires it in
+6. Optional projections processing (post-MVP)
 
 ## Ownership
 
-- Pipeline/backend integration: Christina + Tyler
-- Azure automation/operations: Co-PM
-- Source gap inputs: Caroline
-- Projections output path: Kayden (data science only)
+- **Anthony:** pipeline orchestration, publish wiring, Azure automation, cleaning, indicators
+- **Thomas:** full-stack integration, frontend presentability, pipeline support
+
+See `TEAM-TASKS.md`.
 
 ## Primary Run Command
 
@@ -26,16 +28,23 @@ Core sequence:
 python3 -m src.pipeline.run_pipeline
 ```
 
+Publish (manual until orchestrator wired):
+
+```zsh
+python3 -m src.upload.publish_dashboard          # dry run → data/organized/v1/
+python3 -m src.upload.publish_dashboard --azure  # upload to dashboard-public/v1/
+```
+
 ## Expected Outputs
 
 - Source-cleaned outputs under `data/clean/`
 - Scored artifacts under `data/interim/validated/`
 - Frontend-oriented organization layer under `data/organized/`
-- Published contract JSON under versioned Blob path (for example `/v1/`)
+- Published contract JSON under versioned Blob path (`/v1/`)
 
 ## Pipeline Success Criteria
 
-1. Run completes without manual intervention.
+1. Run completes without manual intervention (including publish once wired).
 2. Publish validation passes against `docs/data-contract.md`.
 3. Frontend can read published files from Blob.
 4. Failures are observable (logs + alert hooks).

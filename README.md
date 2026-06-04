@@ -53,17 +53,10 @@ Azure Container Registry, Logic Apps
 
 ## Team
 
-This project is built by the Tehos Organization at Western University.
+- **Thomas Llamzon** — PM · full-stack integration · frontend presentability
+- **Anthony Lam** — Co-PM · Azure hosting · indicators · cleaning · publish · automation
 
-- **Project Managers:**
-  - **Thomas Llamzon**: Project architecture + data pipeline
-  - **Anthony Lam**: Cloud design + automation
-- **Developers:**
-  - **Adeline Lue Sang**: Frontend design + backend integration
-  - **Christina Wong**: Backend integration
-  - **Tyler Asai**: Data cleaning + data pipeline
-  - **Caroline Shen**: Data fetching + error handling
-  - **Kayden Jaffer**: Projections research
+See `TEAM-TASKS.md` for the current plan.
 
 ## Documentation
 

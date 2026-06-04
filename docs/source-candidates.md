@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Provide a pre-approved starting shortlist for Caroline so source work can proceed
-without waiting on PM follow-up.
+Provide a pre-approved starting shortlist for **Anthony / Thomas** so source work
+can proceed without waiting on PM follow-up.
 
 These candidates align with the client frontend blueprint:
 `PlanCatalyst TSI Data Dashboard Final.html`.

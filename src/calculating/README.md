@@ -11,11 +11,10 @@ For frontend delivery, the important outputs are:
 - `pillarscores.csv`
 - `subdomainscores.csv`
 
-## Current Ownership
+## Ownership
 
-- Backend/API integration: Christina
-- Cleaning and pipeline co-owner: Tyler
-- Source coverage support: Caroline
+- **Anthony:** scoring pipeline, indicator gaps (`popdens`, `conces`), cleaning inputs
+- **Thomas:** publish integration support, data validation (Phase 2)
 
 ## Run Command
 
@@ -33,6 +32,7 @@ python3 -m src.calculating.pipeline
 - `pipeline.py`: orchestrates scoring and writes validated outputs
 
 Legacy compatibility path (not required by frontend contract):
+
 - `aggregate.py`
 - `hierarchy.py`
 - `weights.py`
@@ -71,9 +71,3 @@ after confirming there is no downstream consumer.
 2. Pillar and subdomain outputs are generated for all expected countries/years.
 3. Missing observations are preserved and not coerced to zero.
 4. Artifacts are stable enough for publish without ad hoc cleanup patches.
-
-
-
-
-
-

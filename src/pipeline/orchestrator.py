@@ -77,8 +77,8 @@ class Orchestrator:
 
         # ============================================================
         # PROCESS (indicator progress projections -> data/processed/)
-        # Projections are not enabled for the MVP contract. Kayden owns this
-        # future path once the historical publish flow is stable.
+        # Projections are not enabled for the MVP contract. Post-MVP owner:
+        # Anthony / Thomas.
         # ============================================================
         # processData = ProcessData(self.config_path)
         # processData.process()

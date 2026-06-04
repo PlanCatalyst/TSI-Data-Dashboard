@@ -1,7 +1,6 @@
-# Handoff and Execution Context - PlanCatalyst Data Dashboard
+# Handoff and Execution Context — PlanCatalyst Data Dashboard
 
-> Imported from legacy repository on 2026-04-24. This document is now maintained
-> as an active onboarding and execution guide for the new codebase.
+> Active onboarding and execution guide. Last updated **2026-06-02**.
 
 ## 1) Project at a glance
 
@@ -18,33 +17,41 @@ fetch -> clean -> score/aggregate -> publish contract JSON -> Azure Blob -> Reac
 ```
 
 Published contract files:
+
 - `meta.json`
 - `countries.json`
 - `timeseries.json`
 
-Contract source of truth:
-- `docs/data-contract.md`
+Contract source of truth: `docs/data-contract.md`
+
+**Current wiring gap:** `orchestrator.py` runs fetch → clean → score → upload
+validated CSVs, but does **not** yet call `publish_dashboard`. Publish is a
+manual step today. Owner: **Anthony**.
 
 ## 3) Load-bearing invariants
 
 1. Frontend-facing scores are `higher_is_better`.
 2. `iso3` is canonical key across all contract files.
 3. Missing observations stay `null`.
-4. Contract-breaking changes require path/version bump (`/v1` -> `/v2`).
+4. Contract-breaking changes require path/version bump (`/v1` → `/v2`).
 5. Frontend does not read internal CSV artifacts directly.
 
-## 4) Current known gaps to close
+## 4) Current known gaps
 
-From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
+From `indicators/SCORING_AUDIT.md` (as of 2026-06-02):
 
-- ~~`gii`: missing UNDP HDR ingestion path~~ **Closed 2026-05-17** — live via `UNDPHDRFetcher` (2025 HDR composite-indices CSV).
-- ~~`mpi`: missing UNDP HDR ingestion path~~ **Closed 2026-05-17** — live via `UNDPHDRFetcher` (2025 OPHI Global MPI Table 2 XLSX).
-- ~~`ndgain`: component data exists; composite score path incomplete~~ **Closed 2026-05-17** — pipeline now reads ND-GAIN's published `resources/vulnerability/vulnerability.csv` composite directly.
-- ~~`state`: no complete data/scorer wiring~~ **Closed 2026-05-17** — source switched from Hanson-Sigman (stale at 2015) to World Bank WGI Government Effectiveness (current through 2024); live via `WBWGIFetcher`.
-- `conces`: **deferred future task.** Inputs (WB + IMF series) exist but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions in `docs/source-candidates.md` need PlanCatalyst answers before implementation.
-- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Quick fix once canonical series_code is agreed.
-- `publish_dashboard.py`: partially scaffolded, not fully implemented.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` uses numeric country codes instead of ISO3 (pre-existing; re-running the cleaner after a fresh UN SDG fetch fixes it).
+- ~~`gii`~~ — **Closed 2026-05-17** (`UNDPHDRFetcher`).
+- ~~`mpi`~~ — **Closed 2026-05-17** (`UNDPHDRFetcher`).
+- ~~`ndgain` composite~~ — **Closed 2026-05-17** (published `vulnerability.csv`).
+- ~~`state`~~ — **Closed 2026-05-17** (WGI Government Effectiveness).
+- `conces` — deferred. PlanCatalyst formula required. **Thomas** routes to client; **Anthony** implements.
+- `popdens` — scorer/taxonomy mismatch; WB cleaner missing `series_code`. **Anthony**.
+- Orchestrator → publish wiring — **Anthony**.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3) — **Anthony** (re-run cleaner).
+- Stale local fixtures `dashboard/public/v1/` (May 17) — **Anthony** (fresh publish).
+- Frontend presentability / mock parity — **Thomas**.
+- Production `npm run build` — **Thomas**.
+- Automation / alerting — **Anthony** (Phase 3).
 
 ## 5) Legacy output policy
 
@@ -52,10 +59,7 @@ From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
 outputs from the legacy 3-level hierarchy. They are not required by the new
 frontend contract.
 
-Default policy in new repo:
-- keep them temporarily during transition
-- gate with configuration
-- remove after confirmed no downstream consumers
+Default policy: keep transitionally, gate with configuration, remove when unused.
 
 ## 6) Azure and deployment expectations
 
@@ -64,35 +68,44 @@ Default policy in new repo:
 - CORS allow-list includes production Wix domain and local dev origins
 - Contract payloads served with `Cache-Control: public, max-age=3600`
 - Publish failures must not overwrite last known-good contract snapshot
+- Frontend hosted on Azure (Static Web Apps or Blob `$web`) — **Anthony**
 
-## 7) Ownership model
+## 7) Ownership
 
-- PM: Thomas
-- Co-PM: Azure platform and operations
-- Adeline: frontend UX/design parity
-- Christina: frontend integration plus backend publish/API integration
-- Tyler: cleaning reliability and backend pipeline co-owner
-- Caroline: source coverage closure
-- Kayden: projections research only (data science scope)
+| Person | Scope |
+|--------|-------|
+| **Thomas Llamzon** | PM · full-stack · frontend presentability · Wix E2E |
+| **Anthony Lam** | Co-PM · Azure · indicators · cleaning · publish · automation |
 
-See `TEAM-TASKS.md` for milestone-level tasking and definitions of done.
+See `TEAM-TASKS.md` for deliverables and milestones.
 
 ## 8) Immediate execution sequence
 
-1. Finalize publish implementation against `docs/data-contract.md`.
-2. Close source coverage gaps (Caroline + Tyler + Christina).
-3. Complete frontend data wiring and parity states.
-4. Run end-to-end publish in Azure test path.
-5. Enable automation + alerting and validate rollback runbook.
+### Phase 1 — Features (now)
+
+1. **Anthony:** Wire publish into orchestrator; run fresh publish to Blob; deploy frontend on Azure.
+2. **Thomas:** Mock parity pass; fix production build; E2E on hosted app + live JSON.
+3. **Anthony:** Fix `popdens`; refresh UN SDG cleaned CSV.
+4. **Thomas:** Route `conces` to PlanCatalyst or approve MVP exclusion.
+
+### Phase 2 — QA / validation
+
+5. Cleaning validation and data sanity checks (Anthony + Thomas).
+6. Merge frontend test branch when entering hardening.
+
+### Phase 3 — Ops
+
+7. Automation, alerting, rollback runbook (Anthony).
 
 ## 9) References
 
+- `TEAM-TASKS.md`
 - `docs/data-contract.md`
 - `docs/frontend-implementation-brief.md`
 - `docs/repo-architecture.md`
 - `docs/source-candidates.md`
+- `docs/PRINCIPLES.md`
 - `indicators/indicators.yaml`
 - `indicators/SCORING_AUDIT.md`
-- `TEAM-TASKS.md`
 - `src/upload/publish_dashboard.py`
 - `src/config/settings.yaml`

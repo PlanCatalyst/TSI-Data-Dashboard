@@ -1,12 +1,14 @@
-# Frontend Implementation Brief (Adeline + Christina)
+# Frontend Implementation Brief
 
 ## Purpose
 
 Turn `PlanCatalyst TSI Data Dashboard Final.html` into a production React frontend
 that preserves the client vision while mounting cleanly to the backend contract.
 
-This brief defines what is fixed, what is flexible, and how frontend should
-connect to published JSON from Azure Blob.
+Core contract integration (loaders, Explore, Compare, publish builders, iframe
+sync) is in place. Remaining work is presentability, Map/About polish, responsive
+QA, and hosted E2E — owned by **Thomas**, with **Anthony** providing live Blob
+JSON and Azure hosting.
 
 ## Non-Negotiable Integration Rules
 
@@ -129,24 +131,25 @@ Must be explicitly designed and implemented for:
    - interaction rhythm
 3. Ensure responsive behavior across desktop/tablet/mobile with no layout breakage.
 
-## Integration Handoff Between Adeline and Christina
+## Work split (June 2026)
 
-Adeline provides:
+**Thomas**
 
-- component behavior specs
-- state specs (loading/error/null/projection-disabled)
-- responsive and spacing/token decisions
+- mock parity and presentability on all four pages
+- responsive QA vs HTML mock
+- missing-indicator UX (`conces`, `popdens`, sparse pillars)
+- hosted E2E verification (Wix + Azure Blob JSON)
+- production build (`npm run build`)
 
-Christina provides:
+**Anthony**
 
-- typed contract adapters
-- runtime validators
-- data context and selectors
-- backend publish alignment feedback when frontend needs contract clarifications
+- live Blob publish and `VITE_CONTRACT_BASE_URL` for production
+- fresh contract JSON after pipeline runs
+- Azure frontend hosting + CORS
 
 ## Definition of Done for Frontend Mounting
 
-1. App runs against Blob-hosted `/v1/*.json` with no local hardcoded fallback.
+1. App runs against Blob-hosted `/v1/*.json` with no local hardcoded fallback in production.
 2. All major views map to contract data and match client blueprint intent.
 3. Contract-load failures are visible/recoverable (no blank screen).
 4. Null and disabled-projection states are intentional and QA-verified.
