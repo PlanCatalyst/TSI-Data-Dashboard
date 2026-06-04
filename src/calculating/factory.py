@@ -1,7 +1,7 @@
 from src.calculating.scorers import (
-    SimpleDirectionalScorer, RatioThresholdScorer, 
-    InverseRatioScorer, RatioGoalInverseScorer, 
-    DensityScorer, GoalRatioScorer
+    SimpleDirectionalScorer, RatioThresholdScorer,
+    InverseRatioScorer, RatioGoalInverseScorer,
+    DensityScorer, GoalRatioScorer, InverseIndexScorer
 )
 
 class IndicatorScorerFactory:
@@ -40,6 +40,7 @@ class IndicatorScorerFactory:
             "POP_DENSITY": DensityScorer(),                          # Population Density
             "SI_POV_NAHC": RatioThresholdScorer(threshold=10.0, global_average=10.0),  # 1.2.1
             "MPI_INDEX": RatioThresholdScorer(threshold=0.089),      # MPI
+            "HDI_INDEX": InverseIndexScorer(),                       # Human Development (pri proxy)
 
             # State capacity proxy: World Bank WGI Government Effectiveness.
             # WGI publishes a pre-normalized 0-100 score where higher = better

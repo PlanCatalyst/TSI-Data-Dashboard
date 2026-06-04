@@ -147,6 +147,10 @@ undp_hdr: # name must match fetch_factory.py
       indicators:
         # Gender Inequality Index. Raw scale 0-1; lower = more equal.
         - { series_code: "GII_INDEX", column_prefix: "gii_" }
+        # Human Development Index. Raw scale 0-1; higher = more developed.
+        # Global proxy for the `pri` pillar (replaces the unbuildable
+        # Concessionality Index). Same file as GII; column prefix "hdi_".
+        - { series_code: "HDI_INDEX", column_prefix: "hdi_" }
 
     - alias: "mpi"
       # 2025 Global MPI Tables (October 2025). Table 2 has the

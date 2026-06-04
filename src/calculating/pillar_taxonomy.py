@@ -16,9 +16,8 @@ scores up to subdomain and pillar without caring which naming world it started
 in.
 
 The SDG indicators are bridged automatically through `SDG_ID_TO_SERIES_CODE`.
-Non-SDG indicators (GII, ND-GAIN composite, MPI, State Capacity,
-Concessionality, population density) have no SDG id and must be bridged through
-the explicit
+Non-SDG indicators (GII, ND-GAIN composite, MPI, State Capacity, HDI,
+population density) have no SDG id and must be bridged through the explicit
 `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE` map below. See
 [indicators/SCORING_AUDIT.md](../../indicators/SCORING_AUDIT.md) for which of
 these are currently wired in the pipeline.
@@ -48,7 +47,9 @@ NON_SDG_FRONTEND_KEY_TO_SERIES_CODE: Dict[str, Optional[str]] = {
     "mpi": "MPI_INDEX",
     "popdens": "EN.POP.DNST",
     "state": "WGI_GOVEFF",
-    "conces": None,
+    # `pri` pillar proxy: HDI replaces the unbuildable Concessionality Index
+    # (no global dataset). Sourced from UNDP HDR (same file as `gii`).
+    "hdi": "HDI_INDEX",
 }
 
 SDG_ID_TO_SERIES_CODE: Dict[str, str] = {
