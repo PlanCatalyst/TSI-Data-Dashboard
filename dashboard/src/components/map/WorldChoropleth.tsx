@@ -5,6 +5,7 @@ import type { Topology, GeometryCollection } from "topojson-specification";
 import type { Feature, Geometry } from "geojson";
 
 import type { CountryPayload } from "../../data/contract/types";
+import { displayOverall } from "../../data/contract/selectors";
 import { LoadingState } from "../states/LoadingState";
 import { ErrorState } from "../states/ErrorState";
 
@@ -292,7 +293,7 @@ export function WorldChoropleth({
           <strong>{tooltip.country.name}</strong>
           <div className="tip-row">
             <span>Overall</span>
-            <span>{tooltip.country.overall ?? "—"}</span>
+            <span>{displayOverall(tooltip.country) ?? "—"}</span>
           </div>
           {pillars.map((p) => (
             <div key={p.key} className="tip-row">
