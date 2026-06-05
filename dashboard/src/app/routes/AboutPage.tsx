@@ -1,6 +1,7 @@
 import { useDashboardData } from "../../state/dashboard-context";
 import type { Indicator, Subdomain } from "../../data/contract/types";
 import { ABOUT_INTRO, SOURCE_NOTE, FRAMEWORK_CARDS, type FrameworkCardGroup } from "../../content/about";
+import { DEFERRED_INDICATORS } from "../../content/data-notes";
 
 // ── Framework card (one card may span multiple pillars) ───────────────────────
 
@@ -29,6 +30,11 @@ function FrameworkCard({ group, subdomains, indicators }: FrameworkCardProps) {
             {sdIndicators.map(ind => (
               <div key={ind.key} className="fw-item">
                 {ind.sdg !== "—" && `${ind.sdg} · `}{ind.label}
+                {ind.key in DEFERRED_INDICATORS && (
+                  <em style={{ color: "var(--mut)", fontSize: 11, marginLeft: 4 }} title={DEFERRED_INDICATORS[ind.key]}>
+                    (deferred)
+                  </em>
+                )}
                 <span>{ind.unit} · {ind.source}</span>
               </div>
             ))}
@@ -50,6 +56,39 @@ export function AboutPage() {
       {ABOUT_INTRO.map((paragraph, i) => (
         <p key={i}>{paragraph}</p>
       ))}
+
+      <h2>Known gaps &amp; missing data</h2>
+      <p>
+        A <strong>dash (—)</strong> or blank cell anywhere in this tool means the value is{" "}
+        <code>null</code> in the published data contract — never coerced to zero. Two distinct
+        kinds of blank exist:
+      </p>
+      <ul style={{ fontSize: 13, lineHeight: 1.7, paddingLeft: 20 }}>
+        <li>
+          <strong>Deferred by design</strong> — some indicators are intentionally absent regardless
+          of snapshot freshness, because their methodology is not finalized or their scorer is
+          unresolved:
+          <ul style={{ marginTop: 4 }}>
+            <li>
+              <em>Concessionality Index (conces)</em> — {DEFERRED_INDICATORS.conces}
+            </li>
+            <li>
+              <em>Population density (popdens)</em> — {DEFERRED_INDICATORS.popdens}
+            </li>
+          </ul>
+        </li>
+        <li>
+          <strong>Absent from this snapshot</strong> — some indicators are fully wired in the
+          pipeline but the current published payload has no values yet (for example,{" "}
+          <em>gii</em>, <em>ndgain</em>, <em>state</em>, or <em>mpi</em> on a local dry-run
+          payload). Coverage improves automatically once a fresh snapshot is published — no
+          frontend change is needed.
+        </li>
+      </ul>
+      <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+        Scoring direction and known gaps are documented in{" "}
+        <code>indicators/SCORING_AUDIT.md</code> in the repository.
+      </p>
 
       <h2>Indicator framework</h2>
       <p>

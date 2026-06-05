@@ -15,7 +15,7 @@ export const ABOUT_INTRO: string[] = [
 ];
 
 export const SOURCE_NOTE =
-  "All data is publicly available. Index values are normalised to 0–100 for comparability; higher values indicate more favourable conditions unless otherwise noted. Scoring methodology is described in the technical documentation.";
+  "All data is publicly available. Index values are normalised to 0–100 for comparability; higher values indicate more favourable conditions. Missing values are shown as blank (—), never as zero. Scoring methodology is described in the technical documentation.";
 
 export type FrameworkCardGroup = {
   title: string;

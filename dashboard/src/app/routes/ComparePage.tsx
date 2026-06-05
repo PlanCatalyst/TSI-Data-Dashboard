@@ -1,8 +1,20 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload, Pillar } from "../../data/contract/types";
-import { displayOverall } from "../../data/contract/selectors";
-import { deferredNoteForIndicators, NO_DATA_FOR_SELECTION } from "../../content/data-notes";
+import {
+  overallContext,
+  pillarScoreContext,
+} from "../../data/contract/score-context";
+import {
+  CoverageNote,
+  DerivationBadge,
+  NeedBadge,
+} from "../../components/scores/ScoreWithContext";
+import {
+  deferredNoteForIndicators,
+  NO_DATA_FOR_SELECTION,
+  SCORE_INTERPRETATION_NOTE_SHORT,
+} from "../../content/data-notes";
 
 const COUNTRY_PALETTE = ["#0079c1", "#e07b35", "#2a7a3a", "#7a5a9a", "#c0392b"];
 
@@ -323,26 +335,53 @@ export function ComparePage() {
                   <div style={{ fontSize: 11, opacity: 0.8 }}>{regionLabel[c.region] ?? c.region}</div>
                 </div>
                 <div style={{ padding: "8px 0 10px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "center", gap: 6, padding: "4px 12px" }}>
-                    <span style={{ fontSize: 11, color: "var(--mut)" }}>Overall</span>
-                    <DomainBar val={displayOverall(c)} color="#1e2a35" />
-                  </div>
-                  {meta.pillars.map(p => (
-                    <div key={p.key} style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "center", gap: 6, padding: "4px 12px" }}>
-                      <span style={{ fontSize: 11, color: "var(--mut)" }}>{p.label}</span>
-                      <DomainBar val={c.scores[p.key] ?? null} color={p.color} />
-                    </div>
-                  ))}
+                  {(() => {
+                    const oc = overallContext(c);
+                    return (
+                      <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "start", gap: 6, padding: "4px 12px" }}>
+                        <span style={{ fontSize: 11, color: "var(--mut)", paddingTop: 1 }}>Overall</span>
+                        <div>
+                          <DomainBar val={oc.value} color="#1e2a35" />
+                          {oc.band && (
+                            <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                              <NeedBadge band={oc.band} size={8.5} />
+                              <DerivationBadge source={oc.source} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {meta.pillars.map(p => {
+                    const val = c.scores[p.key] ?? null;
+                    const ctx = val != null ? pillarScoreContext(c, p.key, timeseries, meta) : null;
+                    return (
+                      <div key={p.key} style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "start", gap: 6, padding: "4px 12px" }}>
+                        <span style={{ fontSize: 11, color: "var(--mut)", paddingTop: 1 }}>{p.label}</span>
+                        <div>
+                          <DomainBar val={val} color={p.color} />
+                          {ctx && (
+                            <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                              <NeedBadge band={ctx.band} size={8.5} />
+                              <DerivationBadge source={ctx.source} />
+                              <CoverageNote coverage={ctx.coverage} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
 
           <p style={{ marginTop: 12, fontSize: 11, color: "var(--mut)", lineHeight: 1.5, maxWidth: 760 }}>
-            Pillar summary scores above show published values, available once a country has
+            Pillar summary scores above show published values (LATEST), available once a country has
             sufficient indicator coverage. The trends and sub-domain breakdown below include
             every available indicator, so some detail may appear for pillars that do not yet
             have a published summary score. Blank values are missing data, never zero.
+            {" "}{SCORE_INTERPRETATION_NOTE_SHORT}
           </p>
 
           {/* Trend charts */}
