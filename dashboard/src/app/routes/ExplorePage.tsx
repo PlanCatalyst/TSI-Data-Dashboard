@@ -2,7 +2,15 @@ import { useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
 import { displayOverall } from "../../data/contract/selectors";
+import {
+  derivationLabel,
+  overallContext,
+  pillarScoreContext,
+  pillarScoreTooltip,
+} from "../../data/contract/score-context";
+import { NeedBadge } from "../../components/scores/ScoreWithContext";
 import { TrendsPanel } from "./TrendsPanel";
+import { EXPLORE_TABLE_FOOTNOTE, SCORE_INTERPRETATION_NOTE } from "../../content/data-notes";
 
 const REG_COLORS: Record<string, string> = {
   afe: "#0079c1",
@@ -61,7 +69,7 @@ const DEFAULT_PILLAR_W = 100;
 const MIN_COL_W = 60;
 
 export function ExplorePage() {
-  const { countries, meta } = useDashboardData();
+  const { countries, meta, timeseries } = useDashboardData();
   const [activeRegion, setActiveRegion] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [sortCol, setSortCol] = useState<string>("health");
@@ -209,17 +217,56 @@ export function ExplorePage() {
                       <td className="country-link">{c.name}</td>
                       <td>{regionLabel[c.region] ?? c.region}</td>
                       <td><TrendLabel trend={c.trend} /></td>
-                      <td><DomainBar val={displayOverall(c)} color="#1e2a35" /></td>
-                      {meta.pillars.map(p => (
-                        <td key={p.key}>
-                          <DomainBar val={c.scores[p.key] ?? null} color={p.color} />
-                        </td>
-                      ))}
+                      <td>
+                        {(() => {
+                          const oc = overallContext(c);
+                          return (
+                            <>
+                              <DomainBar val={oc.value} color="#1e2a35" />
+                              {oc.band && (
+                                <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 2 }}>
+                                  <NeedBadge band={oc.band} size={8.5} />
+                                  {oc.source && (
+                                    <span style={{ fontSize: 8, color: "var(--mut)", letterSpacing: ".3px" }}>
+                                      {derivationLabel(oc.source)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </td>
+                      {meta.pillars.map(p => {
+                        const val = c.scores[p.key] ?? null;
+                        const tip = val != null
+                          ? pillarScoreTooltip(pillarScoreContext(c, p.key, timeseries, meta), p.label)
+                          : `${p.label}: no published value in this snapshot`;
+                        return (
+                          <td key={p.key} title={tip}>
+                            <DomainBar val={val} color={p.color} />
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {(() => {
+              const emptyPillars = meta.pillars.filter(p =>
+                countries.every(c => (c.scores[p.key] ?? null) == null)
+              );
+              return (
+                <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic", padding: "8px 14px 10px", margin: 0, lineHeight: 1.5 }}>
+                  {EXPLORE_TABLE_FOOTNOTE}
+                  {emptyPillars.length > 0 && (
+                    <> {emptyPillars.map(p => p.label).join(", ")} {emptyPillars.length === 1 ? "has" : "have"} no data in this snapshot.</>
+                  )}
+                  {" "}{SCORE_INTERPRETATION_NOTE} Hover any pillar score for its coverage and confidence.
+                </p>
+              );
+            })()}
           </div>
         </div>
         <div className="side-col">
