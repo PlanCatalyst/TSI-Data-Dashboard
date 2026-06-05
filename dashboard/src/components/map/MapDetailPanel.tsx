@@ -6,13 +6,18 @@ import type {
   TimeseriesPayload,
 } from "../../data/contract/types";
 import {
-  computeFallbackPillarScores,
   computePillarTimeseries,
   computeSubdomainScores,
-  displayOverall,
   trendBucket,
   trendDelta,
 } from "../../data/contract/selectors";
+import {
+  overallContext,
+  pillarScoreContext,
+  type PillarScoreContext,
+} from "../../data/contract/score-context";
+import { ScoreWithContext } from "../scores/ScoreWithContext";
+import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 import { DomainTrendsChart } from "./DomainTrendsChart";
 import { SubdomainBlock } from "./SubdomainBlock";
 
@@ -44,8 +49,13 @@ export function MapDetailPanel({
     () => (country ? computePillarTimeseries(country, timeseries, meta) : {}),
     [country, timeseries, meta],
   );
-  const fallbackScores = useMemo<Record<string, number | null>>(
-    () => (country ? computeFallbackPillarScores(country, timeseries, meta) : {}),
+  const pillarContexts = useMemo<Record<string, PillarScoreContext>>(
+    () =>
+      country
+        ? Object.fromEntries(
+            meta.pillars.map((p) => [p.key, pillarScoreContext(country, p.key, timeseries, meta)]),
+          )
+        : {},
     [country, timeseries, meta],
   );
   const subdomainScores = useMemo<Record<string, number | null>>(
@@ -68,17 +78,7 @@ export function MapDetailPanel({
     );
   }
 
-  // Re-bind so TS keeps the non-null narrowing across closures below.
-  const c = country;
-
-  // Final score per pillar: prefer the contract score, fall back to the
-  // computed latest-non-null mean if the contract value is null. Keeps the
-  // panel useful even when one pillar's most-recent year is sparse.
-  function pillarScore(key: string): number | null {
-    const direct = c.scores[key];
-    if (direct != null) return direct;
-    return fallbackScores[key] ?? null;
-  }
+  const overall = overallContext(country);
 
   return (
     <div className="detail-panel">
@@ -87,16 +87,20 @@ export function MapDetailPanel({
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{country.name}</h2>
           <p style={{ margin: "3px 0 0", fontSize: 12, opacity: 0.85 }}>
             {regionLabel[country.region] ?? country.region}
-            {(() => {
-              const overall = displayOverall(country);
-              if (overall == null) return null;
-              return (
-                <>
-                  {" · "}
-                  <span style={{ fontWeight: 600 }}>Overall {overall}</span>
-                </>
-              );
-            })()}
+            {overall.value != null && (
+              <>
+                {" · "}
+                <span style={{ fontWeight: 600 }}>
+                  Overall {overall.estimated ? "~" : ""}{overall.value}
+                </span>
+                {overall.band && (
+                  <span style={{ fontWeight: 600 }}> · {overall.band.label}</span>
+                )}
+                {overall.estimated && (
+                  <span style={{ opacity: 0.8 }} title="No published overall score — mean of available pillar scores."> (partial)</span>
+                )}
+              </>
+            )}
           </p>
         </div>
         {onClose && (
@@ -128,14 +132,25 @@ export function MapDetailPanel({
         const head = meta.pillars.slice(0, 4);
         const tail = meta.pillars.slice(4);
         const renderCell = (p: typeof meta.pillars[number]) => {
-          const v = pillarScore(p.key);
+          const ctx = pillarContexts[p.key];
           const t = trendDelta(pillarTimeseries[p.key] ?? []);
           return (
             <div key={p.key} className="dp-sc">
               <div className="dp-sc-lbl">{p.label}</div>
-              <div className="dp-sc-val" style={{ color: p.color, fontSize: 17 }}>
-                {v != null ? v : "—"}
-              </div>
+              <ScoreWithContext
+                value={ctx?.value ?? null}
+                band={ctx?.band ?? null}
+                source={ctx?.source ?? null}
+                coverage={ctx?.coverage ?? null}
+                estimated={ctx?.estimated ?? false}
+                valueColor={p.color}
+                valueSize={17}
+                title={
+                  ctx?.estimated
+                    ? "Official pillar score unavailable — estimated from available indicators across all years."
+                    : undefined
+                }
+              />
               <div className="dp-sc-trend">
                 <TrendChip delta={t} />
               </div>
@@ -228,7 +243,7 @@ export function MapDetailPanel({
 
       <div className="src-note">
         Sources: {Array.from(new Set(meta.indicators.map((i) => i.source))).join(" · ")}.
-        Index values 0–100, higher = more favourable. Generated{" "}
+        {" "}{SCORE_INTERPRETATION_NOTE_SHORT} Generated{" "}
         {new Date(meta.generatedAt).toLocaleDateString()}.
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useDashboardData } from "../../state/dashboard-context";
 import { MapDetailPanel } from "../../components/map/MapDetailPanel";
 import { MAP_COLOR_STOPS, WorldChoropleth } from "../../components/map/WorldChoropleth";
 import { displayOverall, getCountryByIso3 } from "../../data/contract/selectors";
+import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 
 export function MapPage() {
   const { meta, countries, timeseries } = useDashboardData();
@@ -106,6 +107,9 @@ export function MapPage() {
               Click to explore
               <br />
               Double-click to reset
+            </div>
+            <div style={{ marginTop: 7, paddingTop: 6, borderTop: "1px solid var(--bd)", fontSize: 9, color: "var(--mut)", lineHeight: 1.4 }}>
+              {SCORE_INTERPRETATION_NOTE_SHORT}
             </div>
           </div>
         </div>
