@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from src.pipeline.utils import ensure_dir, setup_logger
+from src.pipeline.utils import ensure_dir, project_root, setup_logger
 from src.pipeline.terminal_output import TerminalOutput
 
 from .base_fetch import DataFetcher
@@ -63,7 +63,6 @@ class FileManifestFetcher(DataFetcher):
         """
         ensure_dir(out_dir)
         manifest: List[Dict[str, Any]] = []
-        source_root = out_dir.parents[1]  # data/raw/ — for relative paths
 
         for idx, spec in enumerate(files or [], 1):
             alias = spec.get("alias")
@@ -88,7 +87,7 @@ class FileManifestFetcher(DataFetcher):
                 local_path.write_bytes(resp.content)
                 manifest.append({
                     **base_record,
-                    "local_path": str(local_path.relative_to(source_root)),
+                    "local_path": str(local_path.relative_to(project_root())),
                     "content_length": len(resp.content),
                     "http_status": resp.status_code,
                 })
