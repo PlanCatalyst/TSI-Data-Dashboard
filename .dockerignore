@@ -1,0 +1,56 @@
+# Keep the build context small and secret-free. `az acr build` uploads this
+# context to the registry, so excluding data/ (~240MB) and .venv matters for
+# upload speed as much as image size.
+
+# Secrets — never send to the registry build.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*credentials*.json
+*service-account*.json
+.secrets*
+
+# Local pipeline artifacts (regenerated at runtime; 240MB+).
+data/
+
+# Not part of the Python pipeline image.
+dashboard/
+projections/
+docs/
+scripts/
+*.png
+*.html
+*.ipynb
+
+# Python / tooling cruft.
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+.python-version
+
+# VCS / editor / OS.
+.git/
+.gitignore
+.idea/
+.vscode/
+.claude/
+.DS_Store
+
+# Docs / context files (not needed at runtime).
+*.md
+CLAUDE.local.md
+MAY-CONTEXT.md
