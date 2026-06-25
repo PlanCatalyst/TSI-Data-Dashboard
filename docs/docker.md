@@ -55,22 +55,41 @@ RESOURCE_GROUP=tsi-data-dashboard
 LOCATION="Canada Central"
 ```
 
-### One-time permission grant
+### One-time permission grant — **needs an Owner / User Access Administrator**
 
 The service principal in `.env` is **Storage-only** by design (it publishes JSON
-to Blob) — it has no rights on the registry, so it can't even list it, let alone
-push. Grant it `AcrPush` once, from an interactive admin session:
+to Blob) — it has no rights on the registry, so it can't push. The push identity
+needs **Contributor scoped to the registry**, not just `AcrPush`:
+
+> `az acr build` runs a server-side ACR *Task*, which requires
+> `Microsoft.ContainerRegistry/registries/scheduleRun/action`. That action is in
+> the **Contributor** role, **not** in the data-plane `AcrPush` role. `AcrPush`
+> only enables a local `docker push`. So for cloud build, grant **Contributor**.
+
+This grant requires `Microsoft.Authorization/roleAssignments/write` — i.e.
+**Owner** or **User Access Administrator** on the registry/RG/subscription.
+Plain Contributor (and "Container Apps Contributor") **cannot** assign roles.
 
 ```zsh
-az login                                                         # SP cannot grant roles
-az account set --subscription bcf7dfdc-7ef7-437d-98d0-8fa568523d6f
-
+# Run as an Owner / User Access Administrator
 ACR_ID=$(az acr show -n TSIcontainers --query id -o tsv)
+
+# Option A — grant the service principal (best for headless CI / the build script)
 az role assignment create \
   --assignee 023cbca7-ef83-4b53-b615-fc9377295932 \
-  --scope "$ACR_ID" \
-  --role AcrPush
+  --scope "$ACR_ID" --role Contributor
+
+# Option B — grant a human who will run builds interactively
+az role assignment create \
+  --assignee anthony.lam@plancatalyst.org \
+  --scope "$ACR_ID" --role Contributor
 ```
+
+**Alternative without an Owner:** enable the registry admin user
+(`az acr update -n TSIcontainers --admin-enabled true`, needs registry
+Contributor) and switch to a *local* `docker build` + `docker push` using the
+admin username/password. This sidesteps RBAC but uses a shared static
+credential and still can't do `az acr build`.
 
 > `.env` must stay sourceable: quote values with spaces (`LOCATION="Canada
 > Central"`) and avoid inline `#` comments on a `KEY=value` line — `source` does
