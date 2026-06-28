@@ -69,6 +69,8 @@ class WorldBankCleaner(DataCleaner):
                 "value",
             ],
         )
+        # Scoring joins on series_code (same WB indicator id, e.g. EN.POP.DNST).
+        df["series_code"] = df["indicator-code"]
         df["country_name"] = df.apply(
             lambda r: get_canonical_name(str(r["country_code"]), str(r.get("country_name") or "")),
             axis=1,

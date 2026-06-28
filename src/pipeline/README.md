@@ -11,8 +11,8 @@ Core sequence:
 2. Clean
 3. Score/Aggregate
 4. Upload validated CSVs (optional Azure)
-5. **Publish contract JSON** ← not yet wired in orchestrator; run manually via
-   `python3 -m src.upload.publish_dashboard [--azure]` until Anthony wires it in
+5. Publish contract JSON (`data/organized/v1/` dry run, or `dashboard-public/v1/`
+   when `runtime.upload_azure` is true and Azure creds are set)
 6. Optional projections processing (post-MVP)
 
 ## Ownership
@@ -28,7 +28,7 @@ See `TEAM-TASKS.md`.
 python3 -m src.pipeline.run_pipeline
 ```
 
-Publish (manual until orchestrator wired):
+Publish-only (skip fetch/clean/score):
 
 ```zsh
 python3 -m src.upload.publish_dashboard          # dry run → data/organized/v1/

@@ -232,6 +232,11 @@ runtime:
   # If true: upload backend artifacts to Azure Blob.
   upload_azure: true
 
+  # Build contract JSON (meta/countries/timeseries) after scoring.
+  # When upload_azure is true and Azure creds are set, also uploads to
+  # publish.dashboard_container_name; otherwise writes to data/organized/v1/.
+  publish_dashboard: true
+
   # Paths to cleaned CSVs written by src/clean.
   interim_data:
     unsdg: "data/clean/unsdg/un_sdg_clean.csv"
