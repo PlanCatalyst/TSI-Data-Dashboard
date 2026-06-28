@@ -37,7 +37,8 @@ class IndicatorScorerFactory:
             # --- CROSS-CUTTING & CONTEXT ---
             "GII_INDEX": RatioThresholdScorer(threshold=0.32),       # Gender Inequality
             "ND_GAIN_VULN": RatioThresholdScorer(threshold=0.46),    # Climate
-            "POP_DENSITY": DensityScorer(),                          # Population Density
+            "EN.POP.DNST": DensityScorer(),                          # Population density (WB id)
+            "POP_DENSITY": DensityScorer(),                          # legacy alias
             "SI_POV_NAHC": RatioThresholdScorer(threshold=10.0, global_average=10.0),  # 1.2.1
             "MPI_INDEX": RatioThresholdScorer(threshold=0.089),      # MPI
             "HDI_INDEX": InverseIndexScorer(),                       # Human Development (pri proxy)

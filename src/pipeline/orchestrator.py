@@ -4,6 +4,8 @@ Orchestrates the entire data pipeline.
 Orchestrator class is created and run in run_pipeline.py
 '''
 
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -14,6 +16,7 @@ from src.fetch.fetch_data import FetchData
 from src.clean.clean_data import CleanData
 from src.calculating.pipeline import run_pipeline as run_scoring_pipeline
 from src.upload.upload_validated import UploadValidated
+from src.upload.publish_dashboard import publish as publish_dashboard
 
 class Orchestrator:
     def __init__(self, config_path: str = project_root() / "src/config/settings.yaml") -> None:
@@ -74,6 +77,30 @@ class Orchestrator:
         # ============================================================
         upload_validated = UploadValidated(self.config_path)
         upload_validated.upload()
+
+        # ============================================================
+        # PUBLISH (contract JSON -> data/organized/v1/ or dashboard-public)
+        # ============================================================
+        if runtime_cfg.get("publish_dashboard", True):
+            publish_cfg = cfg.get("publish") or {}
+            azure_creds = all(
+                os.getenv(k)
+                for k in (
+                    "AZURE_TENANT_ID",
+                    "AZURE_CLIENT_ID",
+                    "AZURE_CLIENT_SECRET",
+                    "AZURE_STORAGE_ACCOUNT_URL",
+                )
+            )
+            upload_azure = runtime_cfg.get("upload_azure", False)
+            run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            publish_dashboard(
+                repo_root=root,
+                pipeline_run_id=run_id,
+                target_container=publish_cfg.get("dashboard_container_name", "dashboard-public"),
+                prefix=publish_cfg.get("dashboard_prefix", "v1/"),
+                dry_run=not (upload_azure and azure_creds),
+            )
 
         # ============================================================
         # PROCESS (indicator progress projections -> data/processed/)
