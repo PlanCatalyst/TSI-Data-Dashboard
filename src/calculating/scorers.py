@@ -138,9 +138,30 @@ class InverseIndexScorer(IndicatorScorer):
 
 
 class DensityScorer(IndicatorScorer):
-    """Continuous scoring for population density."""
+    """
+    Banded scoring for population density (people per sq. km), matching the
+    canonical formula in indicators.yaml. Vulnerability orientation: denser =
+    higher "need" score (inverted to higher-is-better at the publish boundary).
+
+        >=250          -> 100
+        >=100 and <250 ->  75
+        >=75  and <100 ->  50
+        >=25  and <75  ->  25
+        <25            ->   0
+
+    Missing values (NaN) are preserved as NaN so they publish as JSON null.
+    (Replaced the prior continuous `(value/0.7)*100`, which saturated ~99.6%
+    of countries to the bound and produced a near-constant score. See
+    indicators/SCORING_AUDIT.md row 27.)
+    """
 
     def score(self, df: pd.DataFrame) -> pd.Series:
         v = df["value"].astype(float)
-        scores = (v / 0.7) * 100.0
+        scores = np.select(
+            [v >= 250, v >= 100, v >= 75, v >= 25],
+            [100.0, 75.0, 50.0, 25.0],
+            default=0.0,
+        )
+        scores = pd.Series(scores, index=v.index, dtype=float)
+        scores[v.isna()] = np.nan
         return self.clamp_0_100(scores)
