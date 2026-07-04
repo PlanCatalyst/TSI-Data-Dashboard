@@ -1,0 +1,14 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/v1/*", "*.{png,jpg,svg,ico,json,topojson}"]
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "frame-ancestors 'self' https://*.wix.com https://*.wixsite.com https://*.wixstudio.com https://*.filesusr.com https://plancatalyst.org https://*.plancatalyst.org",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  },
+  "mimeTypes": {
+    ".topojson": "application/json"
+  }
+}
