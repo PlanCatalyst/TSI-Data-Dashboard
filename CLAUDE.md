@@ -128,13 +128,15 @@ When documents disagree, resolve in this order (lower number wins):
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md` (as of 2026-05-17):
+From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 
-- **Coverage now at 25/28 live.** `gii`, `mpi`, `ndgain` composite, and `state` all went live this session via new `UNDPHDRFetcher/Cleaner`, ND-GAIN's published `resources/vulnerability/vulnerability.csv` composite, and `WBWGIFetcher/Cleaner` for state capacity (sourced from WGI Government Effectiveness after Hanson-Sigman was found stale at 2015).
-- `conces`: **deferred future task.** Inputs exist (WB + IMF series) but the Concessionality Index is a PlanCatalyst-defined composite whose construction formula is not specified in `indicators.yaml`. Six open methodology questions live in `docs/source-candidates.md`. Owner: **Thomas** routes to PlanCatalyst → **Anthony** implements.
-- `popdens`: scorer formula mismatch vs taxonomy notes. The World Bank cleaner also does not yet emit a `series_code` column, so popdens rows are defensively dropped by scoring. Owner: **Anthony**.
-- Orchestrator does not call `publish_dashboard` yet. Owner: **Anthony**.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3 (re-run cleaner after fresh UN SDG fetch). Owner: **Anthony**.
+- **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since 2026-05-17. `hdi` replaced `conces` as the `pri/macrosec` slot (2026-06-01; `InverseIndexScorer`, ~190 countries). `popdens` series_code fixed (`622e3bf`); banded scorer formula adopted 2026-07-03 (`b19f1a8`).
+- `conces`: **replaced by `hdi` for MVP.** Proposed exclusion needs PlanCatalyst sign-off. See `indicators/SCORING_AUDIT.md`.
+- `popdens`: formula fixed (banded 0/25/50/75/100). Open semantic question: confirm with PlanCatalyst whether density is scored+inverted or context/display-only. **Thomas → PlanCatalyst**.
+- **Orchestrator now calls `publish_dashboard`** (`622e3bf`). Full pipeline runs in one command.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3. **Anthony** (re-run cleaner).
+- **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`. Still needs `VITE_CONTRACT_BASE_URL` set to prod Blob URL once Anthony publishes live JSON.
+- **ACR push rights blocked** — pipeline cannot be containerised and run on Azure until Contributor role is granted on the registry. **Anthony**.
 
 ## Team Execution Model
 

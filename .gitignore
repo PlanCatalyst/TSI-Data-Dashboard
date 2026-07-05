@@ -89,6 +89,9 @@ src/fetch/.env
 *.tmp
 *.temp
 
+# Playwright CLI session artifacts
+dashboard/.playwright-cli/
+
 # ----------------------------
 # Generated data and exports
 # Keep data structure docs/placeholders, and allow ND-GAIN zip only.
