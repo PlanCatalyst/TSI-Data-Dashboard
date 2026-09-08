@@ -27,9 +27,9 @@ export const DEFERRED_INDICATORS: Record<string, string> = {
   // Keep this entry until meta.json is republished and `conces` no longer appears in contract indicators.
   conces:
     "The Concessionality Index is a PlanCatalyst-defined composite with no finalized methodology yet, so it is intentionally left blank rather than estimated. (Deferred by design — see scoring audit.)",
-  // ctx / ctxmisc
+  // ctx / ctxmisc — banded scorer is live; semantic direction pending PlanCatalyst sign-off.
   popdens:
-    "Population density is excluded from scoring: it has no universal good/bad direction and its scorer is unresolved, so it is shown as blank rather than coerced.",
+    "Population density uses a banded scoring formula. Whether it contributes to the context pillar score or is display-only is pending client confirmation — see scoring audit.",
 };
 
 /**

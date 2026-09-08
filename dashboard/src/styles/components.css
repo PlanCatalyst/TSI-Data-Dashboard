@@ -370,11 +370,18 @@
 .pred-badge { background: #fef6e6; color: #7a4a0a; }
 
 /* ── ABOUT ── */
-.about-body { max-width: 780px; margin: 0 auto; padding: 24px 16px 40px; }
-.about-body h2 { font-size: 18px; font-weight: 700; color: var(--blue); margin-bottom: 10px; }
+.about-body { max-width: 780px; margin: 0 auto; padding: 24px 16px 40px; width: 100%; }
+.about-body h2 { font-size: 18px; font-weight: 700; color: var(--blue); margin: 24px 0 10px; }
+.about-body h2:first-of-type { margin-top: 0; }
+.about-body h3 { font-size: 14px; font-weight: 700; color: var(--txt); margin: 0 0 6px; }
 .about-body p { font-size: 13.5px; line-height: 1.7; color: var(--txt); margin-bottom: 14px; }
+.about-section { margin-bottom: 18px; }
+.source-list { list-style: none; padding: 0; margin: 0 0 20px; }
+.source-list li { font-size: 13px; line-height: 1.65; color: var(--txt); padding: 12px 0; border-bottom: 1px solid var(--bd); }
+.source-list li:last-child { border-bottom: none; }
+.source-indicators { display: block; font-size: 11.5px; color: var(--mut); margin-top: 4px; }
 .fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
-@media (max-width: 480px) { .fw-grid { grid-template-columns: 1fr; } .about-body { padding: 18px 12px 32px; } }
+@media (max-width: 480px) { .fw-grid { grid-template-columns: 1fr; } .about-body { padding: 18px 12px 32px; } .about-body h2 { font-size: 16px; } }
 .fw-card { border: 1px solid var(--bd); border-radius: 8px; padding: 14px; }
 .fw-head { font-size: 12.5px; font-weight: 700; color: #fff; padding: 7px 11px; margin: -14px -14px 10px; border-radius: 6px 6px 0 0; }
 .fw-head.blue { background: var(--blue); }
