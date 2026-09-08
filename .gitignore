@@ -93,6 +93,11 @@ src/fetch/.env
 dashboard/.playwright-cli/
 
 # ----------------------------
+# graphify (local knowledge-graph cache and outputs)
+# ----------------------------
+graphify-out/
+
+# ----------------------------
 # Generated data and exports
 # Keep data structure docs/placeholders, and allow ND-GAIN zip only.
 # ----------------------------
@@ -127,3 +132,6 @@ data/raw/nd-gain/**
 !data/raw/unsdg/
 !data/raw/unsdg/.gitkeep
 
+
+# Editor / AI assistant local state
+.cursor/

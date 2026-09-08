@@ -20,7 +20,7 @@ Core sequence:
 - **a contributor:** pipeline orchestration, publish wiring, Azure automation, cleaning, indicators
 - **Thomas:** full-stack integration, frontend presentability, pipeline support
 
-See `TEAM-TASKS.md`.
+See `TASKS.md`.
 
 ## Primary Run Command
 

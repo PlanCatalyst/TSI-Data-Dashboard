@@ -82,7 +82,7 @@ Open semantic question (unchanged):
 
 ### conces — client-approved MVP exclusion (proposed 2026-06-28)
 
-`conces` (Concessionality Index) is **excluded from the MVP contract** and replaced by `hdi` for the `pri/macrosec` slot. Rationale: no published global dataset (debt-distress component is low-income-country-only, ~67 countries) and no PlanCatalyst-supplied composite construction formula. The contract carries exactly 28 indicators with `hdi` substituted (verified live in the 2026-06-28 end-to-end run: `hdi` -> `pri/macrosec`, ~190 countries). Status: **deferred post-MVP** — revisit only if PlanCatalyst delivers a documented composite formula and a global-coverage data source (open methodology questions tracked in `docs/source-candidates.md`). **Needs PlanCatalyst sign-off to convert this from "proposed" to "approved" exception (see DELIVERY-CHECKLIST Phase 0 line 23 / Phase 1 line 37).**
+`conces` (Concessionality Index) is **excluded from the MVP contract** and replaced by `hdi` for the `pri/macrosec` slot. Rationale: no published global dataset (debt-distress component is low-income-country-only, ~67 countries) and no PlanCatalyst-supplied composite construction formula. The contract carries exactly 28 indicators with `hdi` substituted (verified live in the 2026-06-28 end-to-end run: `hdi` -> `pri/macrosec`, ~190 countries). Status: **deferred post-MVP** — revisit only if PlanCatalyst delivers a documented composite formula and a global-coverage data source (open methodology questions tracked in `docs/source-candidates.md`). **Needs PlanCatalyst sign-off to convert this from "proposed" to "approved" exception (tracked in TASKS.md).**
 
 ## Why invert at publish rather than in `src/calculating/`
 

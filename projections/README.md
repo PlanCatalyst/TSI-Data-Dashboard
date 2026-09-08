@@ -1,7 +1,7 @@
 # Projections
 
 Workspace for projections / forecasting research and (eventually) production
-projection code. Per `TEAM-TASKS.md` §4, this is the projections research
+projection code. This is the projections research
 lane: method comparison → quality report → ship/no-ship recommendation →
 output spec for a future contract extension.
 
@@ -86,8 +86,7 @@ change → /v1→/v2). That decision belongs to whoever owns the publisher
 
 ## See also
 
-- `TEAM-TASKS.md` §4 — Kayden's research deliverables (method comparison,
-  quality report, ship/no-ship rec, output spec).
+- `TASKS.md`: projections are deferred post-MVP with no ship target.
 - `docs/data-contract.md` §2 — current `projections` meta hook.
 - `docs/PRINCIPLES.md` §4 — "Projection Transparency" principle: blank
   projections must be explained to users.
