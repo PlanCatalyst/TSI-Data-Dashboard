@@ -1,9 +1,29 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-05-17T20:16:08.380122+00:00",
-  "pipelineRunId": "test-dry-run",
+  "generatedAt": "2026-07-08T04:19:23.222435+00:00",
+  "pipelineRunId": "manual-run",
   "scoringDirection": "higher_is_better",
   "years": [
+    1990,
+    1991,
+    1992,
+    1993,
+    1994,
+    1995,
+    1996,
+    1997,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
     2010,
     2011,
     2012,
@@ -100,7 +120,7 @@
       "key": "pri",
       "label": "Socio-economic performance",
       "color": "#3a5a6a",
-      "repIndicator": "conces"
+      "repIndicator": "hdi"
     }
   ],
   "subdomains": [
@@ -446,10 +466,10 @@
     },
     {
       "key": "state",
-      "label": "State Capacity Index",
+      "label": "Government Effectiveness (state capacity proxy)",
       "sdg": null,
-      "source": "Our World in Data",
-      "unit": "Index score, higher scores mean more capacity",
+      "source": "World Bank Worldwide Governance Indicators (WGI)",
+      "unit": "0-100 Governance score (higher = better governance)",
       "pillar": "ctx",
       "subdomain": "statecap",
       "rawDirection": "higher_is_better",
@@ -489,14 +509,14 @@
       "scoredDirection": "higher_is_better"
     },
     {
-      "key": "conces",
-      "label": "Concessionality Index",
+      "key": "hdi",
+      "label": "Human Development Index",
       "sdg": null,
-      "source": "Multiple (WorldBank, IMF)",
-      "unit": "Index score",
+      "source": "UNDP Human Development Reports",
+      "unit": "Index (0-1)",
       "pillar": "pri",
       "subdomain": "macrosec",
-      "rawDirection": "lower_is_better",
+      "rawDirection": "higher_is_better",
       "scoredDirection": "higher_is_better"
     }
   ]
