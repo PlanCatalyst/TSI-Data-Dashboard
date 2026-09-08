@@ -23,7 +23,10 @@ worldbank: # name must match client_factory.py
   indicators:
     # Population density (people per sq. km of land area)
     # See: https://data.worldbank.org/indicator/EN.POP.DNST
-    - { code: "EN.POP.DNST", alias: "population_density_per_sq_km" }  
+    - { code: "EN.POP.DNST", alias: "population_density_per_sq_km" }
+    # GDP (current US$) — used only to normalize SDG 2.a.2 ag flows before scoring.
+    # Not a dashboard indicator; rows are stripped in score_indicators before scoring.
+    - { code: "NY.GDP.MKTP.CD", alias: "gdp_current_usd" }
 
   # ISO-3 country codes to query in ONE request (semicolon-joined in the API call).
   # You can add/remove codes (e.g., "GBR", "FRA"). Regions like "WLD" (world) also work,

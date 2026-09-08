@@ -10,6 +10,10 @@ from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subd
 from src.calculating.pillar_taxonomy import series_code_to_filename
 from src.utils.country_identity import resolve as _resolve_iso3
 
+# World Bank series used only as a join helper for SDG 2.a.2 (agoda) scoring.
+_GDP_SERIES_CODE = "NY.GDP.MKTP.CD"
+_AGODA_SERIES_CODE = "DC_TOF_AGRL"
+
 
 def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
     """Load and concatenate one or more cleaned interim CSVs.
@@ -32,6 +36,42 @@ def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True, sort=False)
 
 
+def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert SDG 2.a.2 ag flows (millions USD) to ag-flow/GDP ratio.
+
+    GoalRatioScorer(goal=0.02) expects the 2%-of-GDP target on a unitless ratio.
+    Raw USD millions saturated every country to score 0 (issue #3).
+    """
+    if "series_code" not in df.columns or _AGODA_SERIES_CODE not in df["series_code"].values:
+        return df
+
+    gdp = (
+        df.loc[df["series_code"] == _GDP_SERIES_CODE, ["country_code", "year", "value"]]
+        .dropna(subset=["value"])
+        .drop_duplicates(["country_code", "year"])
+        .rename(columns={"value": "_gdp"})
+    )
+    if gdp.empty:
+        return df
+
+    work = df.copy()
+    agoda_mask = work["series_code"] == _AGODA_SERIES_CODE
+    agoda = work.loc[agoda_mask, ["country_code", "year", "value"]].merge(
+        gdp, on=["country_code", "year"], how="left"
+    )
+    valid = (
+        agoda["value"].notna()
+        & agoda["_gdp"].notna()
+        & (agoda["_gdp"].astype(float) > 0)
+    )
+    if valid.any():
+        agoda.loc[valid, "value"] = (
+            agoda.loc[valid, "value"].astype(float) * 1_000_000.0
+        ) / agoda.loc[valid, "_gdp"].astype(float)
+        work.loc[agoda_mask, "value"] = agoda["value"].values
+    return work
+
+
 def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] = None) -> pd.DataFrame:
     df = _load_interim_frames([interim_path, *(extra_paths or [])])
 
@@ -47,6 +87,8 @@ def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] =
         code_map = {c: _resolve_iso3(c) for c in df["country_code"].unique()}
         df["country_code"] = df["country_code"].map(code_map)
         df = df.dropna(subset=["country_code"])
+
+    df = _apply_agoda_gdp_normalization(df)
 
     # Only score rows whose series_code is one the factory knows about.
     # Component-only rows (e.g. ND-GAIN per-indicator scores written for
