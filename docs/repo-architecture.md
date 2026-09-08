@@ -19,7 +19,7 @@ TSI-Data-Dashboard/
   README.md
   CLAUDE.md
   HANDOFF.md
-  TEAM-TASKS.md
+  TASKS.md
   docs/
     data-contract.md
     repo-architecture.md

@@ -103,7 +103,7 @@ When documents disagree, resolve in this order (lower number wins):
 1. `docs/data-contract.md` (payload schema and semantics)
 2. `indicators/indicators.yaml` (indicator taxonomy and metadata)
 3. `indicators/SCORING_AUDIT.md` (scoring direction and known gaps)
-4. `TEAM-TASKS.md` (current ownership and delivery plan)
+4. `TASKS.md` (remaining work and ownership)
 5. `HANDOFF.md` (project context and historical decisions)
 6. `README.md` (purpose and quickstart)
 7. `docs/PRINCIPLES.md` (synthesis: mission, locked decisions, autonomy rules)
@@ -128,22 +128,47 @@ When documents disagree, resolve in this order (lower number wins):
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
+From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as of 2026-09-04):
 
-- **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since 2026-05-17. `hdi` replaced `conces` as the `pri/macrosec` slot (2026-06-01; `InverseIndexScorer`, ~190 countries). `popdens` series_code fixed (`622e3bf`); banded scorer formula adopted 2026-07-03 (`b19f1a8`).
-- `conces`: **replaced by `hdi` for MVP.** Proposed exclusion needs PlanCatalyst sign-off. See `indicators/SCORING_AUDIT.md`.
-- `popdens`: formula fixed (banded 0/25/50/75/100). Open semantic question: confirm with PlanCatalyst whether density is scored+inverted or context/display-only. **Thomas → PlanCatalyst**.
-- **Orchestrator now calls `publish_dashboard`** (`622e3bf`). Full pipeline runs in one command.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of ISO3. **Anthony** (re-run cleaner).
-- **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`. Still needs `VITE_CONTRACT_BASE_URL` set to prod Blob URL once Anthony publishes live JSON.
-- **ACR push rights blocked** — pipeline cannot be containerised and run on Azure until Contributor role is granted on the registry. **Anthony**.
+- **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since
+  2026-05-17. `hdi` replaced `conces` in the `pri/macrosec` slot (2026-06-01; `InverseIndexScorer`,
+  ~190 countries). Issues #3 (`agoda`), #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification)
+  were all closed 2026-07-07.
+- **The 2026-07-07 fix session is uncommitted.** ~176k insertions across 16 files sit on `main`,
+  including the `SCORING_AUDIT.md` rows recording those fixes. Anything reading only committed
+  history reports a pre-fix world. Commit before trusting any status summary.
+- **The live Blob serves a pre-fix snapshot.** `dashboard-public/v1/meta.json` reports
+  `pipelineRunId: fresh-20260701`, which predates the fixes above. The deployed dashboard therefore
+  still shows the saturated `ag` pillar. A republish is required and has been promised to the client.
+- **No `.env` at repo root.** Publish credentials are not currently held locally. Either Anthony has
+  them or the republish waits on the new service principal.
+- `conces`: **client declined the `hdi` substitution** (2026-08-13) and supplied a substitute
+  composite formula built from World Bank indicators already in scope. The attachment has not been
+  received; re-requested 2026-09-04. `hdi` holds the slot until the spec arrives. Net-new work when
+  it does: ingestion, formula, scorer, `indicators.yaml` entry, `SCORING_AUDIT.md` row, re-run.
+- `popdens`: **resolved as scored** (client, 2026-08-13). Supplied bands are byte-identical to
+  `DensityScorer`. One confirmation still outstanding: whether the client expects dense countries to
+  *display* high or low, since the publish boundary inverts. Asked 2026-09-04.
+- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of
+  ISO3. **Anthony** (re-run cleaner).
+- **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
+  `VITE_CONTRACT_BASE_URL` is set in `dashboard/.env.production`, which is gitignored, so any build
+  on a machine lacking that file silently falls back to the bundled `dashboard/public/v1/` fixtures.
+  There is no CI; SWA deploys are manual.
+- **Storage account ownership is unconfirmed.** `tsidashboardblobstorage` may sit on a personal
+  Azure subscription rather than PlanCatalyst's. If so it must migrate before handoff, and moving it
+  requires a frontend rebuild and redeploy because the Blob URL is baked in at build time.
+- **ACR / containerised pipeline: descoped 2026-09-04.** At the confirmed 6-month refresh cadence the
+  registry push, image build and container host are not worth their cost. Publish runs manually from
+  a workstation, documented in `docs/runbook-refresh.md`. The container path stays available if the
+  cadence ever shortens; `docs/docker.md` is retained for that case.
 
 ## Team Execution Model
 
 - **Thomas:** PM · full-stack · frontend presentability · Wix E2E
 - **Anthony:** Co-PM · Azure · indicators · cleaning · publish · automation
 
-Detailed deliverables and milestones live in `TEAM-TASKS.md`.
+Remaining work and ownership live in `TASKS.md`.
 
 ## Agent skills
 
