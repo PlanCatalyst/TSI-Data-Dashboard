@@ -1,6 +1,13 @@
 import { useDashboardData } from "../../state/dashboard-context";
 import type { Indicator, Subdomain } from "../../data/contract/types";
-import { ABOUT_INTRO, SOURCE_NOTE, FRAMEWORK_CARDS, type FrameworkCardGroup } from "../../content/about";
+import {
+  ABOUT_INTRO,
+  SOURCE_NOTE,
+  FRAMEWORK_CARDS,
+  METHODOLOGY_SECTIONS,
+  SOURCE_ATTRIBUTIONS,
+  type FrameworkCardGroup,
+} from "../../content/about";
 import { DEFERRED_INDICATORS } from "../../content/data-notes";
 
 // ── Framework card (one card may span multiple pillars) ───────────────────────
@@ -56,6 +63,30 @@ export function AboutPage() {
       {ABOUT_INTRO.map((paragraph, i) => (
         <p key={i}>{paragraph}</p>
       ))}
+
+      <h2>Methodology</h2>
+      {METHODOLOGY_SECTIONS.map((section) => (
+        <section key={section.title} className="about-section">
+          <h3>{section.title}</h3>
+          {section.paragraphs.map((paragraph, i) => (
+            <p key={i}>{paragraph}</p>
+          ))}
+        </section>
+      ))}
+
+      <h2>Data sources</h2>
+      <p>
+        All underlying data is publicly available. Attribution and licence wording below are
+        placeholders — final copy will be confirmed with each data provider.
+      </p>
+      <ul className="source-list">
+        {SOURCE_ATTRIBUTIONS.map((src) => (
+          <li key={src.name}>
+            <strong>{src.name}</strong> — {src.description}
+            <span className="source-indicators">Covers: {src.indicators}</span>
+          </li>
+        ))}
+      </ul>
 
       <h2>Known gaps &amp; missing data</h2>
       <p>
