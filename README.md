@@ -56,12 +56,12 @@ Azure Container Registry, Logic Apps
 - **Thomas Llamzon** — PM · full-stack integration · frontend presentability
 - **Anthony Lam** — Co-PM · Azure hosting · indicators · cleaning · publish · automation
 
-See `TEAM-TASKS.md` for the current plan.
+See `TASKS.md` for the current plan.
 
 ## Documentation
 
 - `HANDOFF.md` - project context and implementation history
-- `TEAM-TASKS.md` - current execution plan and ownership
+- `TASKS.md` - remaining work and ownership
 - `docs/PRINCIPLES.md` - project mission and operating constraints
 - `docs/data-contract.md` - technical backend/frontend payload specification
 - `indicators/indicators.yaml` - indicator taxonomy and metadata

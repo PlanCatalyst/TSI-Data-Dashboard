@@ -8,8 +8,11 @@ Run order:
        indicators/indicators.yaml.
     3. Builds meta/countries/timeseries dicts, validates against the contract,
        uploads to the dashboard-public Azure container under /v1/.
-    4. Uploads meta.json, countries.json, timeseries.json, then writes
-       manifest.json last — a partial upload never marks the snapshot complete.
+    4. Uploads payload files first (countries.json, timeseries.json, optional
+       projections.json), then meta.json LAST. Frontend readiness is keyed off
+       meta.json — a mid-payload failure never writes meta, so the previous
+       live snapshot stays marked ready. Optional manifest.json is bookkeeping
+       after meta.
 
 Usage:
     python -m src.upload.publish_dashboard                          # dry run
@@ -38,6 +41,8 @@ import os
 from dotenv import load_dotenv
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient, ContentSettings
+
+from src.upload.atomic import azure_container_uploader, upload_payloads_then_meta
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +421,52 @@ def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
     return result
 
 
+
+# ---------------------------------------------------------------------------
+# Projections (§8) — wire PR B emit into the publish path
+# ---------------------------------------------------------------------------
+
+
+def load_projection_rows(repo_root: Path) -> Optional[list[dict]]:
+    """Load PR B forecast CSV if present; return §8 rows or None when absent."""
+    from projections.process_data import (
+        FORECASTS_RELATIVE_PATH,
+        load_forecast_rows_from_csv,
+        projection_contract_rows,
+    )
+
+    csv_path = repo_root / FORECASTS_RELATIVE_PATH
+    if not csv_path.exists():
+        return None
+    return projection_contract_rows(load_forecast_rows_from_csv(csv_path))
+
+
+def apply_projections_meta(
+    meta: MetaPayload,
+    projection_rows: list[dict],
+    *,
+    enable: bool = True,
+) -> MetaPayload:
+    """Optionally flip ``meta.projections.enabled`` only — note copy unchanged."""
+    years = [
+        int(r["year"])
+        for r in projection_rows
+        if r.get("year") is not None and r.get("status") == "forecast"
+    ]
+    # Fall back to any row year (unavailable still has a calendar year).
+    if not years:
+        years = [int(r["year"]) for r in projection_rows if r.get("year") is not None]
+    first = min(years) if years else None
+    projections = dict(meta.get("projections") or {})
+    # Do not invent new note copy — keep whatever build_meta already set.
+    if enable:
+        projections["enabled"] = True
+        projections["firstProjectedYear"] = first
+    meta = dict(meta)
+    meta["projections"] = projections
+    return meta
+
+
 # ---------------------------------------------------------------------------
 # Validation -- enforce the data contract before upload.
 # ---------------------------------------------------------------------------
@@ -503,8 +554,21 @@ def publish(
     prefix: str = PUBLISH_PREFIX_DEFAULT,
     *,
     dry_run: bool = False,
+    include_projections: Optional[bool] = None,
+    enable_projections: Optional[bool] = None,
+    projection_rows: Optional[list[dict]] = None,
+    upload_fn: Optional[Any] = None,
 ) -> None:
-    
+    """Build, validate, and publish contract JSON.
+
+    Atomicity: payload files (countries / timeseries / optional projections)
+    upload first; ``meta.json`` is written LAST. Inject ``upload_fn`` in tests
+    to prove meta-last ordering (and that meta is skipped on mid-payload fail).
+
+    Projection rows come from PR B's emit (forecasts CSV or an explicit list).
+    Every published projection row is gated by ``src.projections.validate_payload``
+    — no re-implementation of gates here.
+    """
     load_dotenv()
     inputs = load_inputs(repo_root, pipeline_run_id)
     meta = build_meta(inputs)
@@ -512,76 +576,122 @@ def publish(
     timeseries = build_timeseries(inputs)
     validate_payload(meta, countries, timeseries)
 
-    payloads = [
-        ("meta.json", meta),
+    # Resolve projection rows (PR B §8 emit).
+    if projection_rows is None and include_projections is not False:
+        projection_rows = load_projection_rows(repo_root)
+    if include_projections is False:
+        projection_rows = None
+
+    published_projections: Optional[list[dict]] = None
+    if projection_rows is not None:
+        # Import A's validator — do not invent / re-gate thresholds here.
+        from src.projections import (
+            GATE_REASONS,
+            UX_UNAVAILABLE_COPY,
+            validate_payload as validate_projection_payload,
+        )
+
+        # Defence: unavailable reasons must stay in GATE_REASONS; UX copy fixed.
+        _ = UX_UNAVAILABLE_COPY  # re-exported constant for callers / docs
+        for row in projection_rows:
+            reason = row.get("unavailable_reason")
+            if row.get("status") == "unavailable" or row.get("record_type") == "unavailable":
+                if reason not in GATE_REASONS:
+                    raise ValueError(
+                        f"unavailable_reason {reason!r} not in GATE_REASONS "
+                        f"(UX copy remains {UX_UNAVAILABLE_COPY!r})"
+                    )
+        validate_projection_payload(projection_rows)
+        published_projections = projection_rows
+        flip = True if enable_projections is None else bool(enable_projections)
+        meta = apply_projections_meta(meta, published_projections, enable=flip)
+
+    # Payload files first — meta.json is readiness and goes last.
+    payload_pairs: list[tuple[str, Any]] = [
         ("countries.json", countries),
         ("timeseries.json", timeseries),
     ]
+    if published_projections is not None:
+        payload_pairs.append(("projections.json", published_projections))
 
-    if dry_run:
+    def _dumps(obj: Any) -> bytes:
+        return json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+    payload_files = [(name, _dumps(obj)) for name, obj in payload_pairs]
+    meta_bytes = _dumps(meta)
+
+    if dry_run and upload_fn is None:
         output_dir = repo_root / "data" / "organized" / prefix
         output_dir.mkdir(parents=True, exist_ok=True)
-        for name, payload in payloads:
-            (output_dir / name).write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-        print(f"Dry run complete. Files written to {output_dir}")
+        # Mirror Azure order: payloads then meta last.
+        for name, data in payload_files:
+            (output_dir / name).write_bytes(data)
+        (output_dir / "meta.json").write_bytes(meta_bytes)
+        print(f"Dry run complete. Files written to {output_dir} (meta.json last)")
         return
 
-    # Azure upload — validate credentials before attempting any upload.
-    tenant_id = os.getenv("AZURE_TENANT_ID")
-    client_id = os.getenv("AZURE_CLIENT_ID")
-    client_secret = os.getenv("AZURE_CLIENT_SECRET")
-    account_url = os.getenv("AZURE_STORAGE_ACCOUNT_URL")
-    missing = [k for k, v in {
-        "AZURE_TENANT_ID": tenant_id,
-        "AZURE_CLIENT_ID": client_id,
-        "AZURE_CLIENT_SECRET": client_secret,
-        "AZURE_STORAGE_ACCOUNT_URL": account_url,
-    }.items() if not v]
-    if missing:
-        raise EnvironmentError(f"Missing required env vars: {', '.join(missing)}")
+    # Azure upload — validate credentials before attempting any upload,
+    # unless a test injects upload_fn.
+    if upload_fn is None:
+        tenant_id = os.getenv("AZURE_TENANT_ID")
+        client_id = os.getenv("AZURE_CLIENT_ID")
+        client_secret = os.getenv("AZURE_CLIENT_SECRET")
+        account_url = os.getenv("AZURE_STORAGE_ACCOUNT_URL")
+        missing = [k for k, v in {
+            "AZURE_TENANT_ID": tenant_id,
+            "AZURE_CLIENT_ID": client_id,
+            "AZURE_CLIENT_SECRET": client_secret,
+            "AZURE_STORAGE_ACCOUNT_URL": account_url,
+        }.items() if not v]
+        if missing:
+            raise EnvironmentError(f"Missing required env vars: {', '.join(missing)}")
 
-    credential = ClientSecretCredential(
-        tenant_id=tenant_id,
-        client_id=client_id,
-        client_secret=client_secret,
-    )
-    container = BlobServiceClient(
-        account_url=account_url,
-        credential=credential,
-    ).get_container_client(target_container)
+        credential = ClientSecretCredential(
+            tenant_id=tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        container = BlobServiceClient(
+            account_url=account_url,
+            credential=credential,
+        ).get_container_client(target_container)
+        upload_fn = azure_container_uploader(container)
 
     blob_settings = ContentSettings(
         content_type="application/json; charset=utf-8",
         cache_control="public, max-age=3600",
     )
 
-    # Upload the three payload files first, then write manifest.json last.
-    # A reader that checks for manifest.json will never see a partial publish.
-    for name, payload in payloads:
-        data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        container.get_blob_client(prefix + name).upload_blob(
-            data, overwrite=True, content_settings=blob_settings,
-        )
-        print(f"Uploaded {prefix + name} ({len(data):,} bytes)")
+    written = upload_payloads_then_meta(
+        upload_fn,
+        prefix=prefix,
+        payload_files=payload_files,
+        meta_name="meta.json",
+        meta_bytes=meta_bytes,
+        payload_content_settings=blob_settings,
+        meta_content_settings=blob_settings,
+    )
+    for blob_name in written:
+        print(f"Uploaded {blob_name}")
 
+    # Optional bookkeeping after readiness (meta). Not the ready marker.
     manifest = {
         "schemaVersion": CONTRACT_VERSION,
         "publishedAt": datetime.now(timezone.utc).isoformat(),
         "pipelineRunId": pipeline_run_id,
-        "files": [prefix + name for name, _ in payloads],
+        "files": [prefix + name for name, _ in payload_pairs] + [prefix + "meta.json"],
     }
     manifest_data = json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8")
-    container.get_blob_client(prefix + "manifest.json").upload_blob(
+    upload_fn(
+        prefix + "manifest.json",
         manifest_data,
-        overwrite=True,
-        content_settings=ContentSettings(
+        ContentSettings(
             content_type="application/json; charset=utf-8",
             cache_control="no-cache",
         ),
     )
-    print(f"Uploaded {prefix}manifest.json — publish complete")
+    print(f"Uploaded {prefix}manifest.json — publish complete (meta was readiness marker)")
+
 
 
 if __name__ == "__main__":

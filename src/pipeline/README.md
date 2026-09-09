@@ -11,16 +11,17 @@ Core sequence:
 2. Clean
 3. Score/Aggregate
 4. Upload validated CSVs (optional Azure)
-5. Publish contract JSON (`data/organized/v1/` dry run, or `dashboard-public/v1/`
-   when `runtime.upload_azure` is true and Azure creds are set)
-6. Optional projections processing (post-MVP)
+5. Optional World Bank forecast emit (`runtime.run_forecasts`) → `data/processed/`
+6. Publish contract JSON (`data/organized/v1/` dry run, or `dashboard-public/v1/`
+   when `runtime.upload_azure` is true and Azure creds are set). Payloads first,
+   `meta.json` last; optional `projections.json` when forecasts CSV is present.
 
 ## Ownership
 
 - **Anthony:** pipeline orchestration, publish wiring, Azure automation, cleaning, indicators
 - **Thomas:** full-stack integration, frontend presentability, pipeline support
 
-See `TEAM-TASKS.md`.
+See `TASKS.md`.
 
 ## Primary Run Command
 
