@@ -3,14 +3,24 @@ import { useMemo } from "react";
 import type {
   CountryPayload,
   MetaPayload,
+  ProjectionsPayload,
   TimeseriesPayload,
 } from "../../data/contract/types";
 import {
   computePillarTimeseries,
   computeSubdomainScores,
+  groupIndicatorKeysByPillar,
   trendBucket,
   trendDelta,
 } from "../../data/contract/selectors";
+import {
+  buildIndicatorProjectionView,
+  chartYears,
+  forecastBand,
+  getProjection,
+  indexProjections,
+  UX_UNAVAILABLE_COPY,
+} from "../../data/contract/projections";
 import {
   overallContext,
   pillarScoreContext,
@@ -25,6 +35,7 @@ type Props = {
   country: CountryPayload | null;
   meta: MetaPayload;
   timeseries: TimeseriesPayload;
+  projections?: ProjectionsPayload;
   regionLabel: Record<string, string>;
   onClose?: () => void;
 };
@@ -37,13 +48,26 @@ function TrendChip({ delta }: { delta: number | null }) {
   return <span style={{ color: "var(--mut)" }}>—</span>;
 }
 
+function meanFinite(vals: number[]): number | null {
+  if (vals.length === 0) return null;
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+}
+
 export function MapDetailPanel({
   country,
   meta,
   timeseries,
+  projections = [],
   regionLabel,
   onClose,
 }: Props) {
+  const projectionsEnabled = Boolean(meta.projections.enabled);
+  const projectionIndex = useMemo(() => indexProjections(projections), [projections]);
+  const allChartYears = useMemo(
+    () => (projectionsEnabled ? chartYears(meta, projections) : meta.years),
+    [meta, projections, projectionsEnabled],
+  );
+
   // Hooks must run unconditionally; pass `country` through but guard inside.
   const pillarTimeseries = useMemo<Record<string, Array<number | null>>>(
     () => (country ? computePillarTimeseries(country, timeseries, meta) : {}),
@@ -63,6 +87,67 @@ export function MapDetailPanel({
     [country, timeseries, meta],
   );
 
+  const projectionViews = useMemo(() => {
+    if (!country || !projectionsEnabled) return {} as Record<string, ReturnType<typeof buildIndicatorProjectionView>>;
+    const out: Record<string, ReturnType<typeof buildIndicatorProjectionView>> = {};
+    for (const ind of meta.indicators) {
+      out[ind.key] = buildIndicatorProjectionView({
+        meta,
+        iso3: country.iso3,
+        indicatorCode: ind.key,
+        historicalSeries: timeseries[country.iso3]?.[ind.key],
+        projectionIndex,
+        years: allChartYears,
+      });
+    }
+    return out;
+  }, [country, meta, timeseries, projectionIndex, projectionsEnabled, allChartYears]);
+
+  // Domain chart: historical pillar means on meta.years; optional aggregated
+  // forecast bands from indicator §8 rows (mean of finite lo/hi only — never invent).
+  const domainSeries = useMemo(() => {
+    const indsByPillar = groupIndicatorKeysByPillar(meta);
+    return meta.pillars.map((p) => {
+      const hist = pillarTimeseries[p.key] ?? meta.years.map(() => null);
+      const histByYear = new Map(meta.years.map((y, i) => [y, hist[i] ?? null]));
+      const data = allChartYears.map((y) => histByYear.get(y) ?? null);
+
+      let bands: Array<{ lo: number; hi: number } | null> | undefined;
+      if (projectionsEnabled && country) {
+        const keys = indsByPillar[p.key] ?? [];
+        bands = allChartYears.map((year) => {
+          const los: number[] = [];
+          const his: number[] = [];
+          for (const code of keys) {
+            const band = forecastBand(getProjection(projectionIndex, country.iso3, code, year));
+            if (band) {
+              los.push(band.lo);
+              his.push(band.hi);
+            }
+          }
+          const lo = meanFinite(los);
+          const hi = meanFinite(his);
+          if (lo == null || hi == null) return null;
+          return { lo, hi };
+        });
+      }
+
+      return { pillar: p, data, bands };
+    });
+  }, [
+    meta,
+    pillarTimeseries,
+    allChartYears,
+    projectionsEnabled,
+    country,
+    projectionIndex,
+  ]);
+
+  const anyUnavailable = useMemo(() => {
+    if (!projectionsEnabled) return false;
+    return Object.values(projectionViews).some((v) => v.hasUnavailable);
+  }, [projectionViews, projectionsEnabled]);
+
   // Empty state — shown when no country has been selected yet.
   if (!country) {
     return (
@@ -79,6 +164,7 @@ export function MapDetailPanel({
   }
 
   const overall = overallContext(country);
+  const endYearLabel = allChartYears[allChartYears.length - 1] ?? meta.years[meta.years.length - 1];
 
   return (
     <div className="detail-panel">
@@ -180,21 +266,24 @@ export function MapDetailPanel({
       <div className="dp-sep" />
       <div className="dp-section">
         <div className="dp-section-title">
-          Domain trends — {meta.years[0]} to {meta.years[meta.years.length - 1]}
-          {meta.projections.enabled && (
+          Domain trends — {meta.years[0]} to {endYearLabel}
+          {projectionsEnabled && (
             <span className="badge pred-badge">Projected</span>
           )}
           <span className="badge hist-badge">Historical</span>
         </div>
         <DomainTrendsChart
-          years={meta.years}
-          series={meta.pillars.map((p) => ({
-            pillar: p,
-            data: pillarTimeseries[p.key] ?? meta.years.map(() => null),
-          }))}
-          projectionsDisabled={!meta.projections.enabled}
+          years={allChartYears}
+          series={domainSeries}
+          projectionsDisabled={!projectionsEnabled}
           projectionsNote={meta.projections.note}
+          firstProjectedYear={meta.projections.firstProjectedYear}
         />
+        {projectionsEnabled && anyUnavailable && (
+          <div style={{ fontSize: 11, color: "var(--mut)", fontStyle: "italic", marginTop: 6 }}>
+            {UX_UNAVAILABLE_COPY}
+          </div>
+        )}
       </div>
 
       <div className="dp-sep" />
@@ -234,6 +323,7 @@ export function MapDetailPanel({
                   timeseries={timeseries}
                   iso3={country.iso3}
                   years={meta.years}
+                  projectionViews={projectionsEnabled ? projectionViews : undefined}
                 />
               ))}
             </div>
