@@ -5,6 +5,8 @@ import type { Pillar } from "../../data/contract/types";
 type Series = {
   pillar: Pillar;
   data: Array<number | null>;
+  /** Optional §8 interval bands aligned to `years` — drawn only when both lo/hi are finite. */
+  bands?: Array<{ lo: number; hi: number } | null>;
 };
 
 type Props = {
@@ -13,12 +15,20 @@ type Props = {
   // Whether to show the projection-band note below the chart.
   projectionsDisabled?: boolean;
   projectionsNote?: string;
+  /** When projections are enabled, vertical divider at/after this year. */
+  firstProjectedYear?: number | null;
 };
 
 // Multi-pillar line chart used inside the country detail panel. Pure SVG so it
 // renders on any device without a chart library, and so iframe height tracking
-// stays predictable.
-export function DomainTrendsChart({ years, series, projectionsDisabled, projectionsNote }: Props) {
+// stays predictable. Interval bands are only plotted from explicit forecast rows.
+export function DomainTrendsChart({
+  years,
+  series,
+  projectionsDisabled,
+  projectionsNote,
+  firstProjectedYear,
+}: Props) {
   const [hover, setHover] = useState<{ x: number; y: number; yearIdx: number } | null>(null);
 
   const W = 360, H = 200;
@@ -33,6 +43,12 @@ export function DomainTrendsChart({ years, series, projectionsDisabled, projecti
   const yearLabelIdx = n <= 6
     ? Array.from({ length: n }, (_, i) => i)
     : [0, Math.floor(n / 3), Math.floor((2 * n) / 3), n - 1];
+
+  const divIdx =
+    firstProjectedYear != null && !projectionsDisabled
+      ? years.findIndex((y) => y >= firstProjectedYear)
+      : -1;
+  const divX = divIdx >= 0 ? xS(Math.max(0, divIdx)) : null;
 
   return (
     <div>
@@ -55,13 +71,47 @@ export function DomainTrendsChart({ years, series, projectionsDisabled, projecti
             </text>
           ))}
 
+          {divX != null && (
+            <line
+              x1={divX}
+              y1={PAD.t}
+              x2={divX}
+              y2={H - PAD.b}
+              stroke="#dde2ea"
+              strokeWidth={1}
+              strokeDasharray="3,2"
+            />
+          )}
+
           {series.map((s) => {
+            const bandPts = (() => {
+              if (!s.bands) return null;
+              const upper: string[] = [];
+              const lower: string[] = [];
+              s.bands.forEach((b, i) => {
+                if (!b) return;
+                upper.push(`${xS(i).toFixed(1)},${yS(b.hi).toFixed(1)}`);
+                lower.push(`${xS(i).toFixed(1)},${yS(b.lo).toFixed(1)}`);
+              });
+              if (upper.length < 1) return null;
+              if (upper.length === 1) {
+                const i = s.bands.findIndex((b) => b != null);
+                const x = xS(i);
+                const b = s.bands[i]!;
+                return `${(x - 4).toFixed(1)},${yS(b.hi).toFixed(1)} ${(x + 4).toFixed(1)},${yS(b.hi).toFixed(1)} ${(x + 4).toFixed(1)},${yS(b.lo).toFixed(1)} ${(x - 4).toFixed(1)},${yS(b.lo).toFixed(1)}`;
+              }
+              return [...upper, ...lower.reverse()].join(" ");
+            })();
+
             const pts = s.data
               .map((v, i) => (v != null ? `${xS(i).toFixed(1)},${yS(v).toFixed(1)}` : null))
               .filter(Boolean)
               .join(" ");
             return (
               <g key={s.pillar.key}>
+                {bandPts && (
+                  <polygon points={bandPts} fill={s.pillar.color} opacity={0.12} />
+                )}
                 {pts && (
                   <polyline
                     points={pts}
@@ -112,25 +162,40 @@ export function DomainTrendsChart({ years, series, projectionsDisabled, projecti
               lineHeight: 1.5,
             }}
           >
-            <strong style={{ display: "block", marginBottom: 4 }}>{years[hover.yearIdx]}</strong>
-            {series.map((s) => (
-              <div key={s.pillar.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: s.pillar.color,
-                    display: "inline-block",
-                    flexShrink: 0,
-                  }}
-                />
-                <span>{s.pillar.label}:</span>
-                <span style={{ fontWeight: 700, marginLeft: "auto" }}>
-                  {s.data[hover.yearIdx] != null ? s.data[hover.yearIdx] : "—"}
-                </span>
-              </div>
-            ))}
+            <strong style={{ display: "block", marginBottom: 4 }}>
+              {years[hover.yearIdx]}
+              {firstProjectedYear != null &&
+              !projectionsDisabled &&
+              years[hover.yearIdx] >= firstProjectedYear
+                ? " (projected)"
+                : ""}
+            </strong>
+            {series.map((s) => {
+              const band = s.bands?.[hover.yearIdx] ?? null;
+              const val = s.data[hover.yearIdx];
+              return (
+                <div key={s.pillar.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: s.pillar.color,
+                      display: "inline-block",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{s.pillar.label}:</span>
+                  <span style={{ fontWeight: 700, marginLeft: "auto" }}>
+                    {val != null
+                      ? val
+                      : band
+                        ? `${band.lo}–${band.hi}`
+                        : "—"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
