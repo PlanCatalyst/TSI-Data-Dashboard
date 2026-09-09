@@ -27,6 +27,54 @@ from src.pipeline.utils import project_root
 from src.forecasting import forecast_series
 from src.projections.validate import validate_payload
 
+# §8 contract fields published to dashboard-public (see docs/data-contract.md).
+PROJECTION_CONTRACT_FIELDS: tuple[str, ...] = (
+    "iso3",
+    "indicator_code",
+    "year",
+    "value",
+    "value_lo",
+    "value_hi",
+    "status",
+    "record_type",
+    "unavailable_reason",
+)
+
+FORECASTS_RELATIVE_PATH = Path("data/processed/worldbank/forecasts/world_bank_forecasts.csv")
+
+
+def projection_contract_rows(rows: list[dict]) -> list[dict]:
+    """Strip emit rows to §8 fields for ``src.projections.validate_payload`` / publish."""
+    out: list[dict] = []
+    for r in rows:
+        out.append({field: r.get(field) for field in PROJECTION_CONTRACT_FIELDS})
+    return out
+
+
+def load_forecast_rows_from_csv(csv_path: Path) -> list[dict]:
+    """Load ProcessData forecast CSV and normalise nulls for §8 validation."""
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Missing forecasts CSV at {csv_path}")
+    df = pd.read_csv(csv_path)
+    rows: list[dict] = []
+    for _, series in df.iterrows():
+        row: dict = {}
+        for field in PROJECTION_CONTRACT_FIELDS:
+            if field not in series.index:
+                row[field] = None
+                continue
+            val = series[field]
+            if pd.isna(val):
+                row[field] = None
+            elif field == "year":
+                row[field] = int(val)
+            elif field in ("value", "value_lo", "value_hi"):
+                row[field] = float(val)
+            else:
+                row[field] = str(val)
+        rows.append(row)
+    return rows
+
 
 def upload_to_azure(container_client, csv_path: Path, blob_name: str, log) -> None:
     try:
@@ -173,22 +221,7 @@ class ProcessData:
                     })
 
         # §8 contract check before write — abort rather than publish illegal rows.
-        validate_payload(
-            [
-                {
-                    "iso3": r["iso3"],
-                    "indicator_code": r["indicator_code"],
-                    "year": r["year"],
-                    "value": r["value"],
-                    "value_lo": r["value_lo"],
-                    "value_hi": r["value_hi"],
-                    "status": r["status"],
-                    "record_type": r["record_type"],
-                    "unavailable_reason": r["unavailable_reason"],
-                }
-                for r in forecast_rows
-            ]
-        )
+        validate_payload(projection_contract_rows(forecast_rows))
 
         forecasts = pd.DataFrame(forecast_rows)
         # Guardrail: last-value must never appear as a published model.

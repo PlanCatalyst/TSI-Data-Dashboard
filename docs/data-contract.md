@@ -283,9 +283,13 @@ A validation failure aborts the upload; the existing `/v1/` remains live.
 
 **Status:** preparatory for when `meta.projections.enabled` flips to `true`.
 The historical `/v1/{meta,countries,timeseries}.json` shapes in §2–§4 are
-unchanged by this section. Forecast rows are validated by
-`src.projections.validate.validate_payload` **before** any publish that would
-ship them; a validation failure aborts upload (same rule as §7).
+unchanged by this section. When published, interval rows are written to
+`/v1/projections.json` (array of the row shape below) **before** `meta.json`.
+Publish is atomic: payload files first, `meta.json` last — a mid-payload
+failure never writes meta, so the previous live snapshot stays marked ready.
+Forecast rows are validated by `src.projections.validate.validate_payload`
+**before** any publish that would ship them; a validation failure aborts
+upload (same rule as §7).
 
 Per `iso3 × indicator_code × year` projection row:
 

@@ -72,7 +72,7 @@ confirmation.
 |----|-------|-------|
 | **A** (`feat/forecast-contract-gates`) | Quality gates + `validate_payload` for interval forecast rows + contract §8 docs + pytest | Thomas |
 | **B** (`feat/forecast-engine`) | Forecast model only — no publish wiring | Thomas |
-| **C** | Orchestrator / publish atomicity for projection rows | TBD |
+| **C** (`feat/forecast-atomic-publish`) | Wire §8 emit into publish; atomic payloads-then-`meta.json`; pytest meta-last | Thomas |
 
 Do **not** enable `meta.projections.enabled` until A+B+C land and frontend
 consumes interval rows. UX copy for unavailable forecasts is fixed:
