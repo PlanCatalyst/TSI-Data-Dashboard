@@ -239,7 +239,9 @@ runtime:
   # PR C owns orchestrator publish / atomic manifest wiring.
   run_forecasts: false
   forecast_horizon_years: 5
-  forecast_min_observations: 5
+  # Gate thresholds live in src.projections.quality_gates (assess_series);
+  # do not use a local min_observations stand-in.
+  # forecast_min_observations: 5  # removed — use PR A MIN_OBSERVATIONS=8
 
   # Build contract JSON (meta/countries/timeseries) after scoring.
   # When upload_azure is true and Azure creds are set, also uploads to

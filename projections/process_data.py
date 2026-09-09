@@ -2,10 +2,12 @@
 Processing stage: writes **projections of indicator progress** under ``data/processed/``.
 
 World Bank raw series only (PR B). Each country×indicator series emits either:
-- forecast rows with ``value`` / ``value_lo`` / ``value_hi`` (ARIMA(1,1,0), 95% CI), or
-- explicit ``forecast_unavailable`` + ``unavailable_reason`` rows
+- ``status``/``record_type`` ``"forecast"`` rows with finite ``value_lo`` ≤ ``value_hi``, or
+- ``"unavailable"`` rows with a GATE_REASONS ``unavailable_reason`` and null value/lo/hi
 
 Never silently skips a series. Never publishes last-value carry-forward.
+Eligibility uses ``src.projections.quality_gates.assess_series`` (via
+``forecast_series``). Emitted rows must pass ``validate_payload`` (§8).
 UN SDG / ND-GAIN composites are out of scope for this PR.
 """
 from __future__ import annotations
@@ -22,7 +24,8 @@ from azure.identity import ClientSecretCredential
 from dotenv import load_dotenv
 
 from src.pipeline.utils import project_root
-from src.forecasting import UNAVAILABLE_UX, forecast_series
+from src.forecasting import forecast_series
+from src.projections.validate import validate_payload
 
 
 def upload_to_azure(container_client, csv_path: Path, blob_name: str, log) -> None:
@@ -39,6 +42,13 @@ def upload_to_azure(container_client, csv_path: Path, blob_name: str, log) -> No
         log.info(f"Uploaded {csv_path.name} to Azure as {blob_name}")
     except Exception as e:
         log.error(f"Failed to upload {csv_path.name} to Azure: {e}")
+
+
+def _iso3(code: object) -> str:
+    s = str(code).strip().upper()
+    if len(s) != 3 or not s.isalpha():
+        raise ValueError(f"expected ISO3 country code, got {code!r}")
+    return s
 
 
 class ProcessData:
@@ -105,7 +115,8 @@ class ProcessData:
         self.log.info(f"Wrote actuals: {actuals_path} (rows={len(actuals)})")
 
         forecast_horizon = int(runtime.get("forecast_horizon_years", 5))
-        min_obs = int(runtime.get("forecast_min_observations", 5))
+        # PR A thresholds live in assess_series; do not use forecast_min_observations stand-ins.
+        end_year = int(runtime.get("end_year", 2024))
 
         group_cols = ["country_code", "country_name", "indicator-code", "indicator"]
         forecast_rows = []
@@ -114,68 +125,70 @@ class ProcessData:
 
         for keys, group in actuals.groupby(group_cols, dropna=False):
             country_code, country_name, indicator_code, indicator = keys
+            iso3 = _iso3(country_code)
             result = forecast_series(
                 group["year"].tolist(),
                 group["value"].tolist(),
                 horizon=forecast_horizon,
-                min_observations=min_obs,
+                end_year=end_year,
             )
 
             if result.available:
                 n_available += 1
                 for pt in result.points:
                     forecast_rows.append({
-                        "country_code": country_code,
+                        "iso3": iso3,
                         "country_name": country_name,
-                        "indicator-code": indicator_code,
+                        "indicator_code": indicator_code,
                         "indicator": indicator,
-                        "year": pt.year,
+                        "year": int(pt.year),
                         "value": pt.value,
                         "value_lo": pt.value_lo,
                         "value_hi": pt.value_hi,
+                        "status": "forecast",
                         "record_type": "forecast",
                         "generated_at": generated_at,
                         "model_name": result.model_name,
-                        "forecast_unavailable": False,
                         "unavailable_reason": None,
                     })
             else:
                 n_unavailable += 1
-                reason = result.unavailable_reason or UNAVAILABLE_UX
-                if result.points:
-                    for pt in result.points:
-                        forecast_rows.append({
-                            "country_code": country_code,
-                            "country_name": country_name,
-                            "indicator-code": indicator_code,
-                            "indicator": indicator,
-                            "year": pt.year,
-                            "value": None,
-                            "value_lo": None,
-                            "value_hi": None,
-                            "record_type": "forecast",
-                            "generated_at": generated_at,
-                            "model_name": None,
-                            "forecast_unavailable": True,
-                            "unavailable_reason": reason,
-                        })
-                else:
-                    # Empty history: still emit an explicit unavailable marker row.
+                reason = result.unavailable_reason
+                # Engine always emits horizon years (never null year), even for empty history.
+                for pt in result.points:
                     forecast_rows.append({
-                        "country_code": country_code,
+                        "iso3": iso3,
                         "country_name": country_name,
-                        "indicator-code": indicator_code,
+                        "indicator_code": indicator_code,
                         "indicator": indicator,
-                        "year": None,
+                        "year": int(pt.year),
                         "value": None,
                         "value_lo": None,
                         "value_hi": None,
-                        "record_type": "forecast",
+                        "status": "unavailable",
+                        "record_type": "unavailable",
                         "generated_at": generated_at,
                         "model_name": None,
-                        "forecast_unavailable": True,
                         "unavailable_reason": reason,
                     })
+
+        # §8 contract check before write — abort rather than publish illegal rows.
+        validate_payload(
+            [
+                {
+                    "iso3": r["iso3"],
+                    "indicator_code": r["indicator_code"],
+                    "year": r["year"],
+                    "value": r["value"],
+                    "value_lo": r["value_lo"],
+                    "value_hi": r["value_hi"],
+                    "status": r["status"],
+                    "record_type": r["record_type"],
+                    "unavailable_reason": r["unavailable_reason"],
+                }
+                for r in forecast_rows
+            ]
+        )
 
         forecasts = pd.DataFrame(forecast_rows)
         # Guardrail: last-value must never appear as a published model.
