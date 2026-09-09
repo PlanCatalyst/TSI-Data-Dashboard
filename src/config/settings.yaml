@@ -235,6 +235,12 @@ runtime:
   # If true: upload backend artifacts to Azure Blob.
   upload_azure: true
 
+  # PR B forecast engine (World Bank raw series intervals). Default off —
+  # PR C owns orchestrator publish / atomic manifest wiring.
+  run_forecasts: false
+  forecast_horizon_years: 5
+  forecast_min_observations: 5
+
   # Build contract JSON (meta/countries/timeseries) after scoring.
   # When upload_azure is true and Azure creds are set, also uploads to
   # publish.dashboard_container_name; otherwise writes to data/organized/v1/.
