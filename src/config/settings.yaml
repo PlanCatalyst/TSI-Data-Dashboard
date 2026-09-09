@@ -235,8 +235,9 @@ runtime:
   # If true: upload backend artifacts to Azure Blob.
   upload_azure: true
 
-  # PR B forecast engine (World Bank raw series intervals). Default off —
-  # PR C owns orchestrator publish / atomic manifest wiring.
+  # PR B forecast engine (World Bank raw series intervals). Default off.
+  # When true, orchestrator emits §8 rows before publish; publish uploads
+  # projections.json then meta.json last (atomic readiness).
   run_forecasts: false
   forecast_horizon_years: 5
   # Gate thresholds live in src.projections.quality_gates (assess_series);

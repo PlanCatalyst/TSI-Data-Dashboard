@@ -102,8 +102,10 @@ research folder):
 | `src/projections/validate.py` | `validate_payload` — rejects illegal interval forecast rows before publish |
 
 Contract fields and UX copy are documented in `docs/data-contract.md` §8.
-Forecast **model** work is PR B; orchestrator / publish wiring is PR C — do not
-reintroduce last-value carry-forward from `process_data.py` into the live path.
+Forecast **model** work is PR B. PR C wires §8 emit into
+`src/upload/publish_dashboard.py` (validate via `src.projections.validate_payload`,
+upload `projections.json`, then `meta.json` last). Do not reintroduce last-value
+carry-forward from `process_data.py` into the live path.
 
 Tests: `pytest tests/projections/`.
 
