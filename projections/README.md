@@ -1,11 +1,18 @@
 # Projections
 
 Workspace for projections / forecasting research and (eventually) production
-projection code. Per `TEAM-TASKS.md` §4, this is the projections research
+projection code. This is the projections research
 lane: method comparison → quality report → ship/no-ship recommendation →
 output spec for a future contract extension.
 
 ## Current state
+
+**PR B (`feat/forecast-engine`):** production path is `src/forecasting/` +
+`projections/process_data.py`. Model = ARIMA(1,1,0) with 95% CI
+(`value` / `value_lo` / `value_hi`). Gate failures and unstable fits emit
+`forecast_unavailable` + UX reason — never last-value, never silent skip.
+Orchestrator toggle: `runtime.run_forecasts` (default `false`).
+
 
 The only thing here right now is **prior work** carried over from the old
 PlanCatalyst repo (`LlamzonAmazon/PC-Data-Dash`, `src/processing/`). It is
@@ -86,8 +93,7 @@ change → /v1→/v2). That decision belongs to whoever owns the publisher
 
 ## See also
 
-- `TEAM-TASKS.md` §4 — Kayden's research deliverables (method comparison,
-  quality report, ship/no-ship rec, output spec).
+- `TASKS.md`: projections are deferred post-MVP with no ship target.
 - `docs/data-contract.md` §2 — current `projections` meta hook.
 - `docs/PRINCIPLES.md` §4 — "Projection Transparency" principle: blank
   projections must be explained to users.

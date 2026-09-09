@@ -103,18 +103,15 @@ class Orchestrator:
             )
 
         # ============================================================
-        # PROCESS (indicator progress projections -> data/processed/)
-        # Projections are not enabled for the MVP contract. Post-MVP owner:
-        # Anthony / Thomas.
+        # PROCESS (World Bank raw-series forecasts -> data/processed/)
+        # Default off (runtime.run_forecasts). PR C owns full publish /
+        # atomic manifest wiring; this toggle only runs local CSV emission.
         # ============================================================
-        # processData = ProcessData(self.config_path)
-        # processData.process()
-        
-         # ============================================================
-        # UPLOAD PROCESSED (indicator progress projections -> data/processed/)
-        # ============================================================
-        # upload_processed = UploadProcessed(self.config_path)
-        # upload_processed.upload()
+        if runtime_cfg.get("run_forecasts", False):
+            from projections.process_data import ProcessData
+
+            process_data = ProcessData(self.config_path)
+            process_data.process()
         
 
         '''

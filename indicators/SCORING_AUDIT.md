@@ -40,13 +40,13 @@ Columns:
 | 10 | abr       | health  | repro    | SP_DYN_ADKL     | - | higher=need | yes | RatioThreshold(20) |
 | 11 | ihr       | health  | hrisk    | SH_IHR_CAPS     | + | higher=need | yes | SimpleDirectional (100 - value); IHR class-code-weighted inside aggregation |
 | 12 | food      | ag      | foodsec  | AG_PRD_FIESMS   | - | higher=need | yes | RatioThreshold(20, 20) |
-| 13 | susag     | ag      | foodsec  | AG_LND_SUST     | + | higher=need | yes | RatioGoalInverse(0.04), uses 1/value^2 transform |
-| 14 | agoda     | ag      | agrivc   | DC_TOF_AGRL     | + | higher=need | yes | GoalRatio(0.02); normalized to GDP upstream |
+| 13 | susag     | ag      | foodsec  | AG_LND_SUST     | + | higher=need | yes | **Fixed 2026-07-07 (issue #4).** `SimpleDirectionalScorer` (100 − value) on UN SDG's 0–100 proportion scale. Replaced `RatioGoalInverse(0.04)` which was built for a 1–5 band and saturated every value to 0. Sparse coverage (~10–20 countries reporting) is expected. |
+| 14 | agoda     | ag      | agrivc   | DC_TOF_AGRL     | + | higher=need | yes | **Fixed 2026-07-07 (issue #3).** `GoalRatioScorer(goal=0.02)` after normalising raw USD-millions to ag-flow/GDP via World Bank `NY.GDP.MKTP.CD` join in `pipeline.score_indicators`. |
 | 15 | water     | si      | wash     | SH_H2O_SAFE     | + | higher=need | yes | InverseRatio(27.1) |
 | 16 | sanit     | si      | wash     | SH_SAN_SAFE     | + | higher=need | yes | InverseRatio(43.0) |
 | 17 | washmort  | si      | wash     | SH_STA_WASHARI  | - | higher=need | yes | RatioThreshold(10, 10) |
 | 18 | elec      | si      | energy   | EG_ACS_ELEC     | + | higher=need | yes | InverseRatio(9.8) |
-| 19 | clean     | si      | energy   | EG_EGY_CLEAN    | + | higher=need | yes | InverseRatio(30.4) |
+| 19 | clean     | si      | energy   | EG_EGY_CLEAN    | + | higher=need | yes | InverseRatio(30.4). **Fixed 2026-07-07 (issue #5).** `EG_EGY_CLEAN` rows were absent from on-disk `un_sdg_clean.csv` (stale snapshot predating 7.1.2 coverage). Re-fetch + clean restores 8,730 country-year rows. |
 | 20 | renew     | si      | energy   | EG_FEC_RNEW     | + | higher=need | yes | InverseRatio(20.0) |
 | 21 | finc      | si      | digfin   | FB_BNK_ACCSS    | + | higher=need | yes | InverseRatio(45.0) |
 | 22 | gii       | women   | women    | GII_INDEX       | - | higher=need | yes | RatioThreshold(0.32). **Live (2026-05-17)** — UNDP HDR 2023-24 composite-indices CSV, 1990–2022, 166 countries. See `docs/source-candidates.md`. |
@@ -54,7 +54,7 @@ Columns:
 | 24 | state     | ctx     | statecap | WGI_GOVEFF      | + | higher=need | yes | SimpleDirectional (100 - value). **Live (2026-05-17)** — source switched from Hanson-Sigman (stopped 2015) to World Bank WGI Government Effectiveness (current through 2024); WGI's 0-100 score used directly. See `docs/source-candidates.md`. |
 | 25 | pov       | ctx     | poverty  | SI_POV_NAHC     | - | higher=need | yes | RatioThreshold(10, 10) |
 | 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Live (2026-05-17)** — UNDP HDR + OPHI 2025 Global MPI Table 2, 88 countries, 1–3 survey waves each (2001–2024). See `docs/source-candidates.md`. |
-| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | see note | review | **VERIFIED 2026-06-28:** data flows end-to-end (215/216 countries non-null). Old `(value/0.7)*100` formula saturated 99.6% of rows. **FIXED 2026-07-03** (`b19f1a8`): banded formula adopted — >=250→100, >=100→75, >=75→50, >=25→25, else 0 — matching `indicators.yaml`; yields a real 5-way spread across 3,639 source rows. **Open semantic question:** population density has no universal good/bad direction — confirm with PlanCatalyst whether it should remain a scored+inverted indicator or be recategorised as context/display-only. Decision owner: **Anthony**; semantic sign-off via **Thomas → PlanCatalyst**. |
+| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | see note | review | **Verified 2026-07-07 (issue #6).** Banded formula produces 0/25/50/75/100 in fresh scoring run. **Open semantic question:** density has no universal good/bad direction — confirm with PlanCatalyst whether it stays scored+inverted or becomes context/display-only. Decision owner: **Anthony**; semantic sign-off via **Thomas → PlanCatalyst**. |
 | 28 | hdi       | pri     | macrosec | HDI_INDEX       | + | higher=need | yes | InverseIndex `(1 - HDI) * 100`. **Live (2026-06-01)** — replaces the Concessionality Index (`conces`), which had no published global dataset (debt-distress component is low-income-country only, ~67 countries). HDI is the global proxy for "macro socio-economic performance"; sourced from the 2025 UNDP HDR composite-indices CSV (same file as `gii`), ~190 countries, 1990–2023. See `docs/spec-empty-pri-and-overall.md`. |
 
 ## Implementation gaps for the pipeline team
@@ -64,14 +64,25 @@ Tracking these so nothing falls through the cracks after handoff:
 - **Missing scorers** (0): the `pri`/`macrosec` indicator was `conces` (Concessionality Index), a deferred composite with no published global dataset. As of 2026-06-01 it is **replaced by `hdi`** (UNDP HDR Human Development Index), scored via `InverseIndexScorer` and live. `state` uses `WGI_GOVEFF` (live 2026-05-17).
 - **Missing data in pipeline** (0): `gii` and `mpi` are both live as of 2026-05-17. `gii` uses the 2025 HDR composite-indices CSV; `mpi` uses the 2025 OPHI/UNDP Global MPI Table 2 XLSX (88 countries, survey-wave granularity). Note: MPI is not an annual panel — display logic decision still open.
 - **ND-GAIN composite** (was 1, now 0): `ndgain` is live as of 2026-05-17 — pipeline now reads ND-GAIN's published composite directly from `resources/vulnerability/vulnerability.csv` rather than recomputing from components. Matches ND-GAIN's canonical published numbers by construction.
-- **Pop density scorer** (closed formula gap, open semantic question): `popdens` — `series_code = EN.POP.DNST` flows end-to-end (215/216 countries non-null). **Banded formula adopted 2026-07-03** (`b19f1a8`): 0/25/50/75/100 thresholds from `indicators.yaml`, replacing the saturating `(value/0.7)*100`. Formula gap closed. Remaining: PlanCatalyst decision on whether density should remain scored+inverted or be recategorised as context/display-only — Thomas to route.
+- **Pop density scorer** (formula fixed in code, output unverified): `popdens` — banded formula adopted 2026-07-03 (`b19f1a8`), but no pipeline run has happened since the fix (only on-disk run is 2026-06-28, pre-fix, all-NaN). Re-run required to confirm. Plus the open PlanCatalyst semantic decision (scored+inverted vs context/display-only) — Thomas to route.
 
-Net: **28 of 28 indicators flow end-to-end through scoring and into published JSON** (gii, mpi, ndgain composite, state live 2026-05-17; `hdi` live 2026-06-01 as the `pri` proxy replacing `conces`; `popdens` series_code fixed in `622e3bf`; banded scorer formula fixed 2026-07-03 in `b19f1a8`). **0 broken formulas remain.** 1 open semantic question:
-- `popdens` — banded formula is live and produces a real 5-way spread. Remaining decision: confirm with PlanCatalyst whether density should remain a scored+inverted indicator or be recategorised as context/display-only. Owner: **Thomas → PlanCatalyst**.
+### Reconciliation with published output (2026-07-07 run)
+
+| Indicator | GitHub issue | Verdict | Evidence (2026-07-07 run) |
+|---|---|---|---|
+| `agoda` | #3 | **Fixed** | 179/2134 pipeline zeros (was 2122); `ag` pillar = 100 for 52/187 countries with ag data (was 182/216) |
+| `susag` | #4 | **Fixed** | Varied scores 0–89 on 0–100 scale; sparse coverage (~20 countries) expected |
+| `clean` | #5 | **Fixed** | 8,730 `EG_EGY_CLEAN` rows scored; `clean.csv` produced |
+| `popdens` | #6 | **Verified** | Banded scores {0, 25, 50, 75, 100}; 3,617 non-null scores |
+
+**Net:** 28/28 indicators reach scoring. One open semantic question remains (`popdens` direction, issue #7).
+
+Open semantic question (unchanged):
+- `popdens` — confirm with PlanCatalyst whether density stays scored+inverted or becomes context/display-only. Owner: **Thomas → PlanCatalyst**.
 
 ### conces — client-approved MVP exclusion (proposed 2026-06-28)
 
-`conces` (Concessionality Index) is **excluded from the MVP contract** and replaced by `hdi` for the `pri/macrosec` slot. Rationale: no published global dataset (debt-distress component is low-income-country-only, ~67 countries) and no PlanCatalyst-supplied composite construction formula. The contract carries exactly 28 indicators with `hdi` substituted (verified live in the 2026-06-28 end-to-end run: `hdi` -> `pri/macrosec`, ~190 countries). Status: **deferred post-MVP** — revisit only if PlanCatalyst delivers a documented composite formula and a global-coverage data source (open methodology questions tracked in `docs/source-candidates.md`). **Needs PlanCatalyst sign-off to convert this from "proposed" to "approved" exception (see DELIVERY-CHECKLIST Phase 0 line 23 / Phase 1 line 37).**
+`conces` (Concessionality Index) is **excluded from the MVP contract** and replaced by `hdi` for the `pri/macrosec` slot. Rationale: no published global dataset (debt-distress component is low-income-country-only, ~67 countries) and no PlanCatalyst-supplied composite construction formula. The contract carries exactly 28 indicators with `hdi` substituted (verified live in the 2026-06-28 end-to-end run: `hdi` -> `pri/macrosec`, ~190 countries). Status: **deferred post-MVP** — revisit only if PlanCatalyst delivers a documented composite formula and a global-coverage data source (open methodology questions tracked in `docs/source-candidates.md`). **Needs PlanCatalyst sign-off to convert this from "proposed" to "approved" exception (tracked in TASKS.md).**
 
 ## Why invert at publish rather than in `src/calculating/`
 
