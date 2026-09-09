@@ -7,7 +7,7 @@ import { displayOverall, getCountryByIso3 } from "../../data/contract/selectors"
 import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 
 export function MapPage() {
-  const { meta, countries, timeseries } = useDashboardData();
+  const { meta, countries, timeseries, projections } = useDashboardData();
   const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
 
   // Hooks before any early return.
@@ -118,6 +118,7 @@ export function MapPage() {
           country={selectedCountry}
           meta={meta}
           timeseries={timeseries}
+          projections={projections}
           regionLabel={regionLabel}
           onClose={() => setSelectedIso3(null)}
         />
