@@ -61,7 +61,8 @@ confirmation.
 - Containerized and scheduled pipeline (descoped 2026-09-04): the confirmed
   6-month cadence does not justify ACR, an image build, or a container host.
   Manual runbook instead; `docs/docker.md` retained if the cadence shortens.
-- Projections UI still disabled (`meta.projections.enabled === false`) until forecasting MVP PRs A–C land; see below.
+  Forecast/projections publish is likewise **manual only** (no ACR/ACI cron) —
+  see `docs/runbook-refresh.md` § Forecast publish.
 - CI and test suites: none exist; add only if cadence or team size grows.
 - Legacy 3-level compatibility CSVs: remove once confirmed unused.
 
@@ -73,8 +74,12 @@ confirmation.
 | **A** (`feat/forecast-contract-gates`) | Quality gates + `validate_payload` for interval forecast rows + contract §8 docs + pytest | Thomas |
 | **B** (`feat/forecast-engine`) | Forecast model only — no publish wiring | Thomas |
 | **C** (`feat/forecast-atomic-publish`) | Wire §8 emit into publish; atomic payloads-then-`meta.json`; pytest meta-last | Thomas |
+| **D** (`feat/forecast-projections-ui`) | Dashboard consumes §8 `projections.json` interval bands | Thomas |
+| **E** (`feat/forecast-reyna-runbook`) | Docs/ops only: Reyna manual forecast publish in `docs/runbook-refresh.md` | Thomas |
 
-Do **not** enable `meta.projections.enabled` until A+B+C land and frontend
-consumes interval rows. UX copy for unavailable forecasts is fixed:
+A–D land the code path. Enabling live projections is an ops step: set
+`runtime.run_forecasts: true`, run ProcessData then publish (see runbook). Publish
+flips `meta.projections.enabled` when the forecasts CSV is present — there is no
+settings.yaml key for that field. UX copy for unavailable forecasts remains fixed:
 
 > Forecast unavailable due to insufficient information.
