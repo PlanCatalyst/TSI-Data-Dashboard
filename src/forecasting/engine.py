@@ -1,4 +1,4 @@
-"""Per-series forecast orchestration: gates → ARIMA intervals or unavailable."""
+"""Per-series forecast orchestration: PR A gates → ARIMA intervals or unavailable."""
 
 from __future__ import annotations
 
@@ -7,11 +7,16 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 
-from .gates import DEFAULT_MIN_OBSERVATIONS, evaluate_series_gates
+from src.projections.quality_gates import (
+    REASON_NO_SIGNAL,
+    UX_UNAVAILABLE_COPY,
+    assess_series,
+)
 from .models import MODEL_NAME, UnstableForecastFit, forecast_arima_110
 
 
-UNAVAILABLE_UX = "Forecast unavailable due to insufficient information."
+# Re-export for callers / tests that still import the UX string from forecasting.
+UNAVAILABLE_UX = UX_UNAVAILABLE_COPY
 
 
 @dataclass(frozen=True)
@@ -24,11 +29,16 @@ class ForecastPoint:
 
 @dataclass(frozen=True)
 class ForecastResult:
+    """Outcome of forecasting one series.
+
+    ``unavailable_reason`` is a machine GATE_REASONS code (or None when
+    available). UX copy is always ``UX_UNAVAILABLE_COPY`` / ``UNAVAILABLE_UX``.
+    """
+
     available: bool
     model_name: Optional[str]
     points: List[ForecastPoint]
     unavailable_reason: Optional[str]
-    reason_code: Optional[str]
 
 
 def _clean_pairs(years: Sequence, values: Sequence) -> List[tuple]:
@@ -50,22 +60,33 @@ def _clean_pairs(years: Sequence, values: Sequence) -> List[tuple]:
     return sorted(dedup.items(), key=lambda p: p[0])
 
 
+def _horizon_years(
+    *,
+    last_year: Optional[int],
+    end_year: int,
+    horizon: int,
+) -> List[int]:
+    """Calendar years for emitted rows. Never null — empty history anchors on end_year."""
+    anchor = last_year if last_year is not None else int(end_year)
+    return list(range(anchor + 1, anchor + 1 + horizon))
+
+
 def _unavailable(
     *,
     reason_code: str,
     last_year: Optional[int],
+    end_year: int,
     horizon: int,
 ) -> ForecastResult:
-    points: List[ForecastPoint] = []
-    if last_year is not None and horizon > 0:
-        for y in range(last_year + 1, last_year + 1 + horizon):
-            points.append(ForecastPoint(year=y, value=None, value_lo=None, value_hi=None))
+    years = _horizon_years(last_year=last_year, end_year=end_year, horizon=horizon)
+    points = [
+        ForecastPoint(year=y, value=None, value_lo=None, value_hi=None) for y in years
+    ]
     return ForecastResult(
         available=False,
         model_name=None,
         points=points,
-        unavailable_reason=UNAVAILABLE_UX,
-        reason_code=reason_code,
+        unavailable_reason=reason_code,
     )
 
 
@@ -74,14 +95,15 @@ def forecast_series(
     values: Sequence,
     *,
     horizon: int = 5,
-    min_observations: int = DEFAULT_MIN_OBSERVATIONS,
+    end_year: int,
     alpha: float = 0.05,
 ) -> ForecastResult:
     """Forecast one raw series.
 
-    Always returns an explicit outcome: interval points **or**
-    ``forecast_unavailable`` semantics via ``available=False`` + UX reason.
-    Never invents last-value carry-forward points.
+    Always returns an explicit outcome: interval points **or** unavailable
+    rows with a GATE_REASONS machine code. Never invents last-value
+    carry-forward points. Eligibility uses ``assess_series`` (PR A) — do not
+    pass parallel min_observations stand-ins.
     """
     if horizon < 1:
         raise ValueError("horizon must be >= 1")
@@ -89,15 +111,19 @@ def forecast_series(
     pairs = _clean_pairs(years, values)
     last_year = pairs[-1][0] if pairs else None
 
-    gate = evaluate_series_gates(
+    # Pass cleaned + original-aligned year/value lists into assess_series.
+    # assess_series expects aligned sequences (missing allowed as None/NaN);
+    # we already dropped non-finite, so feed the cleaned pairs.
+    gate = assess_series(
         [p[0] for p in pairs],
         [p[1] for p in pairs],
-        min_observations=min_observations,
+        end_year=int(end_year),
     )
-    if not gate.passed:
+    if not gate.ok:
         return _unavailable(
-            reason_code=gate.reason_code or "gate_failed",
+            reason_code=gate.unavailable_reason or REASON_NO_SIGNAL,
             last_year=last_year,
+            end_year=end_year,
             horizon=horizon,
         )
 
@@ -108,9 +134,11 @@ def forecast_series(
             ys, vs, steps=horizon, alpha=alpha
         )
     except UnstableForecastFit:
+        # Fit failure is not a separate GATE_REASONS code; treat as no usable signal.
         return _unavailable(
-            reason_code="unstable_fit",
+            reason_code=REASON_NO_SIGNAL,
             last_year=last_year,
+            end_year=end_year,
             horizon=horizon,
         )
 
@@ -128,5 +156,4 @@ def forecast_series(
         model_name=MODEL_NAME,
         points=points,
         unavailable_reason=None,
-        reason_code=None,
     )
