@@ -18,8 +18,8 @@ processed/worldbank/actuals/world_bank_actuals.csv
 processed/worldbank/forecasts/world_bank_forecasts.csv
 
 (Contains ARIMA(1,1,0) interval projections with 95% confidence bounds, or
-explicit `forecast_unavailable` rows. Last-value carry-forward is **not** a
-published forecast model.)
+explicit `unavailable` rows per `docs/data-contract.md` §8. Last-value
+carry-forward is **not** a published forecast model.)
 
 # File Format
 
@@ -38,24 +38,29 @@ generated_at | UTC timestamp of file generation
 
 ## Forecasts
 
+Authoritative field list for dashboard publish: `docs/data-contract.md` §8.
+Rows are validated by `src.projections.validate.validate_payload`.
+
 Column | Description
 -------------------------------------------------------------------
-country_code | ISO3 country code
-country_name | Country name
-indicator-code | Stable indicator code
-indicator | Indicator display name
-year | Forecast year (nullable only for empty-history markers)
+iso3 | 3-letter ISO 3166-1 alpha-3 join key
+indicator_code | Stable indicator / series code
+year | Integer forecast year (never null; empty-history uses horizon years)
 value | Point forecast (null when unavailable)
-value_lo | Lower 95% confidence bound (null when unavailable)
-value_hi | Upper 95% confidence bound (null when unavailable)
-record_type | "forecast"
+value_lo | Lower 95% CI bound (null when unavailable)
+value_hi | Upper 95% CI bound (null when unavailable)
+status / record_type | `"forecast"` or `"unavailable"`
 generated_at | UTC timestamp of file generation
 model_name | `arima_1_1_0` when available; null when unavailable
-forecast_unavailable | true/false — never silently omit a series
-unavailable_reason | UX copy when unavailable: "Forecast unavailable due to insufficient information."
+unavailable_reason | Machine gate code from GATE_REASONS when unavailable; null on forecast rows
 
 # Integration Notes
 
-- Use `record_type` to distinguish historical vs projected values.
-- When `forecast_unavailable` is true, do not plot `value`; show the UX reason.
+- Use `status`/`record_type` to distinguish `"forecast"` vs `"unavailable"`.
+- Join on `iso3` and `indicator_code` for stable relationships.
+- When status is `"unavailable"`, do not plot value/lo/hi; show UX copy
+  `UX_UNAVAILABLE_COPY` ("Forecast unavailable due to insufficient information.").
+  `unavailable_reason` is the machine gate code for logs only.
 - Actuals and forecasts are intentionally stored in separate Blob paths.
+- Gate eligibility is `src.projections.quality_gates.assess_series` — do not
+  parallel-implement thresholds in the forecast engine.
