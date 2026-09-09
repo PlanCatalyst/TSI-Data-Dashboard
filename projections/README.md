@@ -7,6 +7,13 @@ output spec for a future contract extension.
 
 ## Current state
 
+**PR B (`feat/forecast-engine`):** production path is `src/forecasting/` +
+`projections/process_data.py`. Model = ARIMA(1,1,0) with 95% CI
+(`value` / `value_lo` / `value_hi`). Gate failures and unstable fits emit
+`forecast_unavailable` + UX reason — never last-value, never silent skip.
+Orchestrator toggle: `runtime.run_forecasts` (default `false`).
+
+
 The only thing here right now is **prior work** carried over from the old
 PlanCatalyst repo (`LlamzonAmazon/PC-Data-Dash`, `src/processing/`). It is
 reference material, **not runnable** against the current pipeline — see

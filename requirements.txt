@@ -7,3 +7,6 @@ tenacity
 azure-identity
 azure-storage-blob
 openpyxl  # for UNDP HDR MPI XLSX ingestion
+statsmodels  # ARIMA(1,1,0) forecast intervals (PR B)
+pytest  # forecast engine unit tests (PR B)
+

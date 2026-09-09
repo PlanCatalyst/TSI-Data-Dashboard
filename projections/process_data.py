@@ -1,26 +1,28 @@
 """
 Processing stage: writes **projections of indicator progress** under ``data/processed/``.
 
-Today this is implemented for World Bank interim data only: historical actuals plus
-simple forward-year projections (baseline last-value carry-forward). Those CSVs are
-what the pipeline treats as *processed* outputs—distinct from cleaned interim files
-and from scored *validated* outputs under ``data/interim/validated/``.
+World Bank raw series only (PR B). Each country×indicator series emits either:
+- forecast rows with ``value`` / ``value_lo`` / ``value_hi`` (ARIMA(1,1,0), 95% CI), or
+- explicit ``forecast_unavailable`` + ``unavailable_reason`` rows
+
+Never silently skips a series. Never publishes last-value carry-forward.
+UN SDG / ND-GAIN composites are out of scope for this PR.
 """
 from __future__ import annotations
+
 from pathlib import Path
 import logging
-import yaml
+import os
+from datetime import datetime, timezone
 
 import pandas as pd
-from datetime import datetime
-import logging
-import os
-
+import yaml
 from azure.storage.blob import BlobServiceClient
 from azure.identity import ClientSecretCredential
 from dotenv import load_dotenv
 
 from src.pipeline.utils import project_root
+from src.forecasting import UNAVAILABLE_UX, forecast_series
 
 
 def upload_to_azure(container_client, csv_path: Path, blob_name: str, log) -> None:
@@ -38,8 +40,9 @@ def upload_to_azure(container_client, csv_path: Path, blob_name: str, log) -> No
     except Exception as e:
         log.error(f"Failed to upload {csv_path.name} to Azure: {e}")
 
+
 class ProcessData:
-    """Build indicator progress projections (actuals + forecast rows) for supported sources."""
+    """Build indicator progress projections (actuals + forecast rows) for World Bank."""
 
     def __init__(self, config_path: str):
         self.config_path = Path(config_path)
@@ -51,7 +54,6 @@ class ProcessData:
         self.cfg = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
 
     def process(self) -> None:
-        # 1) Load config paths
         paths = self.cfg.get("paths", {})
         runtime = self.cfg.get("runtime", {})
 
@@ -60,14 +62,14 @@ class ProcessData:
             raise ValueError("settings.yaml missing runtime.interim_data.worldbank")
         wb_interim_path = project_root() / wb_rel
 
-        # Projections / processed outputs (see module docstring)
         processed_root = Path(paths.get("data_processed", "data/processed/")) / "worldbank"
+        if not processed_root.is_absolute():
+            processed_root = project_root() / processed_root
         actuals_path = processed_root / "actuals" / "world_bank_actuals.csv"
         forecasts_path = processed_root / "forecasts" / "world_bank_forecasts.csv"
         actuals_path.parent.mkdir(parents=True, exist_ok=True)
         forecasts_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # 2) Read interim WB CSV
         if not wb_interim_path.exists():
             raise FileNotFoundError(f"Missing World Bank interim CSV at: {wb_interim_path}")
 
@@ -85,62 +87,112 @@ class ProcessData:
         if missing:
             raise ValueError(f"World Bank interim missing columns: {missing}. Found: {list(wb.columns)}")
 
-        wb = wb.copy()  # avoid chained-assignment warnings in pandas 3.0
+        wb = wb.copy()
         wb.loc[:, "year"] = pd.to_numeric(wb["year"], errors="coerce").astype("Int64")
         wb.loc[:, "value"] = pd.to_numeric(wb["value"], errors="coerce")
 
-        # 3) Write ACTUALS (just the cleaned series)
+        generated_at = datetime.now(timezone.utc).isoformat()
+
         actuals = wb.dropna(
             subset=["country_code", "country_name", "year", "indicator", "value"]
         ).copy()
         actuals["record_type"] = "actual"
-        actuals["generated_at"] = datetime.utcnow().isoformat()
+        actuals["generated_at"] = generated_at
         actuals = actuals.copy()
         actuals.loc[:, "indicator_code"] = actuals["indicator-code"]
 
         actuals.to_csv(actuals_path, index=False)
         self.log.info(f"Wrote actuals: {actuals_path} (rows={len(actuals)})")
 
-        # 4) Create FORECASTS (baseline: last value carried forward)
-        # Choose how many future years you want:
-        # - simplest: 5 years
         forecast_horizon = int(runtime.get("forecast_horizon_years", 5))
+        min_obs = int(runtime.get("forecast_min_observations", 5))
 
-        last_obs = (
-            actuals.sort_values(
-                ["country_code", "country_name", "indicator_code", "year"]
-            )
-            .groupby(
-                ["country_code", "country_name", "indicator_code"],
-                as_index=False,
-            )
-            .tail(1)
-            .rename(columns={"year": "last_year", "value": "last_value"})
-        )
-
-        # Build rows for (last_year+1 ... last_year+forecast_horizon)
+        group_cols = ["country_code", "country_name", "indicator-code", "indicator"]
         forecast_rows = []
-        for row in last_obs.itertuples(index=False):
-            base_year = int(row.last_year)
-            for y in range(base_year + 1, base_year + 1 + forecast_horizon):
-                forecast_rows.append({
-                    "country_code": row.country_code,
-                    "country_name": row.country_name,
-                    "indicator-code": getattr(row, "indicator_code", None)
-                    or getattr(row, "indicator-code", None),
-                    "indicator": getattr(row, "indicator", None),
-                    "year": y,
-                    "value": row.last_value,
-                    "record_type": "forecast",
-                    "generated_at": datetime.utcnow().isoformat(),
-                    "model_name": "baseline_last_value",
-                })
+        n_available = 0
+        n_unavailable = 0
+
+        for keys, group in actuals.groupby(group_cols, dropna=False):
+            country_code, country_name, indicator_code, indicator = keys
+            result = forecast_series(
+                group["year"].tolist(),
+                group["value"].tolist(),
+                horizon=forecast_horizon,
+                min_observations=min_obs,
+            )
+
+            if result.available:
+                n_available += 1
+                for pt in result.points:
+                    forecast_rows.append({
+                        "country_code": country_code,
+                        "country_name": country_name,
+                        "indicator-code": indicator_code,
+                        "indicator": indicator,
+                        "year": pt.year,
+                        "value": pt.value,
+                        "value_lo": pt.value_lo,
+                        "value_hi": pt.value_hi,
+                        "record_type": "forecast",
+                        "generated_at": generated_at,
+                        "model_name": result.model_name,
+                        "forecast_unavailable": False,
+                        "unavailable_reason": None,
+                    })
+            else:
+                n_unavailable += 1
+                reason = result.unavailable_reason or UNAVAILABLE_UX
+                if result.points:
+                    for pt in result.points:
+                        forecast_rows.append({
+                            "country_code": country_code,
+                            "country_name": country_name,
+                            "indicator-code": indicator_code,
+                            "indicator": indicator,
+                            "year": pt.year,
+                            "value": None,
+                            "value_lo": None,
+                            "value_hi": None,
+                            "record_type": "forecast",
+                            "generated_at": generated_at,
+                            "model_name": None,
+                            "forecast_unavailable": True,
+                            "unavailable_reason": reason,
+                        })
+                else:
+                    # Empty history: still emit an explicit unavailable marker row.
+                    forecast_rows.append({
+                        "country_code": country_code,
+                        "country_name": country_name,
+                        "indicator-code": indicator_code,
+                        "indicator": indicator,
+                        "year": None,
+                        "value": None,
+                        "value_lo": None,
+                        "value_hi": None,
+                        "record_type": "forecast",
+                        "generated_at": generated_at,
+                        "model_name": None,
+                        "forecast_unavailable": True,
+                        "unavailable_reason": reason,
+                    })
 
         forecasts = pd.DataFrame(forecast_rows)
-        forecasts.to_csv(forecasts_path, index=False)
-        self.log.info(f"Wrote forecasts: {forecasts_path} (rows={len(forecasts)})")
+        # Guardrail: last-value must never appear as a published model.
+        if not forecasts.empty and "model_name" in forecasts.columns:
+            banned = forecasts["model_name"].dropna().astype(str).str.contains(
+                "last_value", case=False, regex=False
+            )
+            if banned.any():
+                raise RuntimeError("last-value model leaked into forecast output")
 
-        # 5) Upload to Azure Blob (optional; only if creds exist)
+        forecasts.to_csv(forecasts_path, index=False)
+        self.log.info(
+            f"Wrote forecasts: {forecasts_path} "
+            f"(rows={len(forecasts)}, available_series={n_available}, "
+            f"unavailable_series={n_unavailable})"
+        )
+
         load_dotenv()
         tenant = os.getenv("AZURE_TENANT_ID")
         client_id = os.getenv("AZURE_CLIENT_ID")
@@ -155,10 +207,8 @@ class ProcessData:
         credential = ClientSecretCredential(tenant_id=tenant, client_id=client_id, client_secret=secret)
         blob_service = BlobServiceClient(account_url=account_url, credential=credential)
 
-        # Use the same container your team uses (CleanData used "unprocessed-data")
         container_name = runtime.get("azure_container_processed", "unprocessed-data")
         container_client = blob_service.get_container_client(container_name)
 
-        # REQUIRED blob paths (per your instructions)
         upload_to_azure(container_client, actuals_path, "processed/worldbank/actuals/world_bank_actuals.csv", self.log)
         upload_to_azure(container_client, forecasts_path, "processed/worldbank/forecasts/world_bank_forecasts.csv", self.log)
