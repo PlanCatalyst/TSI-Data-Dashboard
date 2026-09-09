@@ -276,3 +276,78 @@ The publish step MUST verify before upload:
 5. All non-null numeric scores fall in `[0, 100]`.
 
 A validation failure aborts the upload; the existing `/v1/` remains live.
+
+---
+
+## 8. Interval forecast rows (projections extension)
+
+**Status:** preparatory for when `meta.projections.enabled` flips to `true`.
+The historical `/v1/{meta,countries,timeseries}.json` shapes in §2–§4 are
+unchanged by this section. Forecast rows are validated by
+`src.projections.validate.validate_payload` **before** any publish that would
+ship them; a validation failure aborts upload (same rule as §7).
+
+Per `iso3 × indicator_code × year` projection row:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `iso3` | yes | 3-letter ISO 3166-1 alpha-3 join key |
+| `indicator_code` | yes | Frontend indicator key (e.g. `"uhc"`) or stable series code |
+| `year` | yes | Integer calendar year (projected year) |
+| `value` | optional | Point estimate. May be `null` even on a `forecast` row when only an interval is published. Must be `null` on `unavailable` rows. |
+| `value_lo` | yes* | Interval lower bound. Required (finite) when `status`/`record_type` is `"forecast"`; must be `null` when `"unavailable"`. |
+| `value_hi` | yes* | Interval upper bound. Required (finite) when `"forecast"`; must be `null` when `"unavailable"`. Must satisfy `value_lo <= value_hi`. When `value` is present it must lie inside `[value_lo, value_hi]`. |
+| `status` / `record_type` | yes (one of) | `"forecast"` or `"unavailable"`. Aliases: either key is accepted; if both are set they must agree. |
+| `unavailable_reason` | conditional | Machine-readable gate code when status is `"unavailable"`; must be `null` on `"forecast"` rows. |
+
+### Quality gates (eligibility)
+
+Before a series may emit `"forecast"` rows, `src.projections.quality_gates.assess_series`
+must pass for that `iso3 × indicator`. Failures produce `"unavailable"` rows
+instead. Gate codes (also valid `unavailable_reason` values):
+
+| Code | Rule |
+|------|------|
+| `insufficient_observations` | `n_obs < 8` |
+| `insufficient_span` | `span_years < 8` where `span_years = last_obs_year - first_obs_year` |
+| `stale_series` | `last_obs_year < end_year - 3` |
+| `too_sparse` | missing fraction over the inclusive `[first_obs, last_obs]` window `> 0.4` |
+| `no_signal` | near-zero variance among non-null observations |
+
+### UX copy
+
+Frontend must show a single shared string for any unavailable forecast, regardless
+of which gate fired:
+
+> Forecast unavailable due to insufficient information.
+
+`unavailable_reason` is for logs / support only — do not invent per-reason user copy.
+
+### Example rows
+
+```jsonc
+// Publishable interval forecast
+{
+  "iso3": "KEN",
+  "indicator_code": "uhc",
+  "year": 2027,
+  "value": 62.0,
+  "value_lo": 58.0,
+  "value_hi": 66.0,
+  "status": "forecast",
+  "unavailable_reason": null
+}
+
+// Gate failure — no numeric estimate
+{
+  "iso3": "SSD",
+  "indicator_code": "uhc",
+  "year": 2027,
+  "value": null,
+  "value_lo": null,
+  "value_hi": null,
+  "status": "unavailable",
+  "unavailable_reason": "insufficient_observations"
+}
+```
+

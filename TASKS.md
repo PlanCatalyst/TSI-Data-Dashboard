@@ -61,6 +61,20 @@ confirmation.
 - Containerized and scheduled pipeline (descoped 2026-09-04): the confirmed
   6-month cadence does not justify ACR, an image build, or a container host.
   Manual runbook instead; `docs/docker.md` retained if the cadence shortens.
-- Projections (`meta.projections.enabled === false`).
+- Projections UI still disabled (`meta.projections.enabled === false`) until forecasting MVP PRs A–C land; see below.
 - CI and test suites: none exist; add only if cadence or team size grows.
 - Legacy 3-level compatibility CSVs: remove once confirmed unused.
+
+
+## Forecasting MVP (split PRs)
+
+| PR | Scope | Owner |
+|----|-------|-------|
+| **A** (`feat/forecast-contract-gates`) | Quality gates + `validate_payload` for interval forecast rows + contract §8 docs + pytest | Thomas |
+| **B** (`feat/forecast-engine`) | Forecast model only — no publish wiring | Thomas |
+| **C** | Orchestrator / publish atomicity for projection rows | TBD |
+
+Do **not** enable `meta.projections.enabled` until A+B+C land and frontend
+consumes interval rows. UX copy for unavailable forecasts is fixed:
+
+> Forecast unavailable due to insufficient information.
