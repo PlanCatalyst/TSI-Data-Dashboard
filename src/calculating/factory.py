@@ -22,7 +22,18 @@ class IndicatorScorerFactory:
             
             # --- SECTOR 2: AGRICULTURE ---
             "AG_PRD_FIESMS": RatioThresholdScorer(threshold=20.0, global_average=20.0),  # 2.1.2
-            "AG_LND_SUST": RatioGoalInverseScorer(goal_transformed=0.04), # 2.4.1
+            # 2.4.1 — UN SDG returns AG_LND_SUST as a 0-100 proportion of
+            # agricultural area under sustainable practices (NOT the 1-5 band
+            # the metadata describes). Higher proportion = better = less need,
+            # so 100 - value gives vulnerability orientation directly. The old
+            # RatioGoalInverse(0.04) / (1/value^2) transform was built for the
+            # 1-5 scale and saturated every 0-100 value to 0. See SCORING_AUDIT
+            # issue #4. NOTE (Anthony): confirm the true UN SDG return scale.
+            "AG_LND_SUST": SimpleDirectionalScorer(),                # 2.4.1
+            # 2.a.2 — value must be normalized to ag-flow/GDP BEFORE scoring
+            # (done in pipeline.score_indicators). GoalRatioScorer then applies
+            # 1 - ratio/0.02 against the 2%-of-GDP goal. Raw USD-millions input
+            # saturated everyone to 0; see SCORING_AUDIT issue #3.
             "DC_TOF_AGRL": GoalRatioScorer(goal=0.02),               # 2.a.2
             
             # --- SECTOR 3: SOCIAL INFRASTRUCTURE ---

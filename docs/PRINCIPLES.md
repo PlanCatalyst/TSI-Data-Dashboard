@@ -9,7 +9,7 @@ It is a companion to:
 - `CLAUDE.md` (machine-readable orientation)
 - `README.md` (purpose and quickstart)
 - `HANDOFF.md` (historical context)
-- `TEAM-TASKS.md` (June execution plan and ownership)
+- `TASKS.md` (remaining work and ownership)
 - `docs/data-contract.md` (authoritative payload schema)
 - `indicators/SCORING_AUDIT.md` (scoring directionality)
 
@@ -27,7 +27,7 @@ country-level development vulnerability without ever touching pipeline internals
 
 ## 2. Locked Decisions (Do Not Re-Debate)
 
-These are pre-approved by the PM and listed in `TEAM-TASKS.md`. An agent
+These are pre-approved by the PM and listed in `TASKS.md`. An agent
 encountering one of these should proceed, not pause to ask:
 
 
@@ -73,7 +73,7 @@ These cannot change without a contract version bump and PM sign-off:
 1. `docs/data-contract.md` (payload schema and semantics)
 2. `indicators/indicators.yaml` (indicator taxonomy and metadata)
 3. `indicators/SCORING_AUDIT.md` (scoring direction and known gaps)
-4. `TEAM-TASKS.md` (current ownership and delivery plan)
+4. `TASKS.md` (current ownership and delivery plan)
 5. `HANDOFF.md` (project context and historical decisions)
 6. `README.md` (purpose, quickstart)
 7. This file (`docs/PRINCIPLES.md`) — synthesis only, not new authority.
@@ -109,7 +109,7 @@ and does not change what crosses the publish boundary.
 - The change would introduce a non-Azure / non-React stack assumption.
 - The change would commit secrets or modify `.gitignore` to allow them.
 - A document conflict is unresolved by the Source of Truth Hierarchy.
-- A task explicitly requires a PM sign-off in `TEAM-TASKS.md`.
+- A task explicitly requires a PM sign-off in `TASKS.md`.
 
 ### Never do
 

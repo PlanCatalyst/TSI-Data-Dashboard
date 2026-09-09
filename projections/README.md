@@ -1,7 +1,7 @@
 # Projections
 
 Workspace for projections / forecasting research and (eventually) production
-projection code. Per `TEAM-TASKS.md` §4, this is the projections research
+projection code. This is the projections research
 lane: method comparison → quality report → ship/no-ship recommendation →
 output spec for a future contract extension.
 
@@ -84,10 +84,25 @@ change → /v1→/v2). That decision belongs to whoever owns the publisher
 4. **How to expose uncertainty?** Old work emits point forecasts only. The
    client mock's "projection band" implies an interval, not a line.
 
+## Production quality gates (PR A)
+
+Runnable gate + validation code lives under **`src/projections/`** (not this
+research folder):
+
+| Module | Role |
+|--------|------|
+| `src/projections/quality_gates.py` | Per `iso3 × indicator` eligibility: `insufficient_observations`, `insufficient_span`, `stale_series`, `too_sparse`, `no_signal` |
+| `src/projections/validate.py` | `validate_payload` — rejects illegal interval forecast rows before publish |
+
+Contract fields and UX copy are documented in `docs/data-contract.md` §8.
+Forecast **model** work is PR B; orchestrator / publish wiring is PR C — do not
+reintroduce last-value carry-forward from `process_data.py` into the live path.
+
+Tests: `pytest tests/projections/`.
+
 ## See also
 
-- `TEAM-TASKS.md` §4 — Kayden's research deliverables (method comparison,
-  quality report, ship/no-ship rec, output spec).
+- `TASKS.md`: projections are deferred post-MVP with no ship target.
 - `docs/data-contract.md` §2 — current `projections` meta hook.
 - `docs/PRINCIPLES.md` §4 — "Projection Transparency" principle: blank
   projections must be explained to users.

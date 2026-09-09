@@ -40,3 +40,27 @@ model_name	| Present in forecasts only (e.g., baseline_last_value)
 - Use record_type to distinguish historical vs projected values.
 - Join on iso3 and indicator-code for stable relationships.
 - Actuals and forecasts are intentionally stored in separate Blob paths to prevent dataset mixing.
+
+
+---
+
+## Current contract (supersedes the CSV schema above for dashboard publish)
+
+The dashboard forecasting MVP uses **interval forecast rows** validated by
+`src.projections.validate.validate_payload`, not the Power BI CSV paths above.
+Authoritative field list: `docs/data-contract.md` §8.
+
+Required concepts:
+
+- `iso3`, `indicator_code`, `year`
+- `value` (optional point estimate)
+- `value_lo`, `value_hi` (required on `"forecast"` rows)
+- `status` / `record_type`: `"forecast"` | `"unavailable"`
+- `unavailable_reason`: gate code when unavailable
+
+UX copy for any unavailable series:
+
+> Forecast unavailable due to insufficient information.
+
+This file remains as historical documentation of the old World Bank
+actuals/forecasts CSV layout.
