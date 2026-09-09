@@ -7,6 +7,8 @@
 This replaces the containerised scheduled pipeline, which was descoped 2026-09-04. At two runs a
 year, a registry, an image build and a container host cost more than they save. The tradeoff is
 that nothing fires on its own: someone has to remember. Put a recurring calendar reminder on it.
+Forecast / projections publish follows the same rule — **manual only**, no ACR/ACI cron (see
+Forecast publish below).
 
 ---
 
@@ -22,7 +24,9 @@ mistake in this runbook.
 | The Blob account or container URL | Both, in that order | Yes, but the frontend rebuild is mandatory. |
 
 The React app fetches `meta.json`, `countries.json` and `timeseries.json` from Blob at runtime, so
-a data refresh needs no redeploy. The Blob URL itself is compiled in at build time from
+a data refresh needs no redeploy. When `meta.projections.enabled` is true it also fetches
+`projections.json` (see `docs/data-contract.md` §8); when disabled it stays on the historical-only
+path and does not require that file. The Blob URL itself is compiled in at build time from
 `VITE_CONTRACT_BASE_URL`, so changing the *location* does need a rebuild.
 
 ---
@@ -60,18 +64,25 @@ a data refresh needs no redeploy. The Blob URL itself is compiled in at build ti
 
 ### 1. Enable a fresh fetch
 
-`src/config/settings.yaml` ships with `runtime.fetch_raw: false` so day-to-day work reuses cached
-payloads. A real refresh needs it on:
+`src/config/settings.yaml` ships with `runtime.fetch_raw: false` (and `runtime.run_forecasts:
+false`) so day-to-day work reuses cached payloads and skips the forecast emit. A real refresh
+needs the publish path on; a forecast publish also needs `run_forecasts`:
 
 ```yaml
 runtime:
-  fetch_raw: true       # set back to false when finished
+  fetch_raw: true          # set back to false when finished
   upload_azure: true
   publish_dashboard: true
+  run_forecasts: false     # true only for a forecast publish (see Forecast publish below)
 ```
 
+These are the only runtime toggles that gate the path — there is **no** `settings.yaml` key for
+`meta.projections.enabled`. That field is written by `publish_dashboard` when §8 rows are present
+(see below). Optional: `runtime.forecast_horizon_years` (default `5`).
+
 UN SDG is slow and rate-limited. Expect the fetch stage to dominate the runtime. Set `fetch_raw`
-back to `false` afterwards so nobody re-fetches by accident.
+(and `run_forecasts`, if you flipped it) back to `false` afterwards so nobody re-fetches or
+re-forecasts by accident.
 
 ### 2. Run the pipeline
 
@@ -79,7 +90,9 @@ back to `false` afterwards so nobody re-fetches by accident.
 python3 -m src.pipeline.run_pipeline
 ```
 
-Fetch, clean, score, aggregate, upload validated CSVs, then publish the contract JSON.
+Fetch, clean, score, aggregate, upload validated CSVs, optionally emit World Bank forecasts
+(`runtime.run_forecasts`), then publish the contract JSON. Publish order is always payloads first,
+`meta.json` last (see Forecast publish).
 
 ### 3. Sanity-check the scores before they go anywhere
 
@@ -138,7 +151,7 @@ misconfigured build announces itself.
 
 ### 7. Reset and record
 
-- Set `runtime.fetch_raw` back to `false`.
+- Set `runtime.fetch_raw` (and `runtime.run_forecasts`, if used) back to `false`.
 - Commit the refreshed `dashboard/public/v1/` fixtures and any `SCORING_AUDIT.md` changes.
 - Note the run date and `run-id` in `HANDOFF.md`.
 
@@ -151,14 +164,125 @@ keep a copy:
 
 ```zsh
 mkdir -p backups/v1-$(date +%Y%m%d)
-curl -s https://<account>.blob.core.windows.net/dashboard-public/v1/meta.json \
-  -o backups/v1-$(date +%Y%m%d)/meta.json
-# repeat for countries.json and timeseries.json
+for f in meta.json countries.json timeseries.json projections.json; do
+  curl -s "https://<account>.blob.core.windows.net/dashboard-public/v1/$f" \
+    -o "backups/v1-$(date +%Y%m%d)/$f" || true
+done
 ```
 
-To roll back, re-upload those three files. If a contract-breaking change is ever needed, bump the
-path to `/v2/` rather than overwriting `/v1/`, update `docs/data-contract.md` first, then the
-publisher, then the frontend.
+To roll back, re-upload the payload files you backed up, then `meta.json` **last** (same atomic
+order as publish). If the previous snapshot had projections disabled, restoring an older
+`meta.json` with `projections.enabled: false` is enough for the frontend to stop fetching
+`projections.json`. If a contract-breaking change is ever needed, bump the path to `/v2/` rather
+than overwriting `/v1/`, update `docs/data-contract.md` first, then the publisher, then the
+frontend.
+
+---
+
+## Forecast publish (Reyna — manual only)
+
+Projections are **not** on a schedule. Same thesis as the rest of this runbook: no ACR image
+build, no ACI/container cron, no GitHub Actions timer. Someone flips flags, runs the path by
+hand, verifies the live site, and flips flags off. Put a calendar reminder next to the
+semi-annual refresh if PlanCatalyst wants forecasts refreshed on the same cadence.
+
+Contract authority: `docs/data-contract.md` §8. Machine gate codes live in
+`src.projections.quality_gates.GATE_REASONS`. User-facing unavailable copy is the single shared
+string `UX_UNAVAILABLE_COPY` — **do not invent new dashboard strings**:
+
+> Forecast unavailable due to insufficient information.
+
+When projections are still disabled, the meta note stays exactly:
+
+> Projection band coming soon.
+
+### Flags (as implemented)
+
+In `src/config/settings.yaml` → `runtime:`:
+
+| Key | Role |
+|---|---|
+| `run_forecasts` | Orchestrator runs `projections.process_data.ProcessData` before publish (default `false`). |
+| `fetch_raw` | Fresh upstream pull (usually leave `false` if World Bank interim CSV is already current). |
+| `upload_azure` | Live Blob upload for validated CSVs **and** (with creds) for `publish_dashboard`. |
+| `publish_dashboard` | Build/upload contract JSON after scoring (default `true`). |
+
+`meta.projections.enabled` is **not** a settings key. `build_meta` always starts with
+`enabled: false` and note `"Projection band coming soon."`. When
+`data/processed/worldbank/forecasts/world_bank_forecasts.csv` exists, `publish_dashboard` loads
+those §8 rows, validates them with `src.projections.validate_payload`, writes `projections.json`,
+and `apply_projections_meta` flips `meta.projections.enabled` to `true` (note copy is left
+unchanged). Delete or move that CSV (or pass `include_projections=False` in code) if you need a
+historical-only publish.
+
+### Path A — full pipeline (recommended)
+
+```yaml
+runtime:
+  fetch_raw: false          # or true if you also need a data refresh
+  upload_azure: true
+  publish_dashboard: true
+  run_forecasts: true       # ProcessData → data/processed/.../world_bank_forecasts.csv
+```
+
+```zsh
+python3 -m src.pipeline.run_pipeline
+```
+
+Order inside the orchestrator: fetch → clean → score → upload validated → **ProcessData
+(forecasts)** → publish.
+
+### Path B — forecast emit, then publish only
+
+Use when scored/interim World Bank data is already on disk and you only need to re-emit and
+republish projections:
+
+```zsh
+python3 - <<'PY'
+from pathlib import Path
+from projections.process_data import ProcessData
+ProcessData(Path("src/config/settings.yaml")).process()
+PY
+
+python3 -m src.upload.publish_dashboard
+# then, when dry-run looks good:
+python3 -m src.upload.publish_dashboard --azure --run-id forecast-$(date +%Y%m%d)
+```
+
+`ProcessData` writes `data/processed/worldbank/forecasts/world_bank_forecasts.csv` (and actuals).
+Publish picks that file up automatically.
+
+### Atomic publish order
+
+Payload files first; **`meta.json` last** (readiness marker). With forecasts present the order is:
+
+1. `countries.json`
+2. `timeseries.json`
+3. `projections.json`
+4. `meta.json` **LAST**
+
+Implemented by `upload_payloads_then_meta` in `src/upload/publish_dashboard.py`. A mid-payload
+failure never writes meta, so the previous live snapshot stays marked ready. Dry-run mirrors the
+same order under `data/organized/v1/`.
+
+### Verify the dashboard
+
+1. **Live meta:** `curl` `.../v1/meta.json` and confirm `projections.enabled` is `true` and
+   `firstProjectedYear` is set when you intended a forecast publish; when you intended disabled,
+   `enabled` is `false` and `note` is still `Projection band coming soon.`
+2. **Bands when forecast:** open the SWA map detail / indicator trend for a series with
+   `status: "forecast"` rows — interval band (`value_lo` / `value_hi`) should render.
+3. **Unavailable copy:** for `status: "unavailable"` rows the UI must show exactly
+   `Forecast unavailable due to insufficient information.` (from `UX_UNAVAILABLE_COPY` /
+   `GATE_REASONS` — no per-reason user strings).
+4. **Disabled path:** with `meta.projections.enabled === false`, About / detail still surfaces
+   the meta note `Projection band coming soon.` and the app does not fetch `projections.json`.
+5. Console should log `Loading contract from Azure` (not the local `/v1` fallback).
+
+### Afterward
+
+- Set `runtime.run_forecasts` (and `fetch_raw`, if used) back to `false`.
+- Note the `run-id` and whether projections were enabled in `HANDOFF.md`.
 
 ---
 
@@ -188,7 +312,8 @@ Adding a new host means editing that file and redeploying.
 
 ## Related
 
-- `docs/data-contract.md` — payload schema, the authority when anything disagrees
+- `docs/data-contract.md` — payload schema (§8 = interval forecast rows); authority when anything disagrees
+- `src/projections/quality_gates.py` — `GATE_REASONS` + `UX_UNAVAILABLE_COPY` (no new user-facing strings)
 - `indicators/SCORING_AUDIT.md` — scoring direction, per-indicator status, closed issues
-- `docs/docker.md` — the containerised path, retained in case the cadence ever shortens
+- `docs/docker.md` — the containerised path, retained in case the cadence ever shortens; **not** used for forecast scheduling
 - `HANDOFF.md` — project context and run history
