@@ -38,6 +38,91 @@ export function mapColor(score: number | null): string {
   return MAP_COLOR_STOPS[MAP_COLOR_STOPS.length - 1].color;
 }
 
+
+/** Numeric ISO id for Russia in world-atlas countries-110m. */
+const RUSSIA_NUMERIC_ID = 643;
+
+/**
+ * Pixel bounds to zoom/pan into for a country feature.
+ *
+ * Countries that cross the antimeridian (Russia, Fiji, …) make
+ * `path.bounds(feature)` span nearly the full map width, so the derived
+ * scale is < 1 and the viewport zooms *out*. Detect that case via
+ * `d3.geoBounds` (lon1 < lon0) or a sub-1 scale, then fall back to
+ * corner-projected geographic bounds on the western segment [lon0, 180]
+ * (Russia-specific clamp prefers the Eurasian landmass). Always returns
+ * bounds that yield a scale ≥ 1 so every country zooms in.
+ */
+function focusBoundsForFeature(
+  feature: CountryFeature,
+  path: d3.GeoPath<unknown, d3.GeoPermissibleObjects>,
+  proj: d3.GeoProjection,
+  W: number,
+  H: number,
+): [[number, number], [number, number]] {
+  const pathBounds = path.bounds(feature as d3.GeoPermissibleObjects);
+  const pathScale = zoomScaleForBounds(pathBounds, W, H);
+
+  const [[lon0, lat0], [lon1, lat1]] = d3.geoBounds(feature as d3.GeoPermissibleObjects);
+  const wrapsAntimeridian = lon1 < lon0;
+
+  if (!wrapsAntimeridian && pathScale >= 1.05 && Number.isFinite(pathScale)) {
+    return pathBounds;
+  }
+
+  // Western (or Russia-clamped) geographic box → project corners (avoids
+  // spherical-edge path.bounds blowing up on wide rectangles).
+  let west = lon0;
+  let east = wrapsAntimeridian ? 180 : lon1;
+  let south = lat0;
+  let north = lat1;
+
+  if (Number(feature.id) === RUSSIA_NUMERIC_ID) {
+    // Prefer core Eurasian Russia; full [19→180] is still very wide on NE1.
+    west = Math.max(lon0, 19);
+    east = Math.min(east, 100);
+    south = Math.max(lat0, 41);
+    north = Math.min(lat1, 78);
+  }
+
+  const corners: Array<[number, number]> = [
+    [west, south],
+    [east, south],
+    [east, north],
+    [west, north],
+  ].map((c) => {
+    const p = proj(c as [number, number]);
+    return (p ?? [0, 0]) as [number, number];
+  });
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  const cornerBounds: [[number, number], [number, number]] = [
+    [Math.min(...xs), Math.min(...ys)],
+    [Math.max(...xs), Math.max(...ys)],
+  ];
+
+  // If corner fallback somehow still zooms out, keep path bounds but the
+  // caller clamps scale to ≥ 1.
+  const cornerScale = zoomScaleForBounds(cornerBounds, W, H);
+  if (Number.isFinite(cornerScale) && cornerScale >= pathScale) {
+    return cornerBounds;
+  }
+  return pathBounds;
+}
+
+function zoomScaleForBounds(
+  bounds: [[number, number], [number, number]],
+  W: number,
+  H: number,
+): number {
+  const bW = bounds[1][0] - bounds[0][0];
+  const bH = bounds[1][1] - bounds[0][1];
+  if (!(bW > 0) || !(bH > 0) || !Number.isFinite(bW) || !Number.isFinite(bH)) {
+    return 1;
+  }
+  return Math.min(5, 0.55 / Math.max(bW / W, bH / H));
+}
+
 type CountryFeature = Feature<Geometry, { name?: string }> & { id?: string | number };
 
 type Tooltip = {
@@ -213,14 +298,14 @@ export function WorldChoropleth({
         ev.stopPropagation();
         onSelect(c);
 
-        // Zoom into selected country bounds — capped at 5x so small countries
-        // don't blow up to mosh-pit pixel scale.
-        const bounds = path.bounds(d as d3.GeoPermissibleObjects);
-        const bW = bounds[1][0] - bounds[0][0];
-        const bH = bounds[1][1] - bounds[0][1];
+        // Zoom into selected country — antimeridian-safe (Russia/Fiji) so
+        // every country zooms *in*, never out. Scale capped at 5x.
+        const bounds = focusBoundsForFeature(d, path, proj, W, H);
         const midX = (bounds[0][0] + bounds[1][0]) / 2;
         const midY = (bounds[0][1] + bounds[1][1]) / 2;
-        const scale = Math.min(5, 0.55 / Math.max(bW / W, bH / H));
+        // Never zoom out on select (identity = 1); antimeridian fallback
+        // should already be ≥ 1, this is a final safety net.
+        const scale = Math.max(1.05, zoomScaleForBounds(bounds, W, H));
         const tx = W / 2 - scale * midX;
         const ty = H / 2 - scale * midY;
         svg
