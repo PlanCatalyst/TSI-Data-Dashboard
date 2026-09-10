@@ -51,7 +51,7 @@ export function App() {
   return (
     <AppShell>
       <Routes>
-        <Route path="/" element={<Navigate to="/explore" replace />} />
+        <Route path="/" element={<Navigate to="/map" replace />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/map" element={<MapPage />} />
