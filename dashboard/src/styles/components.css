@@ -333,6 +333,52 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+.trend-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .65rem;
+  margin: 0 0 .45rem;
+}
+.trend-periods--mini { margin-top: .45rem; }
+.trend-period {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  min-width: 0;
+  padding: .25rem .45rem;
+  border: 1px solid var(--bd);
+  border-radius: .35rem;
+  background: #fff;
+  color: var(--txt);
+  font-size: .65rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.trend-period--projected {
+  border-color: #edd6ad;
+  background: #fef9ef;
+  color: #7a4a0a;
+}
+.trend-period-line {
+  width: 1.15rem;
+  height: .14rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--blue);
+}
+.trend-period--projected .trend-period-line {
+  background: repeating-linear-gradient(90deg, #b56f12 0 .3rem, transparent .3rem .48rem);
+}
+.projection-explainer {
+  max-width: 62ch;
+  margin: 0 0 .5rem;
+  color: var(--mut);
+  font-size: .68rem;
+  line-height: 1.45;
+}
+@media (max-width: 400px) {
+  .trend-period { width: 100%; }
+}
 .dp-sep { height: 1px; background: var(--bd); }
 
 /* ── COLLAPSIBLE SUBDOMAINS ── */

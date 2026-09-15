@@ -113,6 +113,7 @@ export function MapDetailPanel({
       const data = allChartYears.map((y) => histByYear.get(y) ?? null);
 
       let bands: Array<{ lo: number; hi: number } | null> | undefined;
+      let forecast: Array<number | null> | undefined;
       if (projectionsEnabled && country) {
         const keys = indsByPillar[p.key] ?? [];
         bands = allChartYears.map((year) => {
@@ -130,9 +131,17 @@ export function MapDetailPanel({
           if (lo == null || hi == null) return null;
           return { lo, hi };
         });
+        forecast = allChartYears.map((year) => {
+          const values: number[] = [];
+          for (const code of keys) {
+            const band = forecastBand(getProjection(projectionIndex, country.iso3, code, year));
+            if (band?.value != null) values.push(band.value);
+          }
+          return meanFinite(values);
+        });
       }
 
-      return { pillar: p, data, bands };
+      return { pillar: p, data, bands, forecast };
     });
   }, [
     meta,
@@ -164,7 +173,8 @@ export function MapDetailPanel({
   }
 
   const overall = overallContext(country);
-  const endYearLabel = allChartYears[allChartYears.length - 1] ?? meta.years[meta.years.length - 1];
+  const observedThrough = meta.years[meta.years.length - 1];
+  const projectedThrough = allChartYears[allChartYears.length - 1] ?? observedThrough;
 
   return (
     <div className="detail-panel">
@@ -265,13 +275,25 @@ export function MapDetailPanel({
 
       <div className="dp-sep" />
       <div className="dp-section">
-        <div className="dp-section-title">
-          Domain trends — {meta.years[0]} to {endYearLabel}
-          {projectionsEnabled && (
-            <span className="badge pred-badge">Projected</span>
+        <div className="dp-section-title">Trend outlook</div>
+        <div className="trend-periods" aria-label="Chart data periods">
+          <span className="trend-period trend-period--observed">
+            <span className="trend-period-line" aria-hidden="true" />
+            Observed data through {observedThrough}
+          </span>
+          {projectionsEnabled && meta.projections.firstProjectedYear != null && (
+            <span className="trend-period trend-period--projected">
+              <span className="trend-period-line" aria-hidden="true" />
+              Projected {meta.projections.firstProjectedYear}–{projectedThrough}
+            </span>
           )}
-          <span className="badge hist-badge">Historical</span>
         </div>
+        {projectionsEnabled && (
+          <p className="projection-explainer">
+            Solid lines are observed data. Dashed lines and shaded bands are model projections
+            with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.
+          </p>
+        )}
         <DomainTrendsChart
           years={allChartYears}
           series={domainSeries}

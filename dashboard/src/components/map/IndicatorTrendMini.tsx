@@ -24,6 +24,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
   const bands = active && projectionView ? projectionView.bands : null;
   const firstProjectedYear = active ? (projectionView?.firstProjectedYear ?? null) : null;
   const hasUnavailable = Boolean(projectionView?.hasUnavailable);
+  const hasForecast = Boolean(bands?.some((band) => band != null));
 
   // Trend / latest chips stay on historical observations only (never invented forecasts).
   const histForTrend = series;
@@ -36,8 +37,8 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
   const bucket = trendBucket(delta);
 
   const W = 320;
-  const H = 100;
-  const PAD = { t: 6, b: 24, l: 30, r: 8 };
+  const H = 110;
+  const PAD = { t: 20, b: 24, l: 30, r: 8 };
   const tW = W - PAD.l - PAD.r;
   const tH = H - PAD.t - PAD.b;
   const n = chartYears.length;
@@ -114,6 +115,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
       ? chartYears.findIndex((y) => y >= firstProjectedYear)
       : -1;
   const divX = divIdx >= 0 ? xS(Math.max(0, divIdx)) : null;
+  const forecastThrough = chartYears[chartYears.length - 1] ?? firstProjectedYear;
 
   const deltaCol = bucket === "up" ? "#2a7a3a" : bucket === "down" ? "#c0392b" : "#817d77";
   const deltaStr =
@@ -134,6 +136,20 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
       </div>
       <div className="ind-meta">{indicator.unit}</div>
       <div className="ind-src">{indicator.source}</div>
+      {(hasForecast || hasUnavailable) && (
+        <div className="trend-periods trend-periods--mini" aria-label="Indicator data periods">
+          <span className="trend-period trend-period--observed">
+            <span className="trend-period-line" aria-hidden="true" />
+            Observed through {latestIdx >= 0 ? years[latestIdx] : years[years.length - 1]}
+          </span>
+          {hasForecast && firstProjectedYear != null && (
+            <span className="trend-period trend-period--projected">
+              <span className="trend-period-line" aria-hidden="true" />
+              Projected {firstProjectedYear}–{forecastThrough}
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "flex-start" }}>
         <div style={{ flexShrink: 0, width: 70 }}>
@@ -169,9 +185,32 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
               <svg
                 width="100%"
                 viewBox={`0 0 ${W} ${H}`}
-                preserveAspectRatio="none"
                 style={{ display: "block", overflow: "visible" }}
+                role="img"
+                aria-label={
+                  hasForecast
+                    ? `${indicator.label}: observed data and model projections`
+                    : `${indicator.label}: observed data`
+                }
               >
+                {divX != null && hasForecast && (
+                  <>
+                    <rect
+                      x={divX}
+                      y={PAD.t}
+                      width={Math.max(0, W - PAD.r - divX)}
+                      height={tH}
+                      fill="#fef6e6"
+                      opacity={0.7}
+                    />
+                    <text x={PAD.l + 4} y={12} fontSize={8} fontWeight={700} fill="#667481">
+                      OBSERVED
+                    </text>
+                    <text x={divX + 5} y={12} fontSize={8} fontWeight={700} fill="#8a5713">
+                      PROJECTED
+                    </text>
+                  </>
+                )}
                 {yTicks.map((y) => (
                   <g key={y}>
                     <line
@@ -211,9 +250,9 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                     y1={PAD.t}
                     x2={divX}
                     y2={H - PAD.b}
-                    stroke="#dde2ea"
-                    strokeWidth={1}
-                    strokeDasharray="3,2"
+                    stroke="#c8892f"
+                    strokeWidth={1.5}
+                    strokeDasharray="4,3"
                   />
                 )}
                 {bandPolygon && (
