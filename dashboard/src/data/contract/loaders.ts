@@ -1,4 +1,10 @@
-import type { CountriesPayload, DashboardContract, MetaPayload, TimeseriesPayload } from "./types";
+import type {
+  CountriesPayload,
+  DashboardContract,
+  MetaPayload,
+  ProjectionsPayload,
+  TimeseriesPayload,
+} from "./types";
 
 type ContractLoaderOptions = {
   baseUrl?: string;
@@ -42,6 +48,20 @@ function assertContractShape(meta: MetaPayload, countries: CountriesPayload, tim
   }
 }
 
+function assertProjectionsShape(projections: ProjectionsPayload) {
+  if (!Array.isArray(projections)) {
+    throw new Error("projections.json must be an array");
+  }
+  for (const row of projections) {
+    if (!row || typeof row.iso3 !== "string" || typeof row.indicator_code !== "string") {
+      throw new Error("projections row missing iso3 or indicator_code");
+    }
+    if (typeof row.year !== "number" || !Number.isFinite(row.year)) {
+      throw new Error(`projections row has invalid year: ${String(row.year)}`);
+    }
+  }
+}
+
 export async function loadDashboardContract(options: ContractLoaderOptions = {}): Promise<DashboardContract> {
   let baseUrl: string;
   if (options.baseUrl) {
@@ -68,5 +88,14 @@ export async function loadDashboardContract(options: ContractLoaderOptions = {})
   ]);
 
   assertContractShape(meta, countries, timeseries);
-  return { meta, countries, timeseries };
+
+  // Historical-only path when projections are disabled — do not fetch or require projections.json.
+  let projections: ProjectionsPayload = [];
+  if (meta.projections?.enabled) {
+    projections = await fetchJson<ProjectionsPayload>(`${baseUrl}/projections.json`);
+    assertProjectionsShape(projections);
+    console.log(`[dashboard] Loaded ${projections.length} projection rows (§8)`);
+  }
+
+  return { meta, countries, timeseries, projections };
 }

@@ -3,12 +3,18 @@ import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useSt
 import { ErrorState } from "../components/states/ErrorState";
 import { LoadingState } from "../components/states/LoadingState";
 import { loadDashboardContract } from "../data/contract/loaders";
-import type { CountriesPayload, MetaPayload, TimeseriesPayload } from "../data/contract/types";
+import type {
+  CountriesPayload,
+  MetaPayload,
+  ProjectionsPayload,
+  TimeseriesPayload,
+} from "../data/contract/types";
 
 type DashboardContextValue = {
   meta: MetaPayload | null;
   countries: CountriesPayload;
   timeseries: TimeseriesPayload;
+  projections: ProjectionsPayload;
   reload: () => Promise<void>;
 };
 
@@ -18,6 +24,7 @@ export function DashboardProvider({ children }: PropsWithChildren) {
   const [meta, setMeta] = useState<MetaPayload | null>(null);
   const [countries, setCountries] = useState<CountriesPayload>([]);
   const [timeseries, setTimeseries] = useState<TimeseriesPayload>({});
+  const [projections, setProjections] = useState<ProjectionsPayload>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +36,7 @@ export function DashboardProvider({ children }: PropsWithChildren) {
       setMeta(contract.meta);
       setCountries(contract.countries);
       setTimeseries(contract.timeseries);
+      setProjections(contract.projections);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown contract loading error");
     } finally {
@@ -41,8 +49,8 @@ export function DashboardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo<DashboardContextValue>(
-    () => ({ meta, countries, timeseries, reload }),
-    [meta, countries, timeseries]
+    () => ({ meta, countries, timeseries, projections, reload }),
+    [meta, countries, timeseries, projections]
   );
 
   if (isLoading) {

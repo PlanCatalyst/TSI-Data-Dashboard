@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { Indicator, Pillar, Subdomain, TimeseriesPayload } from "../../data/contract/types";
+import type { IndicatorProjectionView } from "../../data/contract/projections";
 import { IndicatorTrendMini } from "./IndicatorTrendMini";
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
   iso3: string;
   years: number[];
   defaultOpen?: boolean;
+  /** Optional per-indicator §8 views keyed by indicator.key. */
+  projectionViews?: Record<string, IndicatorProjectionView>;
 };
 
 // Collapsible row for one sub-domain. Closed view shows a small score bar; open
@@ -26,6 +29,7 @@ export function SubdomainBlock({
   iso3,
   years,
   defaultOpen = false,
+  projectionViews,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const sdIndicators = indicators.filter((ind) => ind.subdomain === subdomain.key);
@@ -73,6 +77,7 @@ export function SubdomainBlock({
               series={timeseries[iso3]?.[ind.key] ?? years.map(() => null)}
               years={years}
               color={pillar.color}
+              projectionView={projectionViews?.[ind.key] ?? null}
             />
           ))}
         </div>

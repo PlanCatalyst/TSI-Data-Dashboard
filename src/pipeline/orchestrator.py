@@ -79,7 +79,22 @@ class Orchestrator:
         upload_validated.upload()
 
         # ============================================================
+        # PROCESS (World Bank raw-series forecasts -> data/processed/)
+        # Must run BEFORE publish so PR B §8 rows are on disk for the
+        # atomic publish path (projections.json + meta.projections flip).
+        # Default off via runtime.run_forecasts.
+        # ============================================================
+        if runtime_cfg.get("run_forecasts", False):
+            from projections.process_data import ProcessData
+
+            process_data = ProcessData(self.config_path)
+            process_data.process()
+
+        # ============================================================
         # PUBLISH (contract JSON -> data/organized/v1/ or dashboard-public)
+        # Atomic: payload files first, meta.json LAST. When forecasts CSV
+        # exists, validates §8 rows via src.projections.validate_payload
+        # and publishes projections.json before meta.
         # ============================================================
         if runtime_cfg.get("publish_dashboard", True):
             publish_cfg = cfg.get("publish") or {}
@@ -101,20 +116,6 @@ class Orchestrator:
                 prefix=publish_cfg.get("dashboard_prefix", "v1/"),
                 dry_run=not (upload_azure and azure_creds),
             )
-
-        # ============================================================
-        # PROCESS (indicator progress projections -> data/processed/)
-        # Projections are not enabled for the MVP contract. Post-MVP owner:
-        # Anthony / Thomas.
-        # ============================================================
-        # processData = ProcessData(self.config_path)
-        # processData.process()
-        
-         # ============================================================
-        # UPLOAD PROCESSED (indicator progress projections -> data/processed/)
-        # ============================================================
-        # upload_processed = UploadProcessed(self.config_path)
-        # upload_processed.upload()
         
 
         '''

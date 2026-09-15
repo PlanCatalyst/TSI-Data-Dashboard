@@ -235,6 +235,15 @@ runtime:
   # If true: upload backend artifacts to Azure Blob.
   upload_azure: true
 
+  # PR B forecast engine (World Bank raw series intervals). Default off.
+  # When true, orchestrator emits §8 rows before publish; publish uploads
+  # projections.json then meta.json last (atomic readiness).
+  run_forecasts: false
+  forecast_horizon_years: 5
+  # Gate thresholds live in src.projections.quality_gates (assess_series);
+  # do not use a local min_observations stand-in.
+  # forecast_min_observations: 5  # removed — use PR A MIN_OBSERVATIONS=8
+
   # Build contract JSON (meta/countries/timeseries) after scoring.
   # When upload_azure is true and Azure creds are set, also uploads to
   # publish.dashboard_container_name; otherwise writes to data/organized/v1/.
