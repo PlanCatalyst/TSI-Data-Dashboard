@@ -7,6 +7,13 @@ output spec for a future contract extension.
 
 ## Current state
 
+**PR B (`feat/forecast-engine`):** production path is `src/forecasting/` +
+`projections/process_data.py`. Model = ARIMA(1,1,0) with 95% CI
+(`value` / `value_lo` / `value_hi`). Gate failures and unstable fits emit
+`forecast_unavailable` + UX reason — never last-value, never silent skip.
+Orchestrator toggle: `runtime.run_forecasts` (default `false`).
+
+
 The only thing here right now is **prior work** carried over from the old
 PlanCatalyst repo (`LlamzonAmazon/PC-Data-Dash`, `src/processing/`). It is
 reference material, **not runnable** against the current pipeline — see
@@ -83,6 +90,24 @@ change → /v1→/v2). That decision belongs to whoever owns the publisher
    skip. Worth re-evaluating with the current scored output's actual coverage.
 4. **How to expose uncertainty?** Old work emits point forecasts only. The
    client mock's "projection band" implies an interval, not a line.
+
+## Production quality gates (PR A)
+
+Runnable gate + validation code lives under **`src/projections/`** (not this
+research folder):
+
+| Module | Role |
+|--------|------|
+| `src/projections/quality_gates.py` | Per `iso3 × indicator` eligibility: `insufficient_observations`, `insufficient_span`, `stale_series`, `too_sparse`, `no_signal` |
+| `src/projections/validate.py` | `validate_payload` — rejects illegal interval forecast rows before publish |
+
+Contract fields and UX copy are documented in `docs/data-contract.md` §8.
+Forecast **model** work is PR B. PR C wires §8 emit into
+`src/upload/publish_dashboard.py` (validate via `src.projections.validate_payload`,
+upload `projections.json`, then `meta.json` last). Do not reintroduce last-value
+carry-forward from `process_data.py` into the live path.
+
+Tests: `pytest tests/projections/`.
 
 ## See also
 

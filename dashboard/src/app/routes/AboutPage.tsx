@@ -9,6 +9,7 @@ import {
   type FrameworkCardGroup,
 } from "../../content/about";
 import { DEFERRED_INDICATORS } from "../../content/data-notes";
+import { UX_UNAVAILABLE_COPY } from "../../data/contract/projections";
 
 // ── Framework card (one card may span multiple pillars) ───────────────────────
 
@@ -128,11 +129,19 @@ export function AboutPage() {
           : "Indicator framework data is not yet available."}
       </p>
 
-      {meta?.projections.enabled === false && (
+      {meta?.projections.enabled === false ? (
         <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
           Note: {meta.projections.note}
         </p>
-      )}
+      ) : meta?.projections.enabled === true ? (
+        <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+          Forecast intervals (when published) use value_lo/value_hi bands for eligible
+          series. Where a forecast is unavailable: {UX_UNAVAILABLE_COPY}
+          {meta.projections.firstProjectedYear != null
+            ? ` First projected year: ${meta.projections.firstProjectedYear}.`
+            : ""}
+        </p>
+      ) : null}
 
       {meta && (
         <>
