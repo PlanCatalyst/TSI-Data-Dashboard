@@ -5,6 +5,8 @@ import type { Pillar } from "../../data/contract/types";
 type Series = {
   pillar: Pillar;
   data: Array<number | null>;
+  /** Optional point estimates aligned to `years`; rendered as a dashed line. */
+  forecast?: Array<number | null>;
   /** Optional §8 interval bands aligned to `years` — drawn only when both lo/hi are finite. */
   bands?: Array<{ lo: number; hi: number } | null>;
 };
@@ -31,8 +33,9 @@ export function DomainTrendsChart({
 }: Props) {
   const [hover, setHover] = useState<{ x: number; y: number; yearIdx: number } | null>(null);
 
-  const W = 360, H = 200;
-  const PAD = { t: 12, b: 26, l: 30, r: 12 };
+  const W = 360;
+  const H = 210;
+  const PAD = { t: 25, b: 26, l: 30, r: 12 };
   const trackW = W - PAD.l - PAD.r;
   const trackH = H - PAD.t - PAD.b;
   const n = years.length;
@@ -55,10 +58,33 @@ export function DomainTrendsChart({
       <div style={{ position: "relative", height: H }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          preserveAspectRatio="none"
           style={{ display: "block", width: "100%", height: "100%", overflow: "visible" }}
           onMouseLeave={() => setHover(null)}
+          role="img"
+          aria-label={
+            divX == null
+              ? "Historical pillar trends"
+              : `Historical pillar trends with projections beginning ${firstProjectedYear}`
+          }
         >
+          {divX != null && (
+            <>
+              <rect
+                x={divX}
+                y={PAD.t}
+                width={Math.max(0, W - PAD.r - divX)}
+                height={trackH}
+                fill="#fef6e6"
+                opacity={0.65}
+              />
+              <text x={divX + 6} y={15} fontSize={8.5} fontWeight={700} fill="#8a5713">
+                PROJECTED
+              </text>
+              <text x={PAD.l + 4} y={15} fontSize={8.5} fontWeight={700} fill="#667481">
+                OBSERVED
+              </text>
+            </>
+          )}
           {[0, 25, 50, 75, 100].map((v) => (
             <g key={v}>
               <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="#eef0f3" strokeWidth={1} />
@@ -77,9 +103,9 @@ export function DomainTrendsChart({
               y1={PAD.t}
               x2={divX}
               y2={H - PAD.b}
-              stroke="#dde2ea"
-              strokeWidth={1}
-              strokeDasharray="3,2"
+              stroke="#c8892f"
+              strokeWidth={1.5}
+              strokeDasharray="4,3"
             />
           )}
 
@@ -107,6 +133,10 @@ export function DomainTrendsChart({
               .map((v, i) => (v != null ? `${xS(i).toFixed(1)},${yS(v).toFixed(1)}` : null))
               .filter(Boolean)
               .join(" ");
+            const forecastPts = (s.forecast ?? [])
+              .map((v, i) => (v != null ? `${xS(i).toFixed(1)},${yS(v).toFixed(1)}` : null))
+              .filter(Boolean)
+              .join(" ");
             return (
               <g key={s.pillar.key}>
                 {bandPts && (
@@ -123,6 +153,18 @@ export function DomainTrendsChart({
                     opacity={0.9}
                   />
                 )}
+                {forecastPts && (
+                  <polyline
+                    points={forecastPts}
+                    fill="none"
+                    stroke={s.pillar.color}
+                    strokeWidth={2}
+                    strokeDasharray="5,4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.95}
+                  />
+                )}
                 {s.data.map((v, i) =>
                   v == null ? null : (
                     <circle
@@ -131,6 +173,23 @@ export function DomainTrendsChart({
                       cy={yS(v).toFixed(1)}
                       r={2.5}
                       fill={s.pillar.color}
+                      onMouseEnter={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        setHover({ x: r.left + r.width / 2, y: r.top, yearIdx: i });
+                      }}
+                    />
+                  ),
+                )}
+                {s.forecast?.map((v, i) =>
+                  v == null ? null : (
+                    <circle
+                      key={`forecast-${i}`}
+                      cx={xS(i).toFixed(1)}
+                      cy={yS(v).toFixed(1)}
+                      r={3}
+                      fill="#fff"
+                      stroke={s.pillar.color}
+                      strokeWidth={1.5}
                       onMouseEnter={(e) => {
                         const r = e.currentTarget.getBoundingClientRect();
                         setHover({ x: r.left + r.width / 2, y: r.top, yearIdx: i });
@@ -172,7 +231,7 @@ export function DomainTrendsChart({
             </strong>
             {series.map((s) => {
               const band = s.bands?.[hover.yearIdx] ?? null;
-              const val = s.data[hover.yearIdx];
+              const val = s.data[hover.yearIdx] ?? s.forecast?.[hover.yearIdx] ?? null;
               return (
                 <div key={s.pillar.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span

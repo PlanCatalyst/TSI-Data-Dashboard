@@ -4,9 +4,9 @@
 > (deleted 2026-09-08). All remaining work belongs to Thomas or Anthony.
 > Contract truth: `docs/data-contract.md`. Invariants: `CLAUDE.md`.
 
-Status: client thread answered 2026-09-04; ball is with PlanCatalyst for the
-service principal, the `conces` spec document, and the `popdens` direction
-confirmation.
+Status: forecasting MVP merged to local `main` and verified 2026-09-15. Live
+publish is still blocked on Azure credentials. PlanCatalyst still owes the
+`conces` spec document and `popdens` direction confirmation.
 
 ## Owners
 
@@ -20,6 +20,8 @@ confirmation.
 - Republish `dashboard-public/v1/` once credentials exist (procedure:
   `docs/runbook-refresh.md`). Live Blob still serves the pre-fix
   `fresh-20260701` snapshot.
+- Deploy the forecast-enabled frontend build, then publish forecasts with
+  `runtime.run_forecasts: true`.
 - Mock parity pass and responsive QA at Wix iframe widths.
 - Wix embed E2E on `plancatalyst.org` once Reyna places the iframe.
 - Route client sign-off (Reyna is final authority).
@@ -58,28 +60,28 @@ confirmation.
 
 ## Descoped / deferred
 
-- Containerized and scheduled pipeline (descoped 2026-09-04): the confirmed
-  6-month cadence does not justify ACR, an image build, or a container host.
-  Manual runbook instead; `docs/docker.md` retained if the cadence shortens.
-  Forecast/projections publish is likewise **manual only** (no ACR/ACI cron) —
-  see `docs/runbook-refresh.md` § Forecast publish.
+- Scheduled pipeline: deferred as a follow-up on 2026-09-15. The manual
+  runbook remains the interim delivery, but the target is a twice-yearly Azure
+  Container Apps Job with managed identity, source-version discovery, and
+  failure alerts. Until that lands, forecast/projection publish is manual; see
+  `docs/runbook-refresh.md` § Forecast publish.
 - CI and test suites: none exist; add only if cadence or team size grows.
 - Legacy 3-level compatibility CSVs: remove once confirmed unused.
 
 
-## Forecasting MVP (split PRs)
+## Forecasting MVP — merged 2026-09-15
 
-| PR | Scope | Owner |
-|----|-------|-------|
-| **A** (`feat/forecast-contract-gates`) | Quality gates + `validate_payload` for interval forecast rows + contract §8 docs + pytest | Thomas |
-| **B** (`feat/forecast-engine`) | Forecast model only — no publish wiring | Thomas |
-| **C** (`feat/forecast-atomic-publish`) | Wire §8 emit into publish; atomic payloads-then-`meta.json`; pytest meta-last | Thomas |
-| **D** (`feat/forecast-projections-ui`) | Dashboard consumes §8 `projections.json` interval bands | Thomas |
-| **E** (`feat/forecast-reyna-runbook`) | Docs/ops only: Reyna manual forecast publish in `docs/runbook-refresh.md` | Thomas |
+- Quality gates, ARIMA intervals, atomic publish, projection UI, and Reyna's
+  interim runbook are now on `main`.
+- Verification: 43 backend tests pass; production TypeScript/Vite build passes.
+- The UI now labels the last observed year and visually separates solid
+  observed data from dashed forecasts and shaded 95% intervals.
+- Enabling live projections remains an ops step: set
+  `runtime.run_forecasts: true`, run ProcessData, publish, and deploy the
+  forecast-enabled frontend. Publish flips `meta.projections.enabled` when the
+  forecasts CSV is present.
+- Forecast coverage is currently limited to eligible World Bank series.
 
-A–D land the code path. Enabling live projections is an ops step: set
-`runtime.run_forecasts: true`, run ProcessData then publish (see runbook). Publish
-flips `meta.projections.enabled` when the forecasts CSV is present — there is no
-settings.yaml key for that field. UX copy for unavailable forecasts remains fixed:
+UX copy for unavailable forecasts remains fixed:
 
 > Forecast unavailable due to insufficient information.
