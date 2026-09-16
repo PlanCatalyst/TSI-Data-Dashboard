@@ -31,22 +31,26 @@ non-technical users in the dashboard.
 
 ## Architecture Overview
 
-The system is built as an automated Azure flow: scheduled trigger -> function
-orchestration -> containerized pipeline -> blob publishing -> dashboard load.
+The current production flow is: validated pipeline run → versioned Blob
+payloads → Azure Static Web Apps dashboard → Wix iframe. GitHub Actions gates
+backend, frontend, container, dependency, and CodeQL checks. Dashboard
+deployment is manually dispatched and environment-gated; a twice-yearly Azure
+data-refresh job is a planned follow-up, not a currently running service.
 
 ![Azure architecture for PlanCatalyst pipeline](./Azure-Arch.png)
 
 ## Data Flow
 
-At a high level, the pipeline runs on a schedule, checks for new upstream data,
-then processes and publishes only when updates exist.
+At a high level, the pipeline fetches configured upstream data, cleans and
+scores it, validates the contract, and publishes payloads atomically. The
+semi-annual refresh is currently initiated from the documented runbook.
 
 ![Pipeline data flow from trigger to publish](./Data-Flow.png)
 
 ## Platform and Stack
 
-- **Cloud:** Azure Blob Storage, Azure Functions, Azure Container Instances,
-Azure Container Registry, Logic Apps
+- **Cloud:** Azure Blob Storage, Azure Static Web Apps, Azure Container
+  Registry (container path retained for scheduled refresh work)
 - **Backend:** Python data pipeline
 - **Frontend:** React dashboard embedded in Wix
 - **Data sources:** UN SDG, World Bank, ND-GAIN, UNDP Human Development Reports (HDI/GII/MPI), World Bank Worldwide Governance Indicators (WGI), and additional indexed sources

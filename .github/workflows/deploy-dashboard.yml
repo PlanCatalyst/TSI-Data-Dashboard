@@ -1,0 +1,82 @@
+name: Deploy dashboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-production
+  cancel-in-progress: false
+
+jobs:
+  verify-backend:
+    name: Verify backend and publish contract
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements.txt
+          python -m pip install pip-audit==2.10.1
+
+      - name: Audit Python dependencies
+        run: python -m pip_audit -r requirements.txt
+
+      - name: Run backend tests
+        run: python -m pytest -q
+
+  deploy:
+    name: Verify and deploy production dashboard
+    if: github.ref == 'refs/heads/main'
+    needs: verify-backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://jolly-pebble-0e2f9300f.7.azurestaticapps.net
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.1"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        working-directory: dashboard
+        run: npm audit --audit-level=moderate
+
+      - name: Build production dashboard
+        working-directory: dashboard
+        run: npm run build
+        env:
+          VITE_CONTRACT_BASE_URL: https://tsidashboardblobstorage.blob.core.windows.net/dashboard-public/v1
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dashboard/dist
+          output_location: ""
+          skip_app_build: true

@@ -5,7 +5,7 @@
 # (e.g. `docker run --env-file .env ...` or ACI environment variables).
 # Build server-side with: scripts/acr_build.sh   (uses `az acr build`).
 
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # - PYTHONUNBUFFERED: stream pipeline logs immediately (no buffering) for ACI/log tailing.
 # - PYTHONDONTWRITEBYTECODE: skip .pyc clutter in the image layer.
@@ -25,8 +25,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Pipeline source + taxonomy source-of-truth. Paths resolve relative to the
 # repo root (REPO_ROOT = parents[2]), which is /app here:
 #   /app/src/...         (pipeline + src/config/settings.yaml)
+#   /app/projections/... (forecast processing entrypoint)
 #   /app/indicators/...  (indicators.yaml, country_codes.csv, SCORING_AUDIT.md)
 COPY src/ ./src/
+COPY projections/ ./projections/
 COPY indicators/ ./indicators/
 
 # Run as non-root. Pre-create the local artifact dir the pipeline writes to
