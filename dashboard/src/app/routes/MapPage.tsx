@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+
 import { useDashboardData } from "../../state/dashboard-context";
 import { MapDetailPanel } from "../../components/map/MapDetailPanel";
 import { MAP_COLOR_STOPS, WorldChoropleth } from "../../components/map/WorldChoropleth";
@@ -9,6 +10,9 @@ import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 export function MapPage() {
   const { meta, countries, timeseries, projections } = useDashboardData();
   const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
+  // Expand widens the detail panel (~75%); collapse restores the default width
+  // (panel stays visible — this is not dismiss). Only user toggle shrinks it.
+  const [panelExpanded, setPanelExpanded] = useState(false);
 
   // Hooks before any early return.
   const regionLabel = useMemo<Record<string, string>>(
@@ -29,7 +33,7 @@ export function MapPage() {
 
   return (
     <section className="map-section">
-      <div className="map-layout">
+      <div className={`map-layout${panelExpanded ? " panel-expanded" : ""}`}>
         <div className="map-area-wrap">
           <WorldChoropleth
             countries={countries}
@@ -121,6 +125,8 @@ export function MapPage() {
           projections={projections}
           regionLabel={regionLabel}
           onClose={() => setSelectedIso3(null)}
+          expanded={panelExpanded}
+          onToggleExpand={() => setPanelExpanded((v) => !v)}
         />
       </div>
     </section>
