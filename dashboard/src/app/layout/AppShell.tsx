@@ -2,10 +2,10 @@ import { NavLink } from "react-router-dom";
 import { PropsWithChildren } from "react";
 
 const links = [
+  { to: "/map", label: "Map" },
   { to: "/explore", label: "Explore" },
   { to: "/compare", label: "Compare" },
-  { to: "/map", label: "Map" },
-  { to: "/about", label: "About" }
+  { to: "/about", label: "About" },
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
