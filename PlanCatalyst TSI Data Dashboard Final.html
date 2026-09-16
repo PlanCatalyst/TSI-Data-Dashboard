@@ -2362,7 +2362,10 @@ function renderCmpDetail(){
 function showCmpTip(ev,text){
   const t=document.getElementById('cmp-svg-tip');
   if(!t) return;
-  t.innerHTML=`<div style="font-size:12px;">${text}</div>`;
+  const content=document.createElement('div');
+  content.style.fontSize='12px';
+  content.textContent=String(text);
+  t.replaceChildren(content);
   t.style.display='block';
   t.style.left=Math.min(ev.clientX+14,window.innerWidth-200)+'px';
   t.style.top=Math.max(ev.clientY-36,8)+'px';
