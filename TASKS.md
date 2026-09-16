@@ -65,7 +65,8 @@ publish is still blocked on Azure credentials. PlanCatalyst still owes the
   Container Apps Job with managed identity, source-version discovery, and
   failure alerts. Until that lands, forecast/projection publish is manual; see
   `docs/runbook-refresh.md` § Forecast publish.
-- CI and test suites: none exist; add only if cadence or team size grows.
+- CI, dependency audits, container build verification, and CodeQL are active.
+  Production dashboard deployment remains manual and environment-gated.
 - Legacy 3-level compatibility CSVs: remove once confirmed unused.
 
 

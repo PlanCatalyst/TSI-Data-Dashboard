@@ -21,12 +21,17 @@ data/
 
 # Not part of the Python pipeline image.
 dashboard/
-projections/
 docs/
 scripts/
 *.png
 *.html
 *.ipynb
+
+# Only the production projection package belongs in the image. Keep research
+# notebooks, sample output, and legacy documentation out of the build context.
+projections/*
+!projections/__init__.py
+!projections/process_data.py
 
 # Python / tooling cruft.
 .venv/

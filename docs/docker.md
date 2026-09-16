@@ -15,13 +15,15 @@ python -m src.pipeline.run_pipeline
 
 | File | Purpose |
 | --- | --- |
-| [`Dockerfile`](../Dockerfile) | `python:3.10-slim` base, installs `requirements.txt`, copies `src/` + `indicators/`, runs as non-root `appuser`. |
+| [`Dockerfile`](../Dockerfile) | `python:3.11-slim` base, installs `requirements.txt`, copies production pipeline, projection, and taxonomy code, and runs as non-root `appuser`. |
 | [`.dockerignore`](../.dockerignore) | Keeps the build context small and secret-free — excludes `data/` (~240 MB), `.env`, `.venv`, `dashboard/`, notebooks. |
 | [`scripts/acr_build.sh`](../scripts/acr_build.sh) | One command to cloud-build in ACR and push `:latest` + `:<git-sha>`. |
 
 ### Design notes
 
-- **Only `src/` and `indicators/` are copied in.** Paths in the code resolve
+- **Only `src/`, the production files from `projections/`, and `indicators/`
+  are copied in.** Research notebooks and sample forecast output remain
+  excluded. Paths in the code resolve
   relative to the repo root (`REPO_ROOT = Path(__file__).resolve().parents[2]`),
   which is `/app` in the image — so `indicators/indicators.yaml`,
   `country_codes.csv`, and `src/config/settings.yaml` all resolve correctly.
@@ -143,5 +145,6 @@ environment variables on the execution host (e.g. Azure Container Instances).
 - ⏳ `AcrPush` grant to the storage-only service principal — owner: **Anthony**
   (Azure). Until then the build script can't push.
 - 🔭 Execution host (ACI / scheduled job) is not chosen yet; the image is built
-  to be CMD-overridable and run anywhere. See `CLAUDE.md` for the publish-step
-  wiring that still runs as a manual post-step.
+  to be CMD-overridable and run anywhere. Forecast processing and atomic
+  dashboard publish are wired into the orchestrator; scheduling remains the
+  follow-up.

@@ -288,23 +288,29 @@ same order under `data/organized/v1/`.
 
 ## Frontend deploy (only when code changes)
 
-There is no CI in this repo. Builds and deploys are manual.
+Every push and pull request to `main` runs backend tests, dependency audits,
+the frontend production build, the pipeline container build, and CodeQL.
+Production deployment remains intentional: dispatch the **Deploy dashboard**
+workflow from `main`. It repeats the backend/frontend gates before uploading
+and requires `AZURE_STATIC_WEB_APPS_API_TOKEN` in the GitHub `production`
+environment.
 
 ```zsh
 cd dashboard
-npm install
+npm ci
+npm audit --audit-level=moderate
 npm run build          # tsc -b && vite build
 ```
 
-`dashboard/.env.production` supplies `VITE_CONTRACT_BASE_URL`. It is gitignored, so **a fresh clone
-will not have it** and the build will silently fall back to the bundled fixtures in
-`dashboard/public/v1/`. Recreate it from `dashboard/.env.example` before building. This is the
-single most likely handoff failure.
+The deployment workflow supplies `VITE_CONTRACT_BASE_URL` explicitly. For a
+local production build, `dashboard/.env.production` supplies the same value;
+it remains gitignored and must never contain secrets.
 
-Deploy `dashboard/dist/` to the Static Web App. The embed URL never changes, so the iframe on the
-client's Wix page does not need to be touched after a deploy.
+The workflow deploys `dashboard/dist/` to the Static Web App. The embed URL
+never changes, so the iframe on the client's Wix page does not need to be
+touched after a deploy.
 
-`dashboard/staticwebapp.config.json` controls who may frame the dashboard. `frame-ancestors`
+`dashboard/public/staticwebapp.config.json` controls who may frame the dashboard. `frame-ancestors`
 currently allows `plancatalyst.org`, `*.plancatalyst.org` and the Wix editor and preview origins.
 Adding a new host means editing that file and redeploying.
 

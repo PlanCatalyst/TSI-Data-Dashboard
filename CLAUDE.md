@@ -57,7 +57,15 @@ See `RUNNING.md` at repo root for the full local-setup walkthrough (Python venv,
 
 ### Tests/Lint
 
-There is currently no test runner or linter wired up in this repo (no `pytest`, `ruff`, `eslint`, or CI config). Don't claim test coverage; if a change needs verification, run the relevant pipeline stage and inspect the CSV/JSON output.
+```zsh
+.venv/bin/python -m pytest -q
+cd dashboard && npm ci && npm audit --audit-level=moderate && npm run build
+docker build --tag tsi-pipeline:ci .
+```
+
+GitHub Actions runs the backend tests and dependency audit, frontend dependency
+audit and production build, pipeline container build, and CodeQL. There is
+still no standalone Python/TypeScript linter.
 
 ## Pipeline Architecture
 
@@ -71,7 +79,9 @@ Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipe
 2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`. Cleaner output schema is `country_code, country_name, year, value, indicator, series_code` (plus source-specific extras). Rows whose `series_code` isn't registered in `IndicatorScorerFactory` persist in the CSV but are defensively skipped by scoring.
 3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads the UN SDG cleaned CSV plus any additional interim CSVs listed under `runtime.interim_data` (ND-GAIN, UNDP HDR, WGI, etc.), concatenates them, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
 4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
-5. **Publish** (`src/upload/publish_dashboard.py`) — **implemented.** Builders, validation, dry-run, and Azure upload exist. **Not yet wired into `orchestrator.py`** — publish is still a manual post-step. Owner: **Anthony**.
+5. **Forecast/Publish** — optional World Bank forecast processing runs when
+   `runtime.run_forecasts: true`, then `src/upload/publish_dashboard.py`
+   validates and publishes contract payloads atomically with `meta.json` last.
 
 ### The publish boundary is the only place orientation flips
 
@@ -134,9 +144,9 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   2026-05-17. `hdi` replaced `conces` in the `pri/macrosec` slot (2026-06-01; `InverseIndexScorer`,
   ~190 countries). Issues #3 (`agoda`), #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification)
   were all closed 2026-07-07.
-- **The 2026-07-07 fix session is uncommitted.** ~176k insertions across 16 files sit on `main`,
-  including the `SCORING_AUDIT.md` rows recording those fixes. Anything reading only committed
-  history reports a pre-fix world. Commit before trusting any status summary.
+- **The 2026-07-07 fix session is committed and pushed.** Scoring fixes and
+  regenerated bundled fixtures are on `main`; the remaining gap is republishing
+  those results to the live Blob snapshot.
 - **The live Blob serves a pre-fix snapshot.** `dashboard-public/v1/meta.json` reports
   `pipelineRunId: fresh-20260701`, which predates the fixes above. The deployed dashboard therefore
   still shows the saturated `ag` pillar. A republish is required and has been promised to the client.
@@ -152,9 +162,10 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
 - Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of
   ISO3. **Anthony** (re-run cleaner).
 - **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
-  `VITE_CONTRACT_BASE_URL` is set in `dashboard/.env.production`, which is gitignored, so any build
-  on a machine lacking that file silently falls back to the bundled `dashboard/public/v1/` fixtures.
-  There is no CI; SWA deploys are manual.
+  CI supplies the production Blob URL explicitly. Production deployment is a
+  manually dispatched, CI-gated workflow and requires the
+  `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
+  environment.
 - **Storage account ownership is unconfirmed.** `tsidashboardblobstorage` may sit on a personal
   Azure subscription rather than PlanCatalyst's. If so it must migrate before handoff, and moving it
   requires a frontend rebuild and redeploy because the Blob URL is baked in at build time.

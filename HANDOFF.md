@@ -1,24 +1,24 @@
 # Handoff and Execution Context — PlanCatalyst Data Dashboard
 
-> Active onboarding and execution guide. Last updated **2026-09-04**.
+> Active onboarding and execution guide. Last updated **2026-09-16**.
 
-## 0) Status, 2026-09-04
+## 0) Status, 2026-09-16
 
 The client thread reopened 2026-08-13 and was answered 2026-09-04. Three things define the current
 state:
 
 1. **All 28 indicators score correctly.** Issues #3, #4, #5 and #6 were closed 2026-07-07. The
    "scoring bugs" block that used to live in section 4 is resolved and has been rewritten.
-2. **That fix work is uncommitted.** Roughly 176k insertions across 16 files sit on `main`. Until it
-   is committed, anything reading git history reports the pre-fix world, which is exactly how stale
-   bug numbers reached a client email.
+2. **The scoring and forecasting work is committed on `main`.** Forecast
+   quality gates, ARIMA intervals, atomic projection publish, and the
+   projection-aware frontend are merged and locally verified.
 3. **The live site serves a 2026-07-01 snapshot** (`pipelineRunId: fresh-20260701`), predating those
    fixes, so the deployed `ag` pillar still looks saturated. A republish is owed to the client and
    is blocked on credentials.
 
-**Architecture change:** the containerised scheduled pipeline is descoped. At the client-confirmed
-6-month refresh cadence it is not worth its cost. Publishing is a manual workstation run, documented
-in `docs/runbook-refresh.md`. The ACR blocker is therefore no longer on the critical path.
+**Operations:** publishing remains a manual run documented in
+`docs/runbook-refresh.md`. A twice-yearly Azure Container Apps Job is tracked as
+a follow-up; the pipeline container is now verified in CI.
 
 ## 1) Project at a glance
 
@@ -93,7 +93,7 @@ Verified again 2026-09-04 against `data/interim/validated/`.
   and clean restored 8,730 rows across 194 countries. `clean.csv` is produced. 28/28 indicators
   reach scoring.
 - `popdens` (#6) — **Verified.** The banded fix produces 0/25/50/75/100 in a fresh run.
-- ⚠️ **None of this is live.** These fixes are uncommitted and unpublished. The deployed dashboard
+- ⚠️ **None of this is live.** These fixes are committed but unpublished. The deployed dashboard
   still serves the pre-fix 2026-07-01 snapshot until a republish happens.
 
 - Automation / alerting — **Anthony** (Phase 3).
@@ -147,13 +147,15 @@ See `TASKS.md` for deliverables and milestones.
 ### Phase 2 — QA / validation
 
 5. Cleaning validation and data sanity checks (Anthony + Thomas).
-6. Merge frontend test branch when entering hardening.
+6. CI hardening — **Done 2026-09-16.** Backend tests, Python/npm dependency
+   audits, frontend production build, container build, and CodeQL run on
+   `main` and pull requests.
 
 ### Phase 3 — Ops
 
-7. ~~Automation, alerting~~ — **descoped with the container path.** At two runs a year there is no
-   scheduled job to alert on. The rollback and refresh procedure lives in
-   `docs/runbook-refresh.md`.
+7. Automation and alerting — **deferred follow-up.** Target: twice-yearly
+   Azure Container Apps Job with managed identity and failure alerts. The
+   interim rollback and refresh procedure lives in `docs/runbook-refresh.md`.
 
 ## 9) References
 
