@@ -57,8 +57,7 @@ semi-annual refresh is currently initiated from the documented runbook.
 
 ## Team
 
-- **Thomas Llamzon** — PM · full-stack integration · frontend presentability
-- **a contributor** — Co-PM · Azure hosting · indicators · cleaning · publish · automation
+- **Thomas Llamzon** — remaining delivery (pipeline, Azure, frontend, Wix E2E)
 
 See `TASKS.md` for the current plan.
 
