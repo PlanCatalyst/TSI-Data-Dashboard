@@ -356,6 +356,7 @@ export function MapDetailPanel({
                   iso3={country.iso3}
                   years={meta.years}
                   projectionViews={projectionsEnabled ? projectionViews : undefined}
+                  indicatorStatus={country.indicatorStatus}
                 />
               ))}
             </div>
