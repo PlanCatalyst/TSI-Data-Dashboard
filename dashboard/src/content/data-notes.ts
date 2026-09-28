@@ -1,3 +1,5 @@
+import type { IndicatorStatus, IndicatorStatusValue } from "../data/contract/types";
+
 /**
  * Data-honesty copy for missing / deferred indicators.
  *
@@ -31,6 +33,36 @@ export const DEFERRED_INDICATORS: Record<string, string> = {
   popdens:
     "Population density uses a banded scoring formula. Whether it contributes to the context pillar score or is display-only is pending client confirmation — see scoring audit.",
 };
+
+/**
+ * Copy for contract §3.1 `indicatorStatus`. A null with a status is not a
+ * generic gap: `out_of_scope` is a correct, permanent absence and
+ * `incomplete_data` is a gap someone may need to chase. Keyed by status value,
+ * not indicator, so any indicator that gains a status model reuses it.
+ */
+export const INDICATOR_STATUS_COPY: Record<IndicatorStatusValue, string> = {
+  scored: "",
+  out_of_scope:
+    "Not in scope for this index. The country is not an IBRD, IDA or blend borrower, so it does not report the debt data the index is built from. This is not a data gap.",
+  incomplete_data:
+    "In scope, but one or more components have no data in any published year. No partial score is computed.",
+};
+
+/** Human labels for `missingComponents` identifiers (mspi). Unknown identifiers fall back to the raw key. */
+export const MSPI_COMPONENT_LABELS: Record<string, string> = {
+  income: "income",
+  fragility: "governance and fragility",
+  debt_risk: "debt risk",
+  concessionality: "debt concessionality",
+};
+
+export function describeIndicatorStatus(status: IndicatorStatus | null | undefined): string | null {
+  if (!status || status.status === "scored") return null;
+  const base = INDICATOR_STATUS_COPY[status.status] ?? NO_DATA_IN_SNAPSHOT;
+  if (status.status !== "incomplete_data" || status.missingComponents.length === 0) return base;
+  const parts = status.missingComponents.map((c) => MSPI_COMPONENT_LABELS[c] ?? c);
+  return `${base} Missing: ${parts.join(", ")}.`;
+}
 
 /**
  * Short footnote for the Explore table explaining what — means and why many pillar columns

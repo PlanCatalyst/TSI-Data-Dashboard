@@ -47,6 +47,15 @@ export type MetaPayload = {
 
 export type CountryScores = Record<string, number | null>;
 
+/** docs/data-contract.md §3.1 — why an indicator is null, not just that it is. */
+export type IndicatorStatusValue = "scored" | "out_of_scope" | "incomplete_data";
+
+export type IndicatorStatus = {
+  status: IndicatorStatusValue;
+  /** Non-empty exactly when status is "incomplete_data". */
+  missingComponents: string[];
+};
+
 export type CountryPayload = {
   id: number;
   iso3: string;
@@ -55,6 +64,8 @@ export type CountryPayload = {
   scores: CountryScores;
   overall: number | null;
   trend: Array<number | null>;
+  /** Optional, keyed by indicator.key. Present only for indicators with a status model. */
+  indicatorStatus?: Record<string, IndicatorStatus>;
 };
 
 export type CountriesPayload = CountryPayload[];

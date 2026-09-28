@@ -1,4 +1,5 @@
-import type { Indicator } from "../../data/contract/types";
+import type { Indicator, IndicatorStatus } from "../../data/contract/types";
+import { describeIndicatorStatus } from "../../content/data-notes";
 import { trendBucket, trendDelta } from "../../data/contract/selectors";
 import {
   UX_UNAVAILABLE_COPY,
@@ -12,12 +13,15 @@ type Props = {
   color: string;
   /** When projections.enabled, optional joined §8 view for this indicator. */
   projectionView?: IndicatorProjectionView | null;
+  /** Optional §3.1 status explaining a null series. */
+  status?: IndicatorStatus | null;
 };
 
 // Per-indicator mini chart shown inside an open subdomain block.
 // Pure SVG; no Chart.js. When projections are enabled, draws value_lo/value_hi
 // bands only for status/record_type === "forecast" (never coerces null→0).
-export function IndicatorTrendMini({ indicator, series, years, color, projectionView }: Props) {
+export function IndicatorTrendMini({ indicator, series, years, color, projectionView, status }: Props) {
+  const statusNote = describeIndicatorStatus(status);
   const active = Boolean(projectionView?.projectionsActive);
   const chartYears = active && projectionView ? projectionView.years : years;
   const histSeries = active && projectionView ? projectionView.historical : series;
@@ -157,7 +161,11 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
             {latest != null ? latest : "—"}
           </div>
           <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.3 }}>
-            {latest != null && latestIdx >= 0 ? `as of ${years[latestIdx]}` : "no data"}
+            {latest != null && latestIdx >= 0
+              ? `as of ${years[latestIdx]}`
+              : status?.status === "out_of_scope"
+                ? "out of scope"
+                : "no data"}
           </div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: deltaCol, marginTop: 5 }}>
             {deltaStr}
@@ -175,10 +183,10 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                 color: "var(--mut)",
                 fontStyle: "italic",
                 padding: "20px 0",
-                textAlign: "center",
+                textAlign: statusNote ? "left" : "center",
               }}
             >
-              No data available for this indicator.
+              {statusNote ?? "No data available for this indicator."}
             </div>
           ) : (
             <>
