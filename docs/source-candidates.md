@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Provide a pre-approved starting shortlist for **Anthony / Thomas** so source work
-can proceed without waiting on PM follow-up.
+Provide a pre-approved starting shortlist so source work can proceed without
+waiting on PM follow-up.
 
 These candidates align with the client frontend blueprint:
 `PlanCatalyst TSI Data Dashboard Final.html`.
@@ -61,7 +61,10 @@ These candidates align with the client frontend blueprint:
 - URL: `https://www.worldbank.org/content/dam/sites/govindicators/doc/wgidataset_with_sourcedata-2025.xlsx`
 - Version: "WGI 2025 release" (data 1996–2024).
 - Raw landing: `data/raw/world-bank/wgidataset_2025.xlsx` (10 MB).
-- Clean output: `data/clean/world-bank/wb_wgi_clean.csv` (5,340 rows = 214 countries × ~29 years).
+- Clean output: `data/clean/world-bank/wb_wgi_clean.csv`. `WGI_GOVEFF` remains
+  the 0-100 GE score (~5,340 rows). As of 2026-09-19 the same file also carries
+  native EST estimates (`VA.EST` … `CC.EST`, approx. −2.5 to +2.5) for `mspi`
+  fragility. Do not reuse `WGI_GOVEFF` for that component.
 - Sample check (2024 top capability): Singapore 95.67, Japan 91.94, Luxembourg 91.00, Denmark 88.53, NZ 87.30. Bottom: South Sudan 9.09, Haiti 12.15, Somalia 13.42, Afghanistan 13.74, Yemen 14.93.
 - Scoring: wired via `WGI_GOVEFF` series_code → `SimpleDirectionalScorer` in `factory.py`. WGI's 0-100 score is already the favorability score; we just invert (`100 - value`) for vulnerability orientation, then the publish step flips it back so the frontend sees the original WGI number.
 - Pillar wiring: `ctx → statecap → state → WGI_GOVEFF` in `pillar_taxonomy.py`.
@@ -71,19 +74,31 @@ These candidates align with the client frontend blueprint:
 
 - The Hanson-Sigman dataset (`data/raw/owid-state-capacity/` if present) is preserved as a reference but is no longer wired. If PlanCatalyst ever wants to re-evaluate, the OWID grapher CSV is at `https://ourworldindata.org/grapher/state-capacity-index.csv` (data 1960–2015).
 
-### `conces` (Concessionality Index) — **deferred future task**
+### `conces` / macrosec composite — **scored 2026-09-19; coverage drop vs HDI**
 
-- Status: not implemented. Coverage remains at **27 of 28** indicators live. `conces` is the one outstanding gap.
-- Why deferred (not "blocked on data"): the input data exists (World Bank + IMF have all the underlying indicators we'd need), but **the Concessionality Index itself is not a published dataset** — it's a PlanCatalyst-defined composite, and the recipe is not specified in `indicators/indicators.yaml`. The yaml lists four themes but does not say which specific indicators feed each, how they are aggregated within a theme, how the four themes combine, or how the final score is normalized to 0-100. Building it from "best-guess" indicators would put fabricated methodology in front of decision-makers — worse than showing a documented gap.
-- Open questions PlanCatalyst must answer before implementation:
-  1. **Per-capita income (6 indicators)** — which specific WB/IMF series codes? (Candidates: GNI per capita Atlas, GDP per capita PPP, final household consumption per capita, ...). What weighting?
-  2. **Vulnerability and fragility (6 indicators)** — which series? (Candidates: WGI Political Stability, INFORM Risk Index, Fragile States Index sub-indicators, ND-GAIN exposure, ...). What weighting?
-  3. **Risk of debt distress (5 indicators)** — which series? (Candidates: IMF Debt Sustainability Analysis risk ratings, WB debt-to-GNI, debt service / exports, ...). What weighting?
-  4. **Non-concessional external debt (3 indicators)** — which series? (Candidates: WB IDS external-debt stocks, non-concessional share of total debt, ...). What weighting?
-  5. How are the four sub-pillar scores combined into a final concessionality index — equal weight, or some other scheme?
-  6. How is the final composite normalized to 0–100 — min-max across countries, percentile rank, or a fixed scale?
-- Suggested follow-up: one async written exchange with PlanCatalyst to pin down all six questions. Once answered, the implementation is ~1 day of work — the patterns for both WB API ingestion (`src/fetch/world_bank_fetch.py`) and file-download composites (`src/fetch/wb_wgi_fetch.py`, `src/fetch/undp_hdr_fetch.py`) are now established, so wiring a composite from documented components is straightforward.
-- Until then: keep `conces: None` in `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE` and the `pri/macrosec/conces` cell will remain null in the contract.
+- Status: formula is in `docs/spec-macrosec-index.md` (`index_version: "1.0"`).
+  Contract key `mspi` landed 2026-09-19. Composer emits `MSPI_INDEX`; taxonomy
+  maps `mspi` → `MSPI_INDEX`. Local score: **117 countries / 1,693 country-years**
+  (2010–2024) vs HDI **193 / 2,688**. `DT.DOD.ALLC.ZS` and `DT.DOD.DECT.EX.ZS`
+  are archived on WDI and must be fetched from IDS source 6 with counterpart-area
+  WLD. Do not live-publish until PlanCatalyst confirms the coverage drop.
+- Why it was deferred: the Concessionality Index was never a published dataset. PlanCatalyst
+  has now specified a four-component World Bank composite (equal 25% weights, fixed bounds,
+  null if any component is null). The six methodology questions below are answered.
+- Answers (2026-09-17 spec):
+  1. **Per-capita income** — `NY.GDP.PCAP.CD`, log then fixed min-max ln(200)–ln(150,000). 25%.
+  2. **Vulnerability and fragility** — mean of WGI EST dimensions `VA, PV, GE, RQ, RL, CC`,
+     fixed min-max −2.5 to +2.5. Skip missing dimensions. 25%. Do not reuse `WGI_GOVEFF`.
+  3. **Risk of debt distress** — LIC-DSF proxy from IDS PV (`DT.DOD.PVLX.*`, face-value
+     fallback `DT.DOD.DECT.*`) plus `DT.TDS.DECT.EX.ZS`, tiered on `avg_wgi`. Categorical
+     1.0 / 0.5 / 0.0. 25%.
+  4. **Non-concessional external debt** — invert `DT.DOD.ALLC.ZS`. 25%.
+  5. Four components combined by **equal weight**.
+  6. Normalized on **fixed absolute bounds**, clipped to [0, 1], then × 100. Not
+     cross-country min-max, not percentile rank.
+- Implementation is unblocked. Owner: **Thomas** (finishing the project solo as of
+  2026-09-19). Contract key is `mspi`. Flag coverage drop vs HDI before swapping
+  the live snapshot. Composer is in `src/calculating/mspi.py`.
 
 ## Required acceptance criteria per source
 

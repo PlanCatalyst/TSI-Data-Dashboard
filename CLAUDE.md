@@ -138,37 +138,63 @@ When documents disagree, resolve in this order (lower number wins):
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as of 2026-09-04):
+From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as of 2026-09-19):
 
 - **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since
-  2026-05-17. `hdi` replaced `conces` in the `pri/macrosec` slot (2026-06-01; `InverseIndexScorer`,
-  ~190 countries). Issues #3 (`agoda`), #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification)
-  were all closed 2026-07-07.
+  2026-05-17. `pri/macrosec` contract key is `mspi` as of 2026-09-19, backed by
+  `MSPI_INDEX` (`src/calculating/mspi.py`). Issues #3 (`agoda`),
+  #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification) were all closed 2026-07-07.
 - **The 2026-07-07 fix session is committed and pushed.** Scoring fixes and
   regenerated bundled fixtures are on `main`; the remaining gap is republishing
   those results to the live Blob snapshot.
 - **The live Blob serves a pre-fix snapshot.** `dashboard-public/v1/meta.json` reports
   `pipelineRunId: fresh-20260701`, which predates the fixes above. The deployed dashboard therefore
   still shows the saturated `ag` pillar. A republish is required and has been promised to the client.
-- **No `.env` at repo root.** Publish credentials are not currently held locally. Either Anthony has
-  them or the republish waits on the new service principal.
-- `conces`: **client declined the `hdi` substitution** (2026-08-13) and supplied a substitute
-  composite formula built from World Bank indicators already in scope. The attachment has not been
-  received; re-requested 2026-09-04. `hdi` holds the slot until the spec arrives. Net-new work when
-  it does: ingestion, formula, scorer, `indicators.yaml` entry, `SCORING_AUDIT.md` row, re-run.
-- `popdens`: **resolved as scored** (client, 2026-08-13). Supplied bands are byte-identical to
-  `DensityScorer`. One confirmation still outstanding: whether the client expects dense countries to
-  *display* high or low, since the publish boundary inverts. Asked 2026-09-04.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` on disk uses numeric UN M49 country codes instead of
-  ISO3. **Anthony** (re-run cleaner).
+- **No `.env` at repo root.** Publish credentials are not currently held locally. The
+  republish waits on the new service principal (or any credentials that still exist
+  off-repo).
+- `conces` / macrosec: client declined the `hdi` substitution (2026-08-13) and
+  supplied the composite spec on **2026-09-17** (`docs/spec-macrosec-index.md`).
+  Contract key **`mspi`** landed 2026-09-19. Composer wired and scored
+  (`MSPI_INDEX`: 117 countries vs HDI 193 in 2010–2024). **Coverage confirmed
+  2026-09-24:** the client chose to exclude non-covered countries rather than
+  substitute, so the all-or-nothing null rule stands and `mspi` is cleared to
+  replace `hdi` in the live snapshot. Remaining: About-page copy naming the
+  excluded set, and confirming rank/compare views treat a null `pri` as
+  excluded, not last place. **A revised spec arrived 2026-09-24**
+  (`Macro_Socio-Economic_Performance_Index_Spec UPDATED.docx`, repo root).
+  Formula, weights, bounds and series are unchanged; it adds an IDS scope rule
+  resolved from World Bank `lendingType.id`, a three-value `status` field
+  (`scored` / `out_of_scope` / `incomplete_data`), a requirement that every
+  country appear in the output, and `partial_scores: false`.
+  `src/calculating/mspi.py` implements the superseded model (one `complete`
+  filter that drops incomplete rows) and needs rework, plus an additive
+  contract `status` field. Her scope rule also returns 145 countries against
+  her stated ~120 and mislabels 15 high-income IBRD graduates as data gaps;
+  three follow-ups are with her. Do not build until they are answered.
+  `docs/spec-macrosec-index.md` carries the full diff.
+- `popdens`: **resolved as scored** (client, 2026-08-13) and **display direction confirmed**
+  (2026-09-17). Bands are byte-identical to `DensityScorer`. Keep scored + inverted; dense
+  countries display low. No code change.
+- ~~Stale `data/clean/unsdg/un_sdg_clean.csv` using numeric UN M49 country codes.~~
+  **Closed 2026-09-24.** Verified on disk: 234 distinct `country_code` values,
+  all ISO3, zero numeric. The 2026-07-07 cleaner re-run already fixed it; the
+  gap note outlived the gap.
 - **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
   CI supplies the production Blob URL explicitly. Production deployment is a
   manually dispatched, CI-gated workflow and requires the
   `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
   environment.
-- **Storage account ownership is unconfirmed.** `tsidashboardblobstorage` may sit on a personal
-  Azure subscription rather than PlanCatalyst's. If so it must migrate before handoff, and moving it
-  requires a frontend rebuild and redeploy because the Blob URL is baked in at build time.
+- **Storage account ownership is unconfirmed, and the IT ask hit the wrong account.**
+  PlanCatalyst IT replied 2026-09-24 that no `dashboard-public` container exists, with a screenshot
+  of storage account `tsidatadashboard98a4` holding only `app-package-tsi-function-78a9cef` and
+  `azure-webjobs-hosts` (Functions runtime containers). The dashboard reads a different account,
+  `tsidashboardblobstorage`, which is live and anonymous-readable today. `tsidatadashboard98a4`
+  also has `allowBlobPublicAccess` disabled (verified: HTTP 409 `PublicAccessNotPermitted`), so a
+  container created there cannot be made anonymous-readable without an account-level change. If
+  `tsidashboardblobstorage` is a personal subscription it must migrate before handoff, and moving it
+  requires a frontend rebuild and redeploy because the Blob URL is baked in at build time. The reply
+  for IT, including the no-public-access fallback, is `docs/azure-it-request.md`.
 - **ACR / containerised pipeline: descoped 2026-09-04.** At the confirmed 6-month refresh cadence the
   registry push, image build and container host are not worth their cost. Publish runs manually from
   a workstation, documented in `docs/runbook-refresh.md`. The container path stays available if the
@@ -176,10 +202,10 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
 
 ## Team Execution Model
 
-- **Thomas:** PM · full-stack · frontend presentability · Wix E2E
-- **Anthony:** Co-PM · Azure · indicators · cleaning · publish · automation
+- **Thomas:** remaining delivery (pipeline, Azure, frontend, Wix E2E). Finishing
+  the project solo as of 2026-09-19.
 
-Remaining work and ownership live in `TASKS.md`.
+Remaining work lives in `TASKS.md`.
 
 ## Agent skills
 

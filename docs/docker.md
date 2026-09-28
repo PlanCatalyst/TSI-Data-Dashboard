@@ -142,8 +142,9 @@ environment variables on the execution host (e.g. Azure Container Instances).
 
 - ✅ Dockerfile, `.dockerignore`, and `acr_build.sh` are in place.
 - ✅ Registry `TSIcontainers` exists (Canada Central, `tsi-data-dashboard`).
-- ⏳ `AcrPush` grant to the storage-only service principal — owner: **Anthony**
-  (Azure). Until then the build script can't push.
+- ⏳ `AcrPush` grant — **descoped 2026-09-04** with the container path. If the
+  cadence ever shortens, this grant is Thomas's to request. Until then the
+  build script is not used for delivery.
 - 🔭 Execution host (ACI / scheduled job) is not chosen yet; the image is built
   to be CMD-overridable and run anywhere. Forecast processing and atomic
   dashboard publish are wired into the orchestrator; scheduling remains the

@@ -1,8 +1,8 @@
 # Handoff and Execution Context — PlanCatalyst Data Dashboard
 
-> Active onboarding and execution guide. Last updated **2026-09-16**.
+> Active onboarding and execution guide. Last updated **2026-09-19**.
 
-## 0) Status, 2026-09-16
+## 0) Status, 2026-09-19
 
 The client thread reopened 2026-08-13 and was answered 2026-09-04. Three things define the current
 state:
@@ -60,23 +60,34 @@ From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 - ~~`mpi`~~ — **Closed 2026-05-17** (`UNDPHDRFetcher`).
 - ~~`ndgain` composite~~ — **Closed 2026-05-17** (published `vulnerability.csv`).
 - ~~`state`~~ — **Closed 2026-05-17** (WGI Government Effectiveness).
-- ~~`conces`~~ — **Replaced by `hdi`** as the `pri/macrosec` slot (2026-06-01). MVP exclusion proposed; needs PlanCatalyst sign-off to formalise.
+- ~~`conces`~~ — Replaced by `hdi` (2026-06-01), then by contract key **`mspi`**
+  (2026-09-19) after the client spec arrived. Composer wired; taxonomy maps
+  `mspi` → `MSPI_INDEX`. See `docs/spec-macrosec-index.md`. Scored 2026-09-19
+  at 117 countries vs HDI 193; the client confirmed on 2026-09-24 that
+  non-covered countries are excluded rather than substituted, so `mspi` is
+  cleared for the live snapshot.
 - ~~Orchestrator → publish wiring~~ — **Closed 2026-07-03** (`622e3bf`). Full pipeline runs in one command.
 - ~~`popdens` series_code missing~~ — **Closed** (`622e3bf`). WB cleaner now emits `EN.POP.DNST`.
-- ~~`popdens` scorer formula saturating~~ — **Closed 2026-07-03** (`b19f1a8`). Banded 0/25/50/75/100 formula adopted from `indicators.yaml`. Semantic direction (scored/inverted vs display-only) still needs PlanCatalyst confirmation.
+- ~~`popdens` scorer formula saturating~~ — **Closed 2026-07-03** (`b19f1a8`). Banded 0/25/50/75/100 formula adopted from `indicators.yaml`. Display direction confirmed 2026-09-17: keep scored + inverted; dense countries display low.
 - ~~Production `npm run build`~~ — **Closed** (`b88f74a`).
 - ~~Frontend hosting~~ — **Closed 2026-07-03** (`08d96e1`). Deployed to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
 - `VITE_CONTRACT_BASE_URL` — **set** in `dashboard/.env.production` and the Blob endpoint returns
   200. The file is gitignored, so a fresh clone silently falls back to bundled fixtures. See
   `docs/runbook-refresh.md`.
-- **Storage account ownership unconfirmed.** `tsidashboardblobstorage` may sit on a personal Azure
-  subscription rather than PlanCatalyst's. If so it must migrate before handoff, and the migration
-  requires a frontend rebuild because the Blob URL is compiled in at build time.
+- **Storage account ownership unconfirmed; IT looked at the wrong account (2026-09-24).**
+  PlanCatalyst IT reported no `dashboard-public` container, screenshotting `tsidatadashboard98a4`
+  (two Functions runtime containers, nothing dashboard-related). The dashboard reads
+  `tsidashboardblobstorage`, which is live and anonymous-readable. That account also has
+  account-level public blob access disabled (HTTP 409 `PublicAccessNotPermitted`). If
+  `tsidashboardblobstorage` is a personal subscription it must migrate before handoff, and the
+  migration requires a frontend rebuild because the Blob URL is compiled in at build time. Reply
+  for IT: `docs/azure-it-request.md`.
 - **No `.env` at repo root** — publish credentials are not held locally. Republish is blocked until
-  either Anthony supplies the current credentials or PlanCatalyst's IT issues the new service
+  either existing credentials surface or PlanCatalyst's IT issues the new service
   principal.
-- Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3) — **Anthony** (re-run cleaner).
-- Stale local fixtures `dashboard/public/v1/` (May 17) — **Anthony** (fresh publish to `dashboard-public`).
+- ~~Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3)~~ — **Closed 2026-09-24.**
+  Verified: 234 distinct country codes on disk, all ISO3, none numeric.
+- Stale local fixtures `dashboard/public/v1/` (May 17) — fresh publish to `dashboard-public`.
 - ~~ACR push rights blocked~~ — **Descoped 2026-09-04.** Containerised scheduling is no longer part
   of the delivery. `docs/docker.md` is retained in case the cadence ever shortens.
 - Frontend presentability / mock parity — **Thomas** (unblocked).
@@ -96,7 +107,7 @@ Verified again 2026-09-04 against `data/interim/validated/`.
 - ⚠️ **None of this is live.** These fixes are committed but unpublished. The deployed dashboard
   still serves the pre-fix 2026-07-01 snapshot until a republish happens.
 
-- Automation / alerting — **Anthony** (Phase 3).
+- Automation / alerting — **deferred follow-up.**
 
 ## 5) Legacy output policy
 
@@ -120,8 +131,7 @@ Default policy: keep transitionally, gate with configuration, remove when unused
 
 | Person | Scope |
 |--------|-------|
-| **Thomas Llamzon** | PM · full-stack · frontend presentability · Wix E2E |
-| **Anthony Lam** | Co-PM · Azure · indicators · cleaning · publish · automation |
+| **Thomas Llamzon** | Remaining delivery (pipeline, Azure, frontend, Wix E2E). Finishing the project solo as of 2026-09-19. |
 
 See `TASKS.md` for deliverables and milestones.
 
@@ -134,19 +144,21 @@ See `TASKS.md` for deliverables and milestones.
 3. ~~**Thomas:** Fix `popdens` scorer formula~~ — **Done** (`b19f1a8`, banded formula).
 4. ~~**Anthony (blocker):** Grant ACR push rights~~ — **Descoped 2026-09-04.** Replaced by a manual
    publish per `docs/runbook-refresh.md`.
-5. **Thomas (now):** Commit the 2026-07-07 fix work. It is the root cause of every stale status
-   report in this repo and in the client thread.
+5. ~~**Thomas (now):** Commit the 2026-07-07 fix work.~~ **Done 2026-09-08.**
 6. **Thomas (blocked on credentials):** Republish `dashboard-public/v1/` so the live site stops
    serving the pre-fix snapshot. Promised to the client.
 7. **Thomas (unblocked):** Mock parity pass; responsive QA at Wix iframe widths before the client
    places the embed.
-8. ~~**Thomas:** Route `conces` MVP exclusion sign-off to PlanCatalyst.~~ — **Answered 2026-08-13.**
-   The client declined the `hdi` substitution and supplied a substitute composite formula. The
-   document has not been received; re-requested 2026-09-04. `hdi` holds the slot meanwhile.
+8. ~~**Thomas:** Route `conces` MVP exclusion sign-off to PlanCatalyst.~~ — **Answered 2026-08-13;
+   spec received 2026-09-17.** Contract key `mspi` landed 2026-09-19.
+9. **Thomas:** Client confirmation of `mspi` coverage (117 vs HDI 193) before
+   swapping the live snapshot. Composer is scored. About-page copy after that.
+10. **Thomas:** Do not book the wrap-up call yet. Reyna wants it after IT finishes the
+    service-principal request.
 
 ### Phase 2 — QA / validation
 
-5. Cleaning validation and data sanity checks (Anthony + Thomas).
+5. Cleaning validation and data sanity checks.
 6. CI hardening — **Done 2026-09-16.** Backend tests, Python/npm dependency
    audits, frontend production build, container build, and CodeQL run on
    `main` and pull requests.
@@ -166,6 +178,7 @@ See `TASKS.md` for deliverables and milestones.
 - `docs/source-candidates.md`
 - `docs/PRINCIPLES.md`
 - `docs/runbook-refresh.md`
+- `docs/spec-macrosec-index.md`
 - `indicators/indicators.yaml`
 - `indicators/SCORING_AUDIT.md`
 - `src/upload/publish_dashboard.py`

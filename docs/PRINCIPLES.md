@@ -41,13 +41,13 @@ encountering one of these should proceed, not pause to ask:
   client-approved exceptions documented in `SCORING_AUDIT.md` (e.g. `conces`).
 4. **Projection transparency:** Projections are **disabled for MVP**
   (`meta.projections.enabled === false`). Post-MVP projection work is owned by
-  **Anthony / Thomas**.
+  **Thomas**.
 5. **Publish phasing:** Phase A is local `dry_run` to `data/organized/v1/`.
   Phase B is Azure upload. Do not skip Phase A.
 6. **Repo hygiene:** upload code lives in `src/upload/`, active settings live
   in `src/config/settings.yaml`. Do not create root-level duplicates.
-7. **Decision routing:** **Thomas** (PM) and **Anthony** (Co-PM) are default
-  unblock owners. Contract-semantic decisions are recorded in `docs/`.
+7. **Decision routing:** **Thomas** is the default unblock owner as of 2026-09-19.
+  Contract-semantic decisions are recorded in `docs/`.
 
 ## 3. Hard Invariants (Treat As Laws)
 

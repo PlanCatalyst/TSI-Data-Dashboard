@@ -7,8 +7,7 @@ that preserves the client vision while mounting cleanly to the backend contract.
 
 Core contract integration (loaders, Explore, Compare, publish builders, iframe
 sync) is in place. Remaining work is presentability, Map/About polish, responsive
-QA, and hosted E2E — owned by **Thomas**, with **Anthony** providing live Blob
-JSON and Azure hosting.
+QA, and hosted E2E — owned by **Thomas**, including live Blob JSON and Azure hosting.
 
 ## Non-Negotiable Integration Rules
 
@@ -131,18 +130,15 @@ Must be explicitly designed and implemented for:
    - interaction rhythm
 3. Ensure responsive behavior across desktop/tablet/mobile with no layout breakage.
 
-## Work split (June 2026)
+## Work split (updated 2026-09-19)
 
-**Thomas**
+**Thomas** (remaining delivery)
 
 - mock parity and presentability on all four pages
 - responsive QA vs HTML mock
-- missing-indicator UX (`conces`, `popdens`, sparse pillars)
+- missing-indicator UX (sparse pillars; `mspi` once the composite is live)
 - hosted E2E verification (Wix + Azure Blob JSON)
 - production build (`npm run build`)
-
-**Anthony**
-
 - live Blob publish and `VITE_CONTRACT_BASE_URL` for production
 - fresh contract JSON after pipeline runs
 - Azure frontend hosting + CORS
