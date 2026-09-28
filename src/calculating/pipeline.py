@@ -6,6 +6,8 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from src.calculating.factory import IndicatorScorerFactory
+from src.calculating.mspi import append_mspi_rows
+from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
 from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
 from src.calculating.pillar_taxonomy import series_code_to_filename
 from src.utils.country_identity import resolve as _resolve_iso3
@@ -89,6 +91,7 @@ def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] =
         df = df.dropna(subset=["country_code"])
 
     df = _apply_agoda_gdp_normalization(df)
+    df = append_mspi_rows(df)
 
     # Only score rows whose series_code is one the factory knows about.
     # Component-only rows (e.g. ND-GAIN per-indicator scores written for

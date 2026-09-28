@@ -77,7 +77,7 @@ _PILLAR_DISPLAY: dict[str, dict] = {
     "women":   {"color": "#817d77", "repIndicator": "gii"},
     "climate": {"color": "#7a6a30", "repIndicator": "ndgain"},
     "ctx":     {"color": "#a05020", "repIndicator": "state"},
-    "pri":     {"color": "#3a5a6a", "repIndicator": "hdi"},
+    "pri":     {"color": "#3a5a6a", "repIndicator": "mspi"},
 }
 
 # rawDirection describes the raw measurement, not the scored value.
@@ -111,7 +111,7 @@ _RAW_DIRECTIONS: dict[str, str] = {
     "pov":      "lower_is_better",
     "mpi":      "lower_is_better",
     "popdens":  "lower_is_better",
-    "hdi":      "higher_is_better",
+    "mspi":     "higher_is_better",
 }
 
 _PILLAR_KEYS = ["health", "ag", "si", "women", "climate", "ctx", "pri"]

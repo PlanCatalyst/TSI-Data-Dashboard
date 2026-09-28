@@ -18,8 +18,7 @@ Core sequence:
 
 ## Ownership
 
-- **a contributor:** pipeline orchestration, publish wiring, Azure automation, cleaning, indicators
-- **Thomas:** full-stack integration, frontend presentability, pipeline support
+- **Thomas:** remaining delivery as of 2026-09-19 (orchestration, publish, Azure, indicators)
 
 See `TASKS.md`.
 

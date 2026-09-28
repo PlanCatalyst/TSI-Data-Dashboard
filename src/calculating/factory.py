@@ -52,7 +52,8 @@ class IndicatorScorerFactory:
             "POP_DENSITY": DensityScorer(),                          # legacy alias
             "SI_POV_NAHC": RatioThresholdScorer(threshold=10.0, global_average=10.0),  # 1.2.1
             "MPI_INDEX": RatioThresholdScorer(threshold=0.089),      # MPI
-            "HDI_INDEX": InverseIndexScorer(),                       # Human Development (pri proxy)
+            "HDI_INDEX": InverseIndexScorer(),                       # verification baseline; slot is MSPI_INDEX
+            "MSPI_INDEX": SimpleDirectionalScorer(),                 # pri/macrosec composite (higher-is-better value)
 
             # State capacity proxy: World Bank WGI Government Effectiveness.
             # WGI publishes a pre-normalized 0-100 score where higher = better

@@ -224,8 +224,14 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
           const regionRows = countrySeries
             .filter(c => c.region === r)
             .sort((a, b) => {
-              const aLast = a.series.reduceRight<number | null>((acc, v) => acc ?? v, null) ?? -1;
-              const bLast = b.series.reduceRight<number | null>((acc, v) => acc ?? v, null) ?? -1;
+              const aLast = a.series.reduceRight<number | null>((acc, v) => acc ?? v, null);
+              const bLast = b.series.reduceRight<number | null>((acc, v) => acc ?? v, null);
+              // A country with no observations is unranked, not last. Coercing
+              // null to a number below the scale would place it beneath the
+              // worst real performer and read as a score.
+              if (aLast == null && bLast == null) return 0;
+              if (aLast == null) return 1;
+              if (bLast == null) return -1;
               return bLast - aLast;
             });
           if (!regionRows.length) return null;
