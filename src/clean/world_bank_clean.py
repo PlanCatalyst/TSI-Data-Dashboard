@@ -83,3 +83,60 @@ class WorldBankCleaner(DataCleaner):
         TerminalOutput.summary("  Records", f"{len(df):,}")
         
         return df
+    # IDS reporting scope. A country reports to the Debtor Reporting System if the
+    # World Bank classifies it as an IBRD ("IBD"), blend ("IDB") or IDA ("IDX")
+    # borrower. "LNX" (not classified) covers high-income non-borrowers and is out
+    # of scope. Source: client spec revision 2026-09-23, docs/spec-macrosec-index.md.
+    IDS_SCOPE_LENDING_TYPES = ("IBD", "IDB", "IDX")
+
+    # World Bank marks aggregate rows (regions, income groups) with this region id.
+    _AGGREGATE_REGION_ID = "NA"
+
+    def clean_country_metadata(self, records: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert raw ``/v2/country`` records into a country reference table.
+
+        Drops World Bank aggregates (regions and income groups), which are
+        identified by ``region.id == "NA"`` and would otherwise appear alongside
+        real countries in any join on ``country_code``.
+
+        Returns columns ``country_code``, ``country_name``, ``lending_type``,
+        ``income_level``, ``region``, ``ids_in_scope``.
+        """
+        rows = []
+        for rec in records or []:
+            region_id = (rec.get("region") or {}).get("id") or ""
+            if region_id.strip() == self._AGGREGATE_REGION_ID:
+                continue
+            iso3 = (rec.get("id") or "").strip()
+            if not iso3:
+                continue
+            lending_type = ((rec.get("lendingType") or {}).get("id") or "").strip()
+            rows.append({
+                "country_code": iso3,
+                "country_name": get_canonical_name(iso3, str(rec.get("name") or "").strip()),
+                "lending_type": lending_type or None,
+                "income_level": ((rec.get("incomeLevel") or {}).get("id") or "").strip() or None,
+                "region": region_id.strip() or None,
+                "ids_in_scope": lending_type in self.IDS_SCOPE_LENDING_TYPES,
+            })
+
+        df = pd.DataFrame(
+            rows,
+            columns=[
+                "country_code",
+                "country_name",
+                "lending_type",
+                "income_level",
+                "region",
+                "ids_in_scope",
+            ],
+        )
+        df = df.drop_duplicates("country_code", keep="last").sort_values(
+            "country_code", na_position="last"
+        )
+
+        TerminalOutput.summary("  Countries", f"{len(df):,}")
+        TerminalOutput.summary("  IDS in scope", f"{int(df['ids_in_scope'].sum()):,}")
+
+        return df.reset_index(drop=True)

@@ -73,14 +73,18 @@ The `UNDPHDRFetcher` downloads each configured file by URL into `data/raw/undp-h
 ### World Bank Worldwide Governance Indicators (WGI)
 WGI was deprecated from the regular World Bank API in 2024 and is now published as a per-release bulk XLSX on the WGI homepage. We use:
 
-- **WGI 2025 release** (`wgidataset_with_sourcedata-2025.xlsx`) — 1996–2024 panel for 214 economies, with six dimensions on six sheets (`va`, `pv`, `ge`, `rq`, `rl`, `cc`). Each sheet ships a pre-normalized 0-100 "Governance score" column we consume directly.
+- **WGI 2025 release** (`wgidataset_with_sourcedata-2025.xlsx`) — 1996–2024 panel for 214 economies, with six dimensions on six sheets (`va`, `pv`, `ge`, `rq`, `rl`, `cc`). Each sheet ships a pre-normalized 0-100 "Governance score" column **and** a native "Governance estimate" column (approx. −2.5 to +2.5).
 
-Today we use only the Government Effectiveness sheet (`ge`) as our state-capacity proxy → `WGI_GOVEFF`. To add another WGI dimension, add an entry under `wb_wgi.files[*].indicators` in `settings.yaml`.
+`state` uses the 0-100 score on Government Effectiveness (`ge`) → `WGI_GOVEFF`.
+`mspi` fragility uses the EST estimate on all six sheets (`VA.EST` … `CC.EST`).
+Add or change those rows under `wb_wgi.files[*].indicators` in `settings.yaml`.
+The cleaner reads that yaml, not the fetch-time manifest, so a new series can
+be extracted from the existing XLSX without re-downloading.
 
 ### World Bank Group
 The World Bank publishes one of the __largest collections of global development, economic, demographic, and environmental time-series__. Each metric is defined as an indicator (e.g., GDP per capita, CO₂ emissions, school enrollment), and nearly all indicators provide annual values by country, often spanning decades.
 
-Our WorldBankClient retrieves a configurable set of indicators (defined in `/src/config/settings.yaml`) using the World Bank’s `/country/{codes}/indicator/{id}` endpoint. For each indicator, the API returns:
+Our WorldBankClient retrieves a configurable set of indicators (defined in `/src/config/settings.yaml`) using the World Bank’s `/country/{codes}/indicator/{id}` endpoint. IDS series archived on WDI (`DT.DOD.ALLC.ZS`, `DT.DOD.DECT.EX.ZS`) set `source: 6` and `counterpart_area: WLD` and are fetched from `/sources/6/country/{codes}/counterpart-area/WLD/series/{id}` instead. For each indicator, the API returns:
 
 - annual numeric observations
 - the year

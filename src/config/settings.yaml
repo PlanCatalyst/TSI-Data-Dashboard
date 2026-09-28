@@ -27,16 +27,24 @@ worldbank: # name must match client_factory.py
     # GDP (current US$) — used only to normalize SDG 2.a.2 ag flows before scoring.
     # Not a dashboard indicator; rows are stripped in score_indicators before scoring.
     - { code: "NY.GDP.MKTP.CD", alias: "gdp_current_usd" }
+    # GDP per capita (current US$) — mspi income component. Not NY.GDP.MKTP.CD.
+    # See: https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
+    - { code: "NY.GDP.PCAP.CD", alias: "gdp_per_capita_usd" }
+    # International Debt Statistics — mspi debt-risk + non-concessional components.
+    # Present-value external debt preferred; face-value is the per-country fallback.
+    - { code: "DT.DOD.PVLX.GN.ZS", alias: "pv_ext_debt_pct_gni" }
+    - { code: "DT.DOD.PVLX.EX.ZS", alias: "pv_ext_debt_pct_exports" }
+    - { code: "DT.DOD.DECT.GN.ZS", alias: "ext_debt_stock_pct_gni" }
+    # These two are archived on WDI. Fetch IDS source 6 with counterpart-area
+    # WLD (debtor vs world) or the country/indicator endpoint returns 0 rows.
+    - { code: "DT.DOD.DECT.EX.ZS", alias: "ext_debt_stock_pct_exports", source: 6, counterpart_area: "WLD" }
+    - { code: "DT.TDS.DECT.EX.ZS", alias: "debt_service_pct_exports" }
+    - { code: "DT.DOD.ALLC.ZS", alias: "concessional_debt_pct_total", source: 6, counterpart_area: "WLD" }
 
   # ISO-3 country codes to query in ONE request (semicolon-joined in the API call).
   # You can add/remove codes (e.g., "GBR", "FRA"). Regions like "WLD" (world) also work,
   # but mixing countries + regions may complicate modeling/visuals later.
   countries: ["all"]
-
-  # # EXTRA INDICATORS (uncomment as needed)
-  # - { code: "NY.GDP.PCAP.CD", alias: "gdp_per_capita_usd" }           # GDP per capita (current US$)
-  # - { code: "GC.TAX.TOTL.GD.ZS", alias: "tax_revenue_pct_gdp" }       # Tax revenue (% of GDP)
-  # - { code: "FS.AST.PRVT.GD.ZS", alias: "domestic_credit_private_pct_gdp" } # Domestic credit to private sector (% of GDP)
 
 # ====================================================================
 # UN SDG Settings
@@ -150,9 +158,10 @@ undp_hdr: # name must match fetch_factory.py
       indicators:
         # Gender Inequality Index. Raw scale 0-1; lower = more equal.
         - { series_code: "GII_INDEX", column_prefix: "gii_" }
-        # Human Development Index. Raw scale 0-1; higher = more developed.
-        # Global proxy for the `pri` pillar (replaces the unbuildable
-        # Concessionality Index). Same file as GII; column prefix "hdi_".
+        # Human Development Index. Keep until the mspi composer is verified
+        # live after the WDI/IDS fetch (docs/spec-macrosec-index.md). Taxonomy
+        # now maps mspi → MSPI_INDEX; this series is a verification baseline.
+        # Same file as GII; column prefix "hdi_".
         - { series_code: "HDI_INDEX", column_prefix: "hdi_" }
 
     - alias: "mpi"
@@ -176,11 +185,13 @@ undp_hdr: # name must match fetch_factory.py
 # World Bank Worldwide Governance Indicators (WGI) Settings
 # ====================================================================
 # WGI is published as a per-release bulk XLSX (not in the regular World
-# Bank API). Today we use the Government Effectiveness sheet (`ge`) as
-# our state-capacity proxy. The XLSX already publishes a 0-100
-# normalized score column ("Governance score (0-100)") which we use
-# directly. To add other WGI dimensions (Rule of Law, Voice and
-# Accountability, etc.), just add another entry under indicators.
+# Bank API). Six dimension sheets: va, pv, ge, rq, rl, cc.
+# `state` uses the 0-100 "Governance score" on `ge` → WGI_GOVEFF.
+# `mspi` fragility uses native EST estimates (−2.5 to +2.5) across all
+# six dimensions. Do not reuse WGI_GOVEFF for that component.
+# Cleaner reads these indicator rows from this yaml (not the on-disk
+# fetch manifest), so adding a series does not require re-downloading
+# the XLSX.
 wb_wgi: # name must match fetch_factory.py
   api_paths:
     base: "https://www.worldbank.org"
@@ -190,10 +201,16 @@ wb_wgi: # name must match fetch_factory.py
       url: "https://www.worldbank.org/content/dam/sites/govindicators/doc/wgidataset_with_sourcedata-2025.xlsx"
       version: "WGI 2025 release (data 1996-2024)"
       indicators:
-        # Government Effectiveness. Used as state-capacity proxy. The 0-100
-        # score column is already a percentile-normalized favorability
-        # score (higher = better governance).
+        # Government Effectiveness 0-100. State-capacity proxy. Unchanged.
         - { series_code: "WGI_GOVEFF", sheet: "ge" }
+        # Native EST estimates for the mspi fragility mean. score_col
+        # "estimate" is the cleaner's alias for the −2.5 to +2.5 column.
+        - { series_code: "VA.EST", sheet: "va", score_col: "estimate" }
+        - { series_code: "PV.EST", sheet: "pv", score_col: "estimate" }
+        - { series_code: "GE.EST", sheet: "ge", score_col: "estimate" }
+        - { series_code: "RQ.EST", sheet: "rq", score_col: "estimate" }
+        - { series_code: "RL.EST", sheet: "rl", score_col: "estimate" }
+        - { series_code: "CC.EST", sheet: "cc", score_col: "estimate" }
 
   settings:
     request_timeout: 60
@@ -256,6 +273,10 @@ runtime:
     worldbank: "data/clean/world-bank/world_bank_clean.csv"
     undp_hdr: "data/clean/undp-hdr/undp_hdr_clean.csv"
     wb_wgi: "data/clean/world-bank/wb_wgi_clean.csv"
+    # Country reference table (lendingType / incomeLevel / region). Not an
+    # indicator series: scoring never reads it. The mspi composer joins on it
+    # to resolve IDS scope. See docs/spec-macrosec-index.md.
+    wb_country_metadata: "data/clean/world-bank/wb_country_metadata.csv"
 
   # Page size for World Bank API pagination.
   per_page: 1000
@@ -275,6 +296,8 @@ runtime:
     undp_hdr: "undp_hdr_manifest.json"
     # WGI fetcher manifest (XLSX downloads).
     wb_wgi: "wb_wgi_manifest.json"
+    # Single-call /v2/country reference payload.
+    wb_country_metadata: "world_bank_country_metadata_raw.json"
 
 paths_by_source:
   raw:

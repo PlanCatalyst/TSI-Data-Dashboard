@@ -100,6 +100,18 @@ class CleanData:
         if runtime["save_cleaned"]:
             wbCleaner.save_interim(wb_cleaned, wb_csv_path)
 
+        # Country reference table. Optional: it arrived after the original sources,
+        # so an older raw snapshot on disk will not carry it.
+        wb_meta_cleaned = pd.DataFrame()
+        wb_meta_raw = (df or {}).get("wb_country_metadata") or []
+        if wb_meta_raw:
+            wb_meta_cleaned = wbCleaner.clean_country_metadata(wb_meta_raw)
+            wb_meta_rel = (runtime.get("interim_data") or {}).get("wb_country_metadata")
+            if runtime["save_cleaned"] and wb_meta_rel:
+                wbCleaner.save_interim(wb_meta_cleaned, Path(wb_meta_rel))
+        else:
+            TerminalOutput.info("No country metadata in raw payload; skipping", indent=1)
+
         """ ################################################################## 
         ### ND-GAIN CLEANING ###
         ################################################################## """
@@ -160,6 +172,7 @@ class CleanData:
         return {
             "unsdg": unsdg_cleaned,
             "worldbank": wb_cleaned,
+            "wb_country_metadata": wb_meta_cleaned,
             "ndgain": ndgain_cleaned,
             "undp_hdr": undp_cleaned,
             "wb_wgi": wgi_cleaned,
@@ -196,6 +209,15 @@ class CleanData:
             wb_path = raw_dir / "world_bank_raw.json"
         with open(wb_path, 'r') as f:
             wb_data = json.load(f)
+
+        # Country metadata is optional in older raw snapshots.
+        wb_meta_data: list = []
+        wb_meta_path = wb_base / raw_files.get(
+            "wb_country_metadata", "world_bank_country_metadata_raw.json"
+        )
+        if wb_meta_path.exists():
+            with open(wb_meta_path, 'r') as f:
+                wb_meta_data = json.load(f)
         
         ndgain_base = project_root() / by_source.get("ndgain", "data/raw/nd-gain/")
         ndgain_path = ndgain_base / raw_files.get("ndgain", "nd_gain_raw.json")
@@ -223,6 +245,7 @@ class CleanData:
         return {
             "unsdg": unsdg_data,
             "worldbank": wb_data,
+            "wb_country_metadata": wb_meta_data,
             "ndgain": ndgain_data,
             "undp_hdr": undp_manifest,
             "wb_wgi": wgi_manifest,
