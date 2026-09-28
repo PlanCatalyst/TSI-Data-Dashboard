@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from src.pipeline.utils import project_root
 from src.fetch.fetch_data import FetchData
 from src.clean.clean_data import CleanData
-from src.calculating.pipeline import run_pipeline as run_scoring_pipeline
+from src.calculating.pipeline import run_pipeline as run_scoring_pipeline, scoring_inputs
 
 
 def main() -> None:
@@ -39,15 +39,14 @@ def main() -> None:
     print(">>> CLEAN done", flush=True)
 
     print(">>> SCORE", flush=True)
-    interim_data_cfg = runtime_cfg.get("interim_data") or {}
-    unsdg_rel = interim_data_cfg.get("unsdg")
     validated_rel = paths_cfg.get("data_interim_validated", "data/interim/validated/")
-    extras = [
-        root / rel
-        for key, rel in interim_data_cfg.items()
-        if key != "unsdg" and rel
-    ]
-    run_scoring_pipeline(root / unsdg_rel, root / validated_rel, extra_interim_csvs=extras)
+    unsdg_csv, extras, metadata_csv = scoring_inputs(runtime_cfg, root)
+    run_scoring_pipeline(
+        unsdg_csv,
+        root / validated_rel,
+        extra_interim_csvs=extras,
+        country_metadata_csv=metadata_csv,
+    )
     print(">>> SCORE done -- validated CSVs refreshed. No Azure writes performed.", flush=True)
 
 

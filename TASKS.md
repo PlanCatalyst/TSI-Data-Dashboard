@@ -42,11 +42,16 @@ drafted in `docs/azure-it-request.md`.
   **scored 2026-09-19** (`MSPI_INDEX`, 117 countries vs HDI 193 in 2010–2024),
   **coverage confirmed 2026-09-24**. Still to do: About-page / tooltip /
   vintage copy naming the excluded set.
-- Rework `src/calculating/mspi.py` for the updated spec: scope input from
-  World Bank `lendingType.id`, a `status` column
-  (`scored` / `out_of_scope` / `incomplete_data`), a `missing_components`
-  column, and stop dropping incomplete rows. Blocked on the two scope questions
-  to Reyna below, which change what the composer emits.
+- Rework `src/calculating/mspi.py` for the updated spec. **Status side done
+  2026-09-27:** `mspi_country_status()` derives `scored` / `out_of_scope` /
+  `incomplete_data` plus `missing_components` per country from the shared
+  component panel and the `ids_in_scope` flag, and the calc stage writes
+  `data/interim/validated/indicator_status.csv`. Against the on-disk data:
+  117 scored, 28 incomplete, 128 out of scope, matching the spec diff. The
+  composer still drops incomplete rows from the scored output, which is
+  correct under `partial_scores: false`; nothing else remains here unless
+  Reyna's answers change the scope rule. Until she answers, the 15 high-income
+  IBRD graduates publish as `incomplete_data`.
 - ~~Add a World Bank country-metadata fetch for `lendingType.id`.~~
   **Done 2026-09-24.** `WorldBankFetcher.fetch_country_metadata()` (one call,
   `per_page=400`) plus `WorldBankCleaner.clean_country_metadata()` emit
@@ -57,8 +62,13 @@ drafted in `docs/azure-it-request.md`.
   (`docs/data-contract.md` §3.1 `indicatorStatus`, plus validation rule 6 and a
   cross-reference from the §1 nulls convention). Country-level rather than
   country-year, because World Bank lending classification has no history.
-  Remaining: publisher emits it, then frontend consumes it (invariant 6).
-  Additive, so no `/v2`.
+  **Publisher and frontend done 2026-09-27.** `build_countries` attaches
+  `indicatorStatus` from the sidecar (absent countries fill as
+  `out_of_scope`), `validate_payload` enforces rule 6 against the timeseries,
+  and the map detail panel's indicator chart shows the reason for a null
+  instead of the generic no-data line. Bundled fixtures under
+  `dashboard/public/v1/` regenerated from the dry run, so the local frontend
+  now carries `mspi` in place of `hdi`. Additive, so no `/v2`.
 - Ask Reyna three follow-ups on the revised spec: her scope rule returns 145
   countries against her stated ~120 and mislabels 15 high-income IBRD
   graduates as `incomplete_data`; `mrnev=1` would make `mspi` a snapshot and

@@ -245,16 +245,32 @@ status model.
 | `incomplete_data` | In scope, but one or more required components are missing. Potentially actionable. | `null` |
 
 **`missingComponents`**: array of component identifiers, populated only when
-`status` is `incomplete_data`, empty otherwise. Never `null`.
+`status` is `incomplete_data`, empty otherwise. Never `null`. For `mspi` the
+identifiers are `income`, `fragility`, `debt_risk` and `concessionality`, in
+spec order. The list names the components absent in the most recent year that
+has any component data, so it is never empty on `incomplete_data`; a country
+with no component data at all lists all four.
 
 **Invariants:**
 
-1. `status: "scored"` requires a non-null score for that indicator in
-   `countries.json` and at least one non-null entry in `timeseries.json`.
-2. `out_of_scope` and `incomplete_data` both require a `null` score. The status
-   explains the null, it never substitutes for one.
+1. `status: "scored"` requires at least one non-null entry for that indicator
+   in `timeseries.json`. (`countries.json` carries pillar scores only, so the
+   indicator-level check lives on the timeseries.)
+2. `out_of_scope` and `incomplete_data` both require every `timeseries.json`
+   entry for that indicator to be `null`. The status explains the null, it
+   never substitutes for one.
 3. `missingComponents` is non-empty if and only if `status` is
    `incomplete_data`.
+4. When any country carries a status for an indicator, every country does.
+   A country the pipeline never saw for that indicator is `out_of_scope`.
+
+**Source.** The calc stage writes `data/interim/validated/indicator_status.csv`
+(`country_code, indicator_key, status, missing_components`) next to the score
+CSVs; the publisher reshapes it and omits `indicatorStatus` entirely when the
+file is absent. Scope comes from the World Bank country metadata
+(`lendingType.id`, cleaned to `ids_in_scope`), the rule as written in the
+2026-09-23 client revision. The three open questions on that rule in
+`docs/spec-macrosec-index.md` change values, not shape.
 
 **Granularity: country-level, not country-year.** Scope is resolved from the
 World Bank lending classification, which the API exposes only as current state

@@ -153,3 +153,66 @@ def test_norm_nonconcessional_inverts_share():
     assert norm_nonconcessional(pd.Series([70.0])).iloc[0] == pytest.approx(0.7)
     assert norm_nonconcessional(pd.Series([100.0])).iloc[0] == pytest.approx(1.0)
     assert norm_nonconcessional(pd.Series([0.0])).iloc[0] == pytest.approx(0.0)
+
+
+# ---------------------------------------------------------------------------
+# Country-level status (contract §3.1)
+# ---------------------------------------------------------------------------
+
+
+def _metadata(**scope: bool) -> pd.DataFrame:
+    return pd.DataFrame(
+        [{"country_code": code, "ids_in_scope": flag} for code, flag in scope.items()]
+    )
+
+
+def _status_map(df: pd.DataFrame) -> dict[str, tuple[str, str]]:
+    return {r.country_code: (r.status, r.missing_components) for r in df.itertuples()}
+
+
+def test_status_scored_when_any_year_complete():
+    from src.calculating.mspi import mspi_country_status
+
+    out = mspi_country_status(_complete_components(), _metadata(KEN=True))
+    assert list(out.columns) == ["country_code", "indicator_key", "status", "missing_components"]
+    assert _status_map(out) == {"KEN": ("scored", "")}
+    assert set(out["indicator_key"]) == {"mspi"}
+
+
+def test_status_incomplete_lists_missing_components_from_latest_year():
+    from src.calculating.mspi import mspi_country_status
+
+    df = _complete_components()
+    df = df[df["series_code"] != "DT.DOD.ALLC.ZS"]
+    out = mspi_country_status(df, _metadata(KEN=True))
+    assert _status_map(out) == {"KEN": ("incomplete_data", "concessionality")}
+
+
+def test_status_incomplete_with_no_component_data_lists_all_four():
+    from src.calculating.mspi import mspi_country_status
+
+    out = mspi_country_status(pd.DataFrame(columns=["country_code", "year", "value", "series_code"]), _metadata(ERI=True))
+    assert _status_map(out) == {"ERI": ("incomplete_data", "income|fragility|debt_risk|concessionality")}
+
+
+def test_status_out_of_scope_overrides_data_and_covers_unknown_countries():
+    from src.calculating.mspi import mspi_country_status
+
+    # KEN has complete data but is flagged out of scope; USA has no data and
+    # no scope flag at all. Both are out of scope, never incomplete.
+    out = mspi_country_status(_complete_components(), _metadata(KEN=False, USA=False))
+    assert _status_map(out) == {"KEN": ("out_of_scope", ""), "USA": ("out_of_scope", "")}
+
+
+def test_status_without_metadata_marks_everything_out_of_scope():
+    from src.calculating.mspi import mspi_country_status
+
+    out = mspi_country_status(_complete_components(), None)
+    assert _status_map(out) == {"KEN": ("out_of_scope", "")}
+
+
+def test_status_scope_flag_parses_csv_strings():
+    from src.calculating.mspi import mspi_country_status
+
+    meta = pd.DataFrame([{"country_code": "KEN", "ids_in_scope": "True"}])
+    assert _status_map(mspi_country_status(_complete_components(), meta)) == {"KEN": ("scored", "")}

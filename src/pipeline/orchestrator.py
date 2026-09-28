@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from src.pipeline.utils import project_root
 from src.fetch.fetch_data import FetchData
 from src.clean.clean_data import CleanData
-from src.calculating.pipeline import run_pipeline as run_scoring_pipeline
+from src.calculating.pipeline import run_pipeline as run_scoring_pipeline, scoring_inputs
 from src.upload.upload_validated import UploadValidated
 from src.upload.publish_dashboard import publish as publish_dashboard
 
@@ -61,16 +61,15 @@ class Orchestrator:
         # ============================================================
         # CALCULATING (scores → data/interim/validated/)
         # ============================================================
-        interim_data_cfg = runtime_cfg.get("interim_data") or {}
-        unsdg_rel = interim_data_cfg.get("unsdg")
         validated_rel = paths_cfg.get("data_interim_validated", "data/interim/validated/")
-        if unsdg_rel:
-            extras = [
-                root / rel
-                for key, rel in interim_data_cfg.items()
-                if key != "unsdg" and rel
-            ]
-            run_scoring_pipeline(root / unsdg_rel, root / validated_rel, extra_interim_csvs=extras)
+        unsdg_csv, extras, metadata_csv = scoring_inputs(runtime_cfg, root)
+        if unsdg_csv is not None:
+            run_scoring_pipeline(
+                unsdg_csv,
+                root / validated_rel,
+                extra_interim_csvs=extras,
+                country_metadata_csv=metadata_csv,
+            )
             
         # ============================================================
         # UPLOAD (validated scoring CSVs to Azure when runtime.upload_azure is true)

@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from src.calculating.factory import IndicatorScorerFactory
-from src.calculating.mspi import append_mspi_rows
+from src.calculating.mspi import append_mspi_rows, mspi_country_status
 from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
 from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
 from src.calculating.pillar_taxonomy import series_code_to_filename
@@ -15,6 +15,11 @@ from src.utils.country_identity import resolve as _resolve_iso3
 # World Bank series used only as a join helper for SDG 2.a.2 (agoda) scoring.
 _GDP_SERIES_CODE = "NY.GDP.MKTP.CD"
 _AGODA_SERIES_CODE = "DC_TOF_AGRL"
+
+# settings.yaml runtime.interim_data key for the World Bank country metadata
+# (lending type / IDS scope), and the sidecar the publisher reads.
+COUNTRY_METADATA_KEY = "wb_country_metadata"
+INDICATOR_STATUS_FILENAME = "indicator_status.csv"
 
 
 def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
@@ -74,7 +79,38 @@ def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
     return work
 
 
-def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] = None) -> pd.DataFrame:
+def scoring_inputs(
+    runtime_cfg: dict, repo_root: Path
+) -> tuple[Optional[Path], list[Path], Optional[Path]]:
+    """Resolve ``runtime.interim_data`` into scoring-stage inputs.
+
+    Returns ``(unsdg_csv, extra_interim_csvs, country_metadata_csv)``. The
+    country metadata is a scope input for the status sidecar, not a scoreable
+    series, so it is kept out of the concatenated interim frame.
+    """
+    interim_data = (runtime_cfg or {}).get("interim_data") or {}
+    unsdg_rel = interim_data.get("unsdg")
+    metadata_rel = interim_data.get(COUNTRY_METADATA_KEY)
+    extras = [
+        repo_root / rel
+        for key, rel in interim_data.items()
+        if key not in ("unsdg", COUNTRY_METADATA_KEY) and rel
+    ]
+    return (
+        (repo_root / unsdg_rel) if unsdg_rel else None,
+        extras,
+        (repo_root / metadata_rel) if metadata_rel else None,
+    )
+
+
+def load_harmonized_interim(
+    interim_path: Path, extra_paths: Optional[Iterable[Path]] = None
+) -> pd.DataFrame:
+    """Load every interim CSV and harmonise ``country_code`` to ISO3.
+
+    Shared by scoring and by the mspi status derivation, which needs the
+    unscored component series that ``score_indicators`` later drops.
+    """
     df = _load_interim_frames([interim_path, *(extra_paths or [])])
 
     # Harmonize the join key to ISO3 across all sources BEFORE aggregation.
@@ -89,6 +125,29 @@ def score_indicators(interim_path: Path, extra_paths: Optional[Iterable[Path]] =
         code_map = {c: _resolve_iso3(c) for c in df["country_code"].unique()}
         df["country_code"] = df["country_code"].map(code_map)
         df = df.dropna(subset=["country_code"])
+    return df
+
+
+def derive_indicator_status(
+    harmonized: pd.DataFrame, country_metadata_csv: Optional[Path]
+) -> pd.DataFrame:
+    """Country-level indicator status sidecar (contract §3.1). Only mspi today."""
+    meta = None
+    if country_metadata_csv is not None and Path(country_metadata_csv).exists():
+        meta = pd.read_csv(country_metadata_csv)
+    return mspi_country_status(harmonized, meta)
+
+
+def score_indicators(
+    interim_path: Path,
+    extra_paths: Optional[Iterable[Path]] = None,
+    harmonized: Optional[pd.DataFrame] = None,
+) -> pd.DataFrame:
+    df = (
+        harmonized.copy()
+        if harmonized is not None
+        else load_harmonized_interim(interim_path, extra_paths)
+    )
 
     df = _apply_agoda_gdp_normalization(df)
     df = append_mspi_rows(df)
@@ -140,14 +199,23 @@ def run_pipeline(
     interim_csv: Path,
     validated_dir: Path,
     extra_interim_csvs: Optional[Iterable[Path]] = None,
+    country_metadata_csv: Optional[Path] = None,
 ) -> None:
     validated_dir.mkdir(parents=True, exist_ok=True)
 
-    scored_df = score_indicators(interim_csv, extra_interim_csvs)
+    harmonized = load_harmonized_interim(interim_csv, extra_interim_csvs)
+    scored_df = score_indicators(interim_csv, harmonized=harmonized)
 
     # Phase 1 – full indicator scores with all disaggregations.
     scored_path = validated_dir / "Indicator_Scores_Full.csv"
     scored_df.to_csv(scored_path, index=False)
+
+    # Country-level indicator status sidecar (contract §3.1). Written only
+    # when the scope input exists so the publisher can tell "no status model"
+    # from "status model, every country out of scope".
+    if country_metadata_csv is not None and Path(country_metadata_csv).exists():
+        status_df = derive_indicator_status(harmonized, country_metadata_csv)
+        status_df.to_csv(validated_dir / INDICATOR_STATUS_FILENAME, index=False)
 
     # Per-indicator files.
     write_indicator_files(scored_df, validated_dir)
@@ -187,10 +255,11 @@ if __name__ == "__main__":
         raise ValueError("settings.yaml missing runtime.interim_data.unsdg")
     interim_csv = repo_root / unsdg_rel
     validated_dir = repo_root / validated_rel
-    extras = [
-        repo_root / rel
-        for key, rel in interim_data.items()
-        if key != "unsdg" and rel
-    ]
-    run_pipeline(interim_csv, validated_dir, extra_interim_csvs=extras)
+    _, extras, metadata_csv = scoring_inputs(runtime, repo_root)
+    run_pipeline(
+        interim_csv,
+        validated_dir,
+        extra_interim_csvs=extras,
+        country_metadata_csv=metadata_csv,
+    )
 
