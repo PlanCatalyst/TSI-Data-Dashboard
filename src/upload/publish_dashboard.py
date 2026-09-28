@@ -38,6 +38,14 @@ import yaml
 import json
 
 import os
+
+from src.calculating.mspi import (
+    STATUS_INCOMPLETE,
+    STATUS_OUT_OF_SCOPE,
+    STATUS_SCORED,
+    STATUS_VALUES,
+)
+from src.calculating.pipeline import INDICATOR_STATUS_FILENAME
 from dotenv import load_dotenv
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient, ContentSettings
@@ -130,6 +138,10 @@ class PublishInputs:
     indicator_scores: pd.DataFrame
     years: list[int]
     pipeline_run_id: str
+    # Country-level indicator status sidecar (contract §3.1). None when the
+    # calc stage had no scope input, in which case `indicatorStatus` is
+    # omitted from every country rather than fabricated.
+    indicator_status: Optional[pd.DataFrame] = None
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +163,13 @@ def load_inputs(
     df_subdomain_scores = pd.read_csv(repo_root / "data" / "interim" / "validated" / "subdomainscores.csv")
     df_indicator_scores = pd.read_csv(repo_root / "data" / "interim" / "validated" / "Indicator_Scores_Full.csv")
 
+    status_path = repo_root / "data" / "interim" / "validated" / INDICATOR_STATUS_FILENAME
+    df_status = (
+        pd.read_csv(status_path, dtype=str, keep_default_na=False)
+        if status_path.exists()
+        else None
+    )
+
     years = [int(y) for y in (years or sorted(df_pillar_scores["year"].unique()))]
     return PublishInputs(
         yaml_cfg=data,
@@ -160,7 +179,28 @@ def load_inputs(
         indicator_scores=df_indicator_scores,
         years=years,
         pipeline_run_id=pipeline_run_id,
+        indicator_status=df_status,
     )
+
+
+def build_indicator_status(
+    status_df: Optional[pd.DataFrame],
+) -> Optional[dict[str, dict[str, dict]]]:
+    """Reshape the sidecar into ``{iso3: {indicator_key: {status, missingComponents}}}``.
+
+    Returns None when there is no sidecar so callers omit the key entirely.
+    """
+    if status_df is None or status_df.empty:
+        return None
+    out: dict[str, dict[str, dict]] = {}
+    for row in status_df.itertuples(index=False):
+        raw = str(getattr(row, "missing_components", "") or "")
+        components = [c for c in raw.split("|") if c]
+        out.setdefault(str(row.country_code), {})[str(row.indicator_key)] = {
+            "status": str(row.status),
+            "missingComponents": components,
+        }
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +331,15 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     codes["id"] = codes["iso_numeric"].astype(int)
     codes_lookup = codes.set_index("iso3")
 
+    status_by_iso3 = build_indicator_status(inputs.indicator_status)
+    # Every indicator with a status model must label every published country.
+    # A country the calc stage never saw is, under the scope rule, not an
+    # IBRD / IDA / blend borrower, so it is out of scope rather than a gap.
+    status_keys: set[str] = set()
+    if status_by_iso3:
+        for entry in status_by_iso3.values():
+            status_keys.update(entry)
+
     for iso3, group in wide.groupby("country_code"):
         # Skip countries not in country_codes.csv
         if iso3 not in codes_lookup.index:
@@ -322,7 +371,7 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
         trend = [year_to_overall.get(y) for y in inputs.years]
     
 
-        countries.append({
+        entry: dict[str, Any] = {
             "id": int(meta["id"]),
             "iso3": str(iso3),
             "name": str(meta["name"]),
@@ -330,7 +379,15 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
             "scores": snapshot,
             "overall": overall,
             "trend": trend,
-        }) 
+        }
+        if status_by_iso3 is not None:
+            country_status = dict(status_by_iso3.get(str(iso3), {}))
+            for key in status_keys:
+                country_status.setdefault(
+                    key, {"status": STATUS_OUT_OF_SCOPE, "missingComponents": []}
+                )
+            entry["indicatorStatus"] = country_status
+        countries.append(entry)
 
     return sorted(countries, key=lambda x: x["name"])
 
@@ -540,6 +597,35 @@ def validate_payload(
             for i, v in enumerate(arr):
                 if v is not None and not (0.0 <= v <= 100.0):
                     raise ValueError(f"timeseries[{iso3}][{fkey}][{i}] = {v} out of range [0, 100]")
+
+    # Rule 6 (contract §3.1): indicatorStatus, where present, is internally
+    # consistent and agrees with the published timeseries.
+    for c in countries:
+        status_map = c.get("indicatorStatus")
+        if status_map is None:
+            continue
+        iso3 = c["iso3"]
+        if not isinstance(status_map, dict):
+            raise ValueError(f"countries[{iso3}].indicatorStatus must be an object")
+        for key, entry in status_map.items():
+            if key not in expected_indicators:
+                raise ValueError(f"countries[{iso3}].indicatorStatus[{key}] is not a contract indicator")
+            status = entry.get("status")
+            missing = entry.get("missingComponents")
+            if status not in STATUS_VALUES:
+                raise ValueError(f"countries[{iso3}].indicatorStatus[{key}].status = {status!r} invalid")
+            if not isinstance(missing, list) or any(not isinstance(m, str) or not m for m in missing):
+                raise ValueError(f"countries[{iso3}].indicatorStatus[{key}].missingComponents must be a list of non-empty strings")
+            if (status == STATUS_INCOMPLETE) != bool(missing):
+                raise ValueError(
+                    f"countries[{iso3}].indicatorStatus[{key}]: missingComponents must be non-empty "
+                    f"exactly when status is {STATUS_INCOMPLETE!r}"
+                )
+            has_value = any(v is not None for v in timeseries[iso3].get(key, []))
+            if status == STATUS_SCORED and not has_value:
+                raise ValueError(f"countries[{iso3}].indicatorStatus[{key}] is scored but timeseries is all null")
+            if status != STATUS_SCORED and has_value:
+                raise ValueError(f"countries[{iso3}].indicatorStatus[{key}] is {status!r} but timeseries has values")
 
 
 # ---------------------------------------------------------------------------

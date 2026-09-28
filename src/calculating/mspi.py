@@ -52,6 +52,26 @@ _OUTPUT_COLS = [
     "debt_basis",
 ]
 
+# Contract §3.1 status model. Frontend key, not series code, because the
+# sidecar is joined on the published indicator key.
+MSPI_FRONTEND_KEY = "mspi"
+STATUS_SCORED = "scored"
+STATUS_OUT_OF_SCOPE = "out_of_scope"
+STATUS_INCOMPLETE = "incomplete_data"
+STATUS_VALUES = (STATUS_SCORED, STATUS_OUT_OF_SCOPE, STATUS_INCOMPLETE)
+STATUS_COLS = ["country_code", "indicator_key", "status", "missing_components"]
+
+# Normalised component columns and the identifiers the contract exposes in
+# missingComponents. Order matches the spec's component numbering.
+_COMPONENT_NAMES = {
+    "n_inc": "income",
+    "n_frag": "fragility",
+    "n_debt": "debt_risk",
+    "n_conc": "concessionality",
+}
+_COMPONENT_COLS = tuple(_COMPONENT_NAMES)
+_PANEL_COLS = ["country_code", "country_name", "year", *_COMPONENT_COLS, "debt_basis"]
+
 
 def norm_income(gdp_pc: pd.Series) -> pd.Series:
     """Log min-max on ln(200)–ln(150000), clipped to [0, 1]. Null if gdp_pc <= 0."""
@@ -147,9 +167,16 @@ def _one_series(df: pd.DataFrame, series_code: str, name: str) -> pd.DataFrame:
     return sub.rename(columns={"value": name})[["country_code", "year", name]]
 
 
-def compose_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Return tidy ``MSPI_INDEX`` rows. Empty if any required series is absent."""
-    empty = pd.DataFrame(columns=_OUTPUT_COLS)
+def _component_panel(df: pd.DataFrame) -> pd.DataFrame:
+    """One row per country-year with the four normalised components.
+
+    Columns: ``country_code, country_name, year, n_inc, n_frag, n_debt,
+    n_conc, debt_basis``. A component is NaN where its inputs are missing.
+    Shared by the composer (which keeps complete rows) and the status
+    derivation (which needs the incomplete ones too). Empty if no income
+    series is present.
+    """
+    empty = pd.DataFrame(columns=_PANEL_COLS)
     if df is None or df.empty or "series_code" not in df.columns:
         return empty
 
@@ -204,11 +231,33 @@ def compose_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
     n_debt = norm_debt_risk(tier, v_gni, v_exp, panel["ds_exp"])
     n_conc = norm_nonconcessional(panel["concessional_pct"])
 
-    complete = n_inc.notna() & n_frag.notna() & n_debt.notna() & n_conc.notna()
+    out = pd.DataFrame(
+        {
+            "country_code": panel["country_code"].values,
+            "country_name": panel["country_name"].values,
+            "year": panel["year"].values,
+            "n_inc": n_inc.to_numpy(),
+            "n_frag": n_frag.to_numpy(),
+            "n_debt": n_debt.to_numpy(),
+            "n_conc": n_conc.to_numpy(),
+            "debt_basis": basis.values,
+        }
+    )
+    return out[_PANEL_COLS].reset_index(drop=True)
+
+
+def compose_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Return tidy ``MSPI_INDEX`` rows. Empty if any required series is absent."""
+    empty = pd.DataFrame(columns=_OUTPUT_COLS)
+    panel = _component_panel(df)
+    if panel.empty:
+        return empty
+
+    complete = panel[list(_COMPONENT_COLS)].notna().all(axis=1)
     if not complete.any():
         return empty
 
-    value = 100.0 * (0.25 * n_inc + 0.25 * n_frag + 0.25 * n_debt + 0.25 * n_conc)
+    value = 100.0 * sum(0.25 * panel[col] for col in _COMPONENT_COLS)
     out = pd.DataFrame(
         {
             "country_code": panel.loc[complete, "country_code"].values,
@@ -217,10 +266,64 @@ def compose_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
             "value": value.loc[complete].to_numpy(),
             "indicator": MSPI_INDICATOR,
             "series_code": MSPI_SERIES_CODE,
-            "debt_basis": basis.loc[complete].values,
+            "debt_basis": panel.loc[complete, "debt_basis"].values,
         }
     )
     return out[_OUTPUT_COLS].reset_index(drop=True)
+
+
+def mspi_country_status(
+    df: pd.DataFrame,
+    country_metadata: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """Country-level ``status`` for the mspi indicator (contract §3.1).
+
+    Columns: ``country_code, indicator_key, status, missing_components``.
+
+    Scope comes from ``country_metadata.ids_in_scope`` (World Bank
+    ``lendingType.id`` resolved by ``WorldBankCleaner.clean_country_metadata``),
+    the rule as written in the client's 2026-09-23 revision. Countries absent
+    from the metadata are not IBRD / IDA / blend borrowers and are therefore
+    out of scope.
+
+    Status is country-level because lending classification has no history.
+    ``incomplete_data`` means no year has a complete component set;
+    ``missing_components`` then lists the components absent in the most recent
+    year that has any component at all, so the list is never empty on that
+    status. ``missing_components`` is a ``|``-joined string so it survives CSV.
+    """
+    scope: dict[str, bool] = {}
+    if country_metadata is not None and not country_metadata.empty:
+        meta = country_metadata.dropna(subset=["country_code"])
+        flags = meta["ids_in_scope"].map(
+            lambda v: str(v).strip().lower() in {"true", "1", "yes"}
+        )
+        scope = dict(zip(meta["country_code"].astype(str), flags))
+
+    panel = _component_panel(df)
+    countries: set[str] = set(scope)
+    if not panel.empty:
+        countries |= set(panel["country_code"].dropna().astype(str))
+
+    rows = []
+    for code in sorted(countries):
+        if not scope.get(code, False):
+            rows.append((code, MSPI_FRONTEND_KEY, STATUS_OUT_OF_SCOPE, ""))
+            continue
+        sub = panel[panel["country_code"] == code] if not panel.empty else panel
+        comp = sub[list(_COMPONENT_COLS)] if not sub.empty else pd.DataFrame(columns=list(_COMPONENT_COLS))
+        if not comp.empty and comp.notna().all(axis=1).any():
+            rows.append((code, MSPI_FRONTEND_KEY, STATUS_SCORED, ""))
+            continue
+        any_data = comp.notna().any(axis=1) if not comp.empty else pd.Series(dtype=bool)
+        if any_data.any():
+            latest = sub.loc[any_data].sort_values("year").iloc[-1]
+            missing = [name for col, name in _COMPONENT_NAMES.items() if pd.isna(latest[col])]
+        else:
+            missing = list(_COMPONENT_NAMES.values())
+        rows.append((code, MSPI_FRONTEND_KEY, STATUS_INCOMPLETE, "|".join(missing)))
+
+    return pd.DataFrame(rows, columns=STATUS_COLS)
 
 
 def append_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
