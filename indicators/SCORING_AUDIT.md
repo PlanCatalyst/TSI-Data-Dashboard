@@ -54,17 +54,17 @@ Columns:
 | 24 | state     | ctx     | statecap | WGI_GOVEFF      | + | higher=need | yes | SimpleDirectional (100 - value). **Live (2026-05-17)** — source switched from Hanson-Sigman (stopped 2015) to World Bank WGI Government Effectiveness (current through 2024); WGI's 0-100 score used directly. See `docs/source-candidates.md`. |
 | 25 | pov       | ctx     | poverty  | SI_POV_NAHC     | - | higher=need | yes | RatioThreshold(10, 10) |
 | 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Live (2026-05-17)** — UNDP HDR + OPHI 2025 Global MPI Table 2, 88 countries, 1–3 survey waves each (2001–2024). See `docs/source-candidates.md`. |
-| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | see note | review | **Verified 2026-07-07 (issue #6).** Banded formula produces 0/25/50/75/100 in fresh scoring run. **Open semantic question:** density has no universal good/bad direction — confirm with PlanCatalyst whether it stays scored+inverted or becomes context/display-only. Decision owner: **Anthony**; semantic sign-off via **Thomas → PlanCatalyst**. |
-| 28 | hdi       | pri     | macrosec | HDI_INDEX       | + | higher=need | yes | InverseIndex `(1 - HDI) * 100`. **Live (2026-06-01)** — replaces the Concessionality Index (`conces`), which had no published global dataset (debt-distress component is low-income-country only, ~67 countries). HDI is the global proxy for "macro socio-economic performance"; sourced from the 2025 UNDP HDR composite-indices CSV (same file as `gii`), ~190 countries, 1990–2023. See `docs/spec-empty-pri-and-overall.md`. |
+| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | higher=need | yes | **Verified 2026-07-07 (issue #6).** Banded formula produces 0/25/50/75/100. **Display direction confirmed 2026-09-17:** denser = higher need in the pipeline, so after the publish invert a country at ≥250/km² *displays* 0. Keep scored + inverted. No code change. |
+| 28 | mspi      | pri     | macrosec | MSPI_INDEX | + | higher=need | yes | **Scored 2026-09-19.** Composer `src/calculating/mspi.py`; `SimpleDirectionalScorer` flips to higher=need. **Coverage:** 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688 in the same window. High-income DRS-non-reporters are null (USA, GBR, DEU, …). Spec: `docs/spec-macrosec-index.md`. Confirm with PlanCatalyst before swapping the live snapshot. |
 
 ## Implementation gaps for the pipeline team
 
 Tracking these so nothing falls through the cracks after handoff:
 
-- **Missing scorers** (0): the `pri`/`macrosec` indicator was `conces` (Concessionality Index), a deferred composite with no published global dataset. As of 2026-06-01 it is **replaced by `hdi`** (UNDP HDR Human Development Index), scored via `InverseIndexScorer` and live. `state` uses `WGI_GOVEFF` (live 2026-05-17).
+- **Missing scorers** (0): `mspi` composer is wired and scored (`MSPI_INDEX` / `SimpleDirectionalScorer`). Coverage is thinner than HDI (117 vs 193 countries, 2010–2024). `state` uses `WGI_GOVEFF` (live 2026-05-17).
 - **Missing data in pipeline** (0): `gii` and `mpi` are both live as of 2026-05-17. `gii` uses the 2025 HDR composite-indices CSV; `mpi` uses the 2025 OPHI/UNDP Global MPI Table 2 XLSX (88 countries, survey-wave granularity). Note: MPI is not an annual panel — display logic decision still open.
 - **ND-GAIN composite** (was 1, now 0): `ndgain` is live as of 2026-05-17 — pipeline now reads ND-GAIN's published composite directly from `resources/vulnerability/vulnerability.csv` rather than recomputing from components. Matches ND-GAIN's canonical published numbers by construction.
-- **Pop density scorer** (formula fixed in code, output unverified): `popdens` — banded formula adopted 2026-07-03 (`b19f1a8`), but no pipeline run has happened since the fix (only on-disk run is 2026-06-28, pre-fix, all-NaN). Re-run required to confirm. Plus the open PlanCatalyst semantic decision (scored+inverted vs context/display-only) — Thomas to route.
+- **Pop density scorer** (formula fixed and verified): `popdens` — banded formula adopted 2026-07-03 (`b19f1a8`), verified 2026-07-07 (issue #6). Display direction confirmed 2026-09-17: keep scored + inverted.
 
 ### Reconciliation with published output (2026-07-07 run)
 
@@ -75,14 +75,24 @@ Tracking these so nothing falls through the cracks after handoff:
 | `clean` | #5 | **Fixed** | 8,730 `EG_EGY_CLEAN` rows scored; `clean.csv` produced |
 | `popdens` | #6 | **Verified** | Banded scores {0, 25, 50, 75, 100}; 3,617 non-null scores |
 
-**Net:** 28/28 indicators reach scoring. One open semantic question remains (`popdens` direction, issue #7).
+**Net:** 28/28 indicators reach scoring. `popdens` direction is closed (2026-09-17). The `pri/macrosec` contract key is `mspi` backed by `MSPI_INDEX` (scored 2026-09-19: 117 countries vs HDI 193). Do not live-publish until PlanCatalyst confirms that coverage drop.
 
-Open semantic question (unchanged):
-- `popdens` — confirm with PlanCatalyst whether density stays scored+inverted or becomes context/display-only. Owner: **Thomas → PlanCatalyst**.
+Open semantic question: none.
 
-### conces — client-approved MVP exclusion (proposed 2026-06-28)
+### conces / macrosec — spec received 2026-09-17; contract key `mspi` as of 2026-09-19
 
-`conces` (Concessionality Index) is **excluded from the MVP contract** and replaced by `hdi` for the `pri/macrosec` slot. Rationale: no published global dataset (debt-distress component is low-income-country-only, ~67 countries) and no PlanCatalyst-supplied composite construction formula. The contract carries exactly 28 indicators with `hdi` substituted (verified live in the 2026-06-28 end-to-end run: `hdi` -> `pri/macrosec`, ~190 countries). Status: **deferred post-MVP** — revisit only if PlanCatalyst delivers a documented composite formula and a global-coverage data source (open methodology questions tracked in `docs/source-candidates.md`). **Needs PlanCatalyst sign-off to convert this from "proposed" to "approved" exception (tracked in TASKS.md).**
+PlanCatalyst declined the HDI substitution (2026-08-13) and supplied the Country Macro
+Socio-Economic Performance Index on 2026-09-17. Spec: `docs/spec-macrosec-index.md`
+(`index_version: "1.0"`). Four equal-weight World Bank components (income, WGI fragility,
+LIC-DSF debt-risk proxy, non-concessional share); null if any component is null; higher =
+better before the pipeline invert.
+
+The 2026-06-28 MVP-exclusion proposal is **withdrawn**. Contract key is `mspi` (not `hdi`,
+not `conces`). Taxonomy maps `mspi` → `MSPI_INDEX` (`src/calculating/mspi.py`).
+**Coverage vs HDI (local score 2026-09-19):** 117 countries / 1,693 country-years vs 193 / 2,688
+in 2010–2024. Binding constraint is IDS (`DT.DOD.ALLC.ZS` + debt-risk). High-income non-reporters
+are null. Face-value debt stock was used for 1,585 rows; present-value for 103. Confirm before
+swapping the live snapshot.
 
 ## Why invert at publish rather than in `src/calculating/`
 

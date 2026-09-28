@@ -13,8 +13,7 @@ For frontend delivery, the important outputs are:
 
 ## Ownership
 
-- **Anthony:** scoring pipeline, indicator gaps (`popdens`, `conces`), cleaning inputs
-- **Thomas:** publish integration support, data validation (Phase 2)
+- **Thomas:** remaining delivery as of 2026-09-19 (scoring, publish, validation)
 
 ## Run Command
 

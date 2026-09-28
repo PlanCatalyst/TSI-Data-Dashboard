@@ -4,6 +4,15 @@
 conform exactly to the shapes below. The frontend reads *only* these files. Any
 change here is a versioned contract change (bump `/v1/` → `/v2/` and keep both).
 
+**2026-09-19:** `pri.repIndicator` and the `pri/macrosec` indicator key are `mspi`
+(Country Macro Socio-Economic Performance Index), replacing the interim `hdi`
+stopgap. Same slot, still 28 indicators, still `/v1/` — same class of in-place
+replacement as `conces` → `hdi` (2026-06-01). Spec: `docs/spec-macrosec-index.md`.
+Composer is wired (`src/calculating/mspi.py` → `MSPI_INDEX`). Local score
+2026-09-19: 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688.
+Do not live-publish until PlanCatalyst confirms that coverage drop. HDI stays
+fetched as a verification baseline and no longer occupies this slot.
+
 **Publish location:** `https://<account>.blob.core.windows.net/dashboard-public/v1/`
 
 ```
@@ -29,7 +38,9 @@ disagree, update this document to match the mock and file an issue.
 - **Numbers**: all numeric scores are in `[0, 100]`, higher = more favourable
   (see §5).
 - **Nulls**: missing observations are represented as `null` (JSON null). Never
-  omit the key, never use `NaN` or `0` as a sentinel.
+  omit the key, never use `NaN` or `0` as a sentinel. A `null` on its own does
+  not say *why* the value is absent; where that distinction matters, an
+  indicator carries a `status` (see §3.1).
 - **Country identifier**: `iso3` (3-letter ISO 3166-1 alpha-3, e.g. `"KEN"`) is
   the canonical join key across all three files. `id` (ISO numeric) is kept for
   the map (TopoJSON keys numeric).
@@ -79,7 +90,7 @@ bootstrap, caches in React context.
     { "key": "women",    "label": "Gender equality",           "color": "#817d77", "repIndicator": "gii"    },
     { "key": "climate",  "label": "Climate adaptation",        "color": "#7a6a30", "repIndicator": "ndgain" },
     { "key": "ctx",      "label": "Country context",           "color": "#a05020", "repIndicator": "state"  },
-    { "key": "pri",      "label": "Socio-economic performance","color": "#3a5a6a", "repIndicator": "hdi"    }
+    { "key": "pri",      "label": "Socio-economic performance","color": "#3a5a6a", "repIndicator": "mspi"   }
   ],
   "subdomains": [
     { "key": "phc",      "label": "Resilient primary healthcare systems", "pillar": "health" },
@@ -187,8 +198,80 @@ strip chart, Map choropleth, and Map country detail panel.
   `overall` score computed per year using that year's pillar scores. Nulls
   preserved. Powers the sparkline in the Explore table.
 
+- `indicatorStatus`: **optional**, added 2026-09-24. Map of indicator key to a
+  status object, present only for indicators that define a status model. See
+  §3.1. Consumers that do not know the key ignore it.
+
 **Ordering**: alphabetical by `name` is recommended but not contractually
 required. Frontend sorts client-side anyway.
+
+---
+
+### 3.1 `indicatorStatus` (additive, 2026-09-24)
+
+**Why this exists.** A `null` score answers "is there a value" but not "should
+there have been one". Those are different questions with different consequences:
+a country that is outside an index's defined scope is a correct, permanent
+absence, while a country inside scope with missing inputs is a data gap somebody
+may need to chase. Collapsing both into `null` loses the distinction and makes
+every absence look like a defect.
+
+This was introduced by PlanCatalyst's 2026-09-23 revision of the `mspi`
+specification (`docs/client-specs/`), which requires every country to appear in
+the output labelled with the reason it does or does not carry a score.
+
+**Shape.** Additive and optional. Absent for the 27 indicators that have no
+status model.
+
+```jsonc
+{
+  "iso3": "POL",
+  "scores": { "pri": null, /* ... */ },
+  "indicatorStatus": {
+    "mspi": {
+      "status": "out_of_scope",
+      "missingComponents": []
+    }
+  }
+}
+```
+
+**Values of `status`:**
+
+| Value | Meaning | Score |
+|---|---|---|
+| `scored` | In scope, all required components present. | number in `[0, 100]` |
+| `out_of_scope` | Outside the index's defined population. Not a data gap, and not actionable. | `null` |
+| `incomplete_data` | In scope, but one or more required components are missing. Potentially actionable. | `null` |
+
+**`missingComponents`**: array of component identifiers, populated only when
+`status` is `incomplete_data`, empty otherwise. Never `null`.
+
+**Invariants:**
+
+1. `status: "scored"` requires a non-null score for that indicator in
+   `countries.json` and at least one non-null entry in `timeseries.json`.
+2. `out_of_scope` and `incomplete_data` both require a `null` score. The status
+   explains the null, it never substitutes for one.
+3. `missingComponents` is non-empty if and only if `status` is
+   `incomplete_data`.
+
+**Granularity: country-level, not country-year.** Scope is resolved from the
+World Bank lending classification, which the API exposes only as current state
+with no history, so a per-year scope value would be fabricated precision. A
+country-level `incomplete_data` therefore means "no year in the published range
+has a complete component set"; per-year absence remains visible as nulls in the
+`timeseries.json` array. Revisit if the World Bank ever publishes a historical
+lending classification series.
+
+**Version impact: none.** Adding an optional key is backward compatible under
+invariant 6 of `CLAUDE.md`. Existing consumers that ignore `indicatorStatus`
+continue to read valid payloads, so this stays on `/v1/`. Changing the meaning
+of an existing key, or making this one required, would not.
+
+**Frontend obligation.** Rank, sort and comparison views must treat
+`out_of_scope` as excluded from the ranking rather than as a low score. A
+country with no index value is not a country that performed worst.
 
 ---
 
@@ -204,7 +287,7 @@ client-side (matching `subVal` in the client mock).
     "uhc":    [52, 54, 55, 56, 58, 60, 61, 62, 63, null, null],
     "tb":     [40, 41, 43, 45, 46, 48, 50, 51, 52, 53, 54],
     // ... one entry per indicator key ...
-    "hdi":    [null, null, 47, 48, 49, 50, 51, 52, 53, 53, 54]
+    "mspi":   [null, null, 47, 48, 49, 50, 51, 52, 53, 53, 54]
   },
   "TZA": {
     "uhc":    [/* ... */]
@@ -274,6 +357,11 @@ The publish step MUST verify before upload:
 4. Every `timeseries.json[iso3]` has exactly the 28 indicator keys from
    `meta.indicators`, each an array of length `meta.years.length`.
 5. All non-null numeric scores fall in `[0, 100]`.
+6. Where `indicatorStatus` is present (§3.1): every `status` is one of
+   `scored` / `out_of_scope` / `incomplete_data`; `scored` entries have a
+   non-null score for that indicator; non-`scored` entries have a `null` score;
+   `missingComponents` is non-empty exactly when `status` is
+   `incomplete_data`.
 
 A validation failure aborts the upload; the existing `/v1/` remains live.
 

@@ -644,23 +644,28 @@ pillars:
         label: "Socio-economic performance"
         scoring: "0 - 100"
         indicators:
-          - frontend_key: hdi
+          - frontend_key: mspi
             id: null
-            name: "Human Development Index"
+            name: "Country Macro Socio-Economic Performance Index"
             definition: >
-              UNDP composite index of national socio-economic development:
-              life expectancy at birth, expected and mean years of schooling,
-              and GNI per capita (PPP). Raw scale 0-1; higher = more developed.
-            available_for_all_countries: "Yes — UNDP HDR publishes HDI for ~190 countries, annual series from 1990."
-            unit_or_measure: "Index (0-1)"
-            data_source: "UNDP Human Development Reports"
+              PlanCatalyst composite (index_version 1.0) of four equally weighted
+              World Bank components: log GDP per capita (NY.GDP.PCAP.CD), mean of
+              six WGI EST dimensions, an LIC-DSF debt-risk proxy from IDS, and
+              inverted concessional-debt share (DT.DOD.ALLC.ZS). Client spec:
+              docs/spec-macrosec-index.md. Replaces the interim Human Development
+              Index occupant of this slot (frontend_key `hdi`, 2026-06-01 to
+              2026-09-19) and the original Concessionality Index (`conces`).
+            available_for_all_countries: >
+              No — IDS components cover Debtor Reporting System reporters
+              (mostly low- and middle-income). Any missing component nulls the
+              whole composite.
+            unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
+            data_source: "World Bank WDI, WGI, and International Debt Statistics"
             scoring: >
-              Inverse-normalized to the pipeline's vulnerability orientation:
-              score = (1 - HDI) * 100, so higher score = lower development =
-              greater need. HDI replaces the originally-specified Concessionality
-              Index (frontend_key `conces`), which had no published global dataset
-              — its core debt-distress component is low-income-country only (~67
-              countries), so it could never populate this pillar globally. HDI is
-              the global proxy for "macro socio-economic performance" and is
-              already ingested via the UNDP HDR source (same file as `gii`).
-              See docs/spec-empty-pri-and-overall.md (decision 2026-06-01).
+              Composer in src/calculating/mspi.py emits MSPI_INDEX as 0-100
+              higher-is-better (equal 25% weights, fixed bounds, null if any
+              component is null). SimpleDirectionalScorer then flips to
+              pipeline vulnerability orientation (100 - composite). Publish
+              inverts once. HDI_INDEX is still fetched as a verification
+              baseline and is no longer the taxonomy target. See
+              docs/spec-macrosec-index.md.

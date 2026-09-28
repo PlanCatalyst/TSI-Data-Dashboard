@@ -12,14 +12,19 @@ from src.utils.country_names import get_canonical_name
 
 
 # Default columns in the WGI per-dimension sheets (`ge`, `rq`, ...).
-# Each sheet has the same schema. The "Governance score (0-100)" is a
-# pre-normalized 0-100 favorability score (higher = better governance)
-# published by WGI itself. We use that directly; no in-pipeline
-# normalization is needed.
+# Each sheet has the same schema. "Governance score (0-100)" is the
+# pre-normalized favorability score used by `state` / WGI_GOVEFF.
+# "Governance estimate" is the native EST scale (−2.5 to +2.5) used by
+# the mspi fragility component. Do not mix the two.
 _DEFAULT_ISO3_COL = "Economy (code)"
 _DEFAULT_NAME_COL = "Economy (name)"
 _DEFAULT_YEAR_COL = "Year"
 _DEFAULT_SCORE_COL = "Governance score (0-100)"
+_EST_SCORE_COL = "Governance estimate (approx. -2.5 to +2.5)"
+_SCORE_COL_ALIASES = {
+    "estimate": _EST_SCORE_COL,
+    "score_0_100": _DEFAULT_SCORE_COL,
+}
 
 
 class WBWGICleaner(DataCleaner):
@@ -27,19 +32,18 @@ class WBWGICleaner(DataCleaner):
     Clean World Bank Worldwide Governance Indicators (WGI) data.
 
     For each file in the fetcher's manifest, read the configured sheet and
-    score column. Emit the tidy schema:
+    score column. Indicator specs come from `settings.yaml` `wb_wgi.files`
+    (matched by alias), not the on-disk fetch manifest, so adding a series
+    does not require re-downloading the XLSX.
+
+    Emit the tidy schema:
 
         country_code, country_name, year, value, indicator, series_code
-
-    The `value` column carries the WGI pre-normalized 0-100 score where
-    HIGHER = better governance (i.e. dashboard orientation). The scorer
-    (`SimpleDirectionalScorer`) does `100 - value` to flip into the
-    pipeline's vulnerability orientation; the publish boundary then flips
-    back, so consumers of the contract see the WGI's original 0-100 number.
     """
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
+        self.config = config
 
     def save_interim(self, df: pd.DataFrame, out_path: Path) -> None:
         ensure_dir(out_path.parent)
@@ -62,7 +66,7 @@ class WBWGICleaner(DataCleaner):
                 TerminalOutput.info(f"  missing file on disk: {local_path}", indent=1)
                 continue
 
-            for ind_spec in entry.get("indicators", []) or []:
+            for ind_spec in self._indicator_specs(entry):
                 tidy = self._extract_sheet(local_path, ind_spec, alias=entry.get("alias"))
                 if not tidy.empty:
                     frames.append(tidy)
@@ -88,6 +92,15 @@ class WBWGICleaner(DataCleaner):
         )
         return df
 
+    def _indicator_specs(self, entry: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Prefer live yaml specs over the fetch-time manifest snapshot."""
+        alias = entry.get("alias")
+        files = ((self.config or {}).get("wb_wgi") or {}).get("files") or []
+        for spec in files:
+            if spec.get("alias") == alias and spec.get("indicators"):
+                return list(spec["indicators"])
+        return list(entry.get("indicators") or [])
+
     def _extract_sheet(
         self,
         path: Path,
@@ -103,6 +116,7 @@ class WBWGICleaner(DataCleaner):
         name_col = spec.get("name_col", _DEFAULT_NAME_COL)
         year_col = spec.get("year_col", _DEFAULT_YEAR_COL)
         score_col = spec.get("score_col", _DEFAULT_SCORE_COL)
+        score_col = _SCORE_COL_ALIASES.get(score_col, score_col)
 
         raw = pd.read_excel(path, sheet_name=sheet)
         missing = [c for c in (iso3_col, year_col, score_col) if c not in raw.columns]
