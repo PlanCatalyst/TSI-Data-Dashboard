@@ -193,10 +193,13 @@ class FetchData:
             # This is done by the API
 
             # fetch_indicator_data() returns a LIST of indicator records
-            recs.extend(wbClient.fetch_indicator_data(code, 
-                wb["countries"], 
-                wb["start_year"], 
-                wb["end_year"]
+            recs.extend(wbClient.fetch_indicator_data(
+                code,
+                wb["countries"],
+                wb["start_year"],
+                wb["end_year"],
+                source=ind.get("source"),
+                counterpart_area=ind.get("counterpart_area"),
             ))
 
         # Save raw data locally
@@ -206,6 +209,17 @@ class FetchData:
                 recs,
                 _source_raw_dir(cfg, "worldbank"),
                 raw_files.get("worldbank", "world_bank_raw.json")
+            )
+
+        # Country reference table (lendingType / incomeLevel / region). One request,
+        # no year dimension, so it is fetched outside the indicator loop above.
+        TerminalOutput.info("Fetching country metadata", indent=1)
+        country_metadata = wbClient.fetch_country_metadata()
+        if runtime.get("save_raw", True):
+            wbClient.save_raw_data(
+                country_metadata,
+                _source_raw_dir(cfg, "worldbank"),
+                raw_files.get("wb_country_metadata", "world_bank_country_metadata_raw.json")
             )
         
         
@@ -290,6 +304,7 @@ class FetchData:
         return {
             "unsdg": unsdg_indicator_list,
             "worldbank": recs,
+            "wb_country_metadata": country_metadata,
             "ndgain": ndgain_indicator_scores,
             "undp_hdr": undp_manifest,
             "wb_wgi": wgi_manifest,
