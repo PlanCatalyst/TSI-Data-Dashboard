@@ -2,7 +2,7 @@
 
 > Active onboarding and execution guide. Last updated **2026-09-19**.
 
-## 0) Status, 2026-09-19
+## 0) Status, 2026-09-29
 
 The client thread reopened 2026-08-13 and was answered 2026-09-04. Three things define the current
 state:
@@ -12,9 +12,12 @@ state:
 2. **The scoring and forecasting work is committed on `main`.** Forecast
    quality gates, ARIMA intervals, atomic projection publish, and the
    projection-aware frontend are merged and locally verified.
-3. **The live site serves a 2026-07-01 snapshot** (`pipelineRunId: fresh-20260701`), predating those
-   fixes, so the deployed `ag` pillar still looks saturated. A republish is owed to the client and
-   is blocked on credentials.
+3. **The live Blob was republished 2026-09-29** (`pipelineRunId: refresh-20260929`) with the
+   2026-07-07 scoring fixes, `mspi` in place of `hdi`, and the contract §3.1 `indicatorStatus`
+   field. Credentials: service principal `tsidashboard-pipeline`, Storage Blob Data Contributor on
+   the `dashboard-public` container only, storage account `tsidashboardblobstorage` in
+   PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires 2027-09-28.
+   The hosted frontend build still needs a redeploy to pick up the status field.
 
 **Operations:** publishing remains a manual run documented in
 `docs/runbook-refresh.md`. A twice-yearly Azure Container Apps Job is tracked as
@@ -82,9 +85,9 @@ From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
   `tsidashboardblobstorage` is a personal subscription it must migrate before handoff, and the
   migration requires a frontend rebuild because the Blob URL is compiled in at build time. Reply
   for IT: `docs/azure-it-request.md`.
-- **No `.env` at repo root** — publish credentials are not held locally. Republish is blocked until
-  either existing credentials surface or PlanCatalyst's IT issues the new service
-  principal.
+- ~~**No `.env` at repo root.**~~ **Closed 2026-09-29.** IT issued `tsidashboard-pipeline`;
+  `.env` holds the four `AZURE_*` values locally and is gitignored. Secret expires 2027-09-28,
+  so the refresh after that date needs a rotated secret from IT first.
 - ~~Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3)~~ — **Closed 2026-09-24.**
   Verified: 234 distinct country codes on disk, all ISO3, none numeric.
 - Stale local fixtures `dashboard/public/v1/` (May 17) — fresh publish to `dashboard-public`.
@@ -104,8 +107,7 @@ Verified again 2026-09-04 against `data/interim/validated/`.
   and clean restored 8,730 rows across 194 countries. `clean.csv` is produced. 28/28 indicators
   reach scoring.
 - `popdens` (#6) — **Verified.** The banded fix produces 0/25/50/75/100 in a fresh run.
-- ⚠️ **None of this is live.** These fixes are committed but unpublished. The deployed dashboard
-  still serves the pre-fix 2026-07-01 snapshot until a republish happens.
+- **Live as of 2026-09-29** (`refresh-20260929`). The pre-fix snapshot lag is closed.
 
 - Automation / alerting — **deferred follow-up.**
 
@@ -145,8 +147,9 @@ See `TASKS.md` for deliverables and milestones.
 4. ~~**Anthony (blocker):** Grant ACR push rights~~ — **Descoped 2026-09-04.** Replaced by a manual
    publish per `docs/runbook-refresh.md`.
 5. ~~**Thomas (now):** Commit the 2026-07-07 fix work.~~ **Done 2026-09-08.**
-6. **Thomas (blocked on credentials):** Republish `dashboard-public/v1/` so the live site stops
-   serving the pre-fix snapshot. Promised to the client.
+6. ~~**Thomas:** Republish `dashboard-public/v1/`.~~ **Done 2026-09-29**, run id
+   `refresh-20260929`. Next: dispatch the Deploy dashboard workflow so the hosted build reads
+   `indicatorStatus`.
 7. **Thomas (unblocked):** Mock parity pass; responsive QA at Wix iframe widths before the client
    places the embed.
 8. ~~**Thomas:** Route `conces` MVP exclusion sign-off to PlanCatalyst.~~ — **Answered 2026-08-13;

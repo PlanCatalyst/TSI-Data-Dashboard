@@ -4,11 +4,10 @@
 > (deleted 2026-09-08). Remaining work belongs to **Thomas**.
 > Contract truth: `docs/data-contract.md`. Invariants: `CLAUDE.md`.
 
-Status: forecasting MVP merged to local `main` and verified 2026-09-15. Live
-publish is still blocked on Azure credentials. Reyna replied 2026-09-17: the
-macrosec spec is in hand (`docs/spec-macrosec-index.md`), `popdens` display
-direction is confirmed (keep scored + inverted), and the wrap-up call waits
-until IT finishes the service-principal request.
+Status (2026-09-29): **live Blob republished** as `refresh-20260929` with the
+2026-07-07 scoring fixes, `mspi` and `indicatorStatus`. Frontend redeploy
+pending. All client-side questions are answered; Reyna offered a wrap-up call
+this week or next. Earlier: forecasting MVP merged 2026-09-15.
 
 **Ownership (2026-09-19):** Thomas is finishing the project. Anthony is no
 longer an active owner. Historical commits and closed items still name him
@@ -22,13 +21,13 @@ cleared to replace `hdi` in the live snapshot. Her **revised spec arrived the
 same day** (`Macro_Socio-Economic_Performance_Index_Spec UPDATED.docx`, repo
 root): formula unchanged, but it adds an IDS scope rule resolved from
 `lendingType.id`, a three-value `status` field, and `partial_scores: false`.
-`src/calculating/mspi.py` implements the superseded model and needs rework.
-See `docs/spec-macrosec-index.md`.
+`src/calculating/mspi.py` implements it as of 2026-09-29, including her
+accepted scope refinement (no IDS history means out of scope) and
+`index_version` 1.1. See `docs/spec-macrosec-index.md`.
 
-**Azure, 2026-09-24:** PlanCatalyst IT reported no `dashboard-public` container
-and screenshotted storage account `tsidatadashboard98a4`. That is not the
-account the dashboard reads (`tsidashboardblobstorage`). Reply for IT is
-drafted in `docs/azure-it-request.md`.
+**Azure, 2026-09-29:** `tsidashboardblobstorage` confirmed in PlanCatalyst's
+subscription (resource group `tsi-data-dashboard`). Service principal
+`tsidashboard-pipeline` issued at container scope; secret expires 2027-09-28.
 
 ## Owner
 
@@ -49,9 +48,10 @@ drafted in `docs/azure-it-request.md`.
   `data/interim/validated/indicator_status.csv`. Against the on-disk data:
   117 scored, 28 incomplete, 128 out of scope, matching the spec diff. The
   composer still drops incomplete rows from the scored output, which is
-  correct under `partial_scores: false`; nothing else remains here unless
-  Reyna's answers change the scope rule. Until she answers, the 15 high-income
-  IBRD graduates publish as `incomplete_data`.
+  correct under `partial_scores: false`. **Scope refinement applied
+  2026-09-29** after Reyna accepted it: in scope by lending type but no IDS
+  observation in any year is `out_of_scope`. Published set: 117 scored,
+  5 incomplete (BGR, ERI, GNQ, RUS, TKM), rest out of scope. Done.
 - ~~Add a World Bank country-metadata fetch for `lendingType.id`.~~
   **Done 2026-09-24.** `WorldBankFetcher.fetch_country_metadata()` (one call,
   `per_page=400`) plus `WorldBankCleaner.clean_country_metadata()` emit
@@ -69,27 +69,23 @@ drafted in `docs/azure-it-request.md`.
   instead of the generic no-data line. Bundled fixtures under
   `dashboard/public/v1/` regenerated from the dry run, so the local frontend
   now carries `mspi` in place of `hdi`. Additive, so no `/v2`.
-- Ask Reyna three follow-ups on the revised spec: her scope rule returns 145
-  countries against her stated ~120 and mislabels 15 high-income IBRD
-  graduates as `incomplete_data`; `mrnev=1` would make `mspi` a snapshot and
-  flatten the `pri` trend line; `index_version` needs bumping since output
-  semantics changed. Detail in `docs/spec-macrosec-index.md`.
+- ~~Ask Reyna three follow-ups on the revised spec.~~ **All answered 2026-09-29:** scope
+  refinement accepted (no IDS history means out of scope), series not snapshot, version
+  bumped to 1.1. Applied in `src/calculating/mspi.py` the same day.
 - ~~Re-run the UN SDG cleaner for M49 country codes.~~ **Closed 2026-09-24.**
   The on-disk file already carries ISO3 throughout (234 distinct codes, none
   numeric). No re-run needed.
-- Confirm which subscription owns `tsidashboardblobstorage`. IT's 2026-09-24
-  screenshot shows they were looking at `tsidatadashboard98a4`, a different
-  account holding only Functions runtime containers, so the two accounts are
-  confirmed distinct. If `tsidashboardblobstorage` is a personal one, plan
-  migration before handoff (requires a frontend rebuild and SWA redeploy,
-  since the Blob URL is baked in at build time). Reply drafted in
-  `docs/azure-it-request.md`.
+- ~~Confirm which subscription owns `tsidashboardblobstorage`.~~ **Confirmed
+  2026-09-29:** PlanCatalyst's. No migration, no frontend URL change.
 - Pre-handoff hardening: CORS allow-list on `dashboard-public` limited to
   the Wix/plancatalyst origins plus local dev; verify `Cache-Control` on the
   live payloads; scan git history for secrets.
-- Republish `dashboard-public/v1/` once credentials exist (procedure:
-  `docs/runbook-refresh.md`). Live Blob still serves the pre-fix
-  `fresh-20260701` snapshot.
+- ~~Republish `dashboard-public/v1/`.~~ **Done 2026-09-29**, run id `refresh-20260929`,
+  meta last, verified live: `mspi` in `pri`, 216 countries with `indicatorStatus`
+  (117 scored / 5 incomplete / 94 out of scope on the published set).
+  `Cache-Control: public, max-age=3600` confirmed on the payloads.
+- Dispatch the **Deploy dashboard** workflow from `main` so the hosted build carries the
+  status rendering. Then verify the live site against the new snapshot.
 - Deploy the forecast-enabled frontend build, then publish forecasts with
   `runtime.run_forecasts: true`.
 - Mock parity pass and responsive QA at Wix iframe widths.
@@ -120,11 +116,10 @@ drafted in `docs/azure-it-request.md`.
   swap.~~ Confirmed 2026-09-24: exclude non-covered countries.
 - ~~Revised index document.~~ Received and diffed 2026-09-24. Three follow-up
   questions now with Reyna (scope count, `mrnev=1`, version bump).
-- Service principal: Storage Blob Data Contributor scoped to the
-  `dashboard-public` container only. IT came back 2026-09-24 saying the
-  container does not exist, having looked at the wrong storage account.
-  Blocked on IT answering which subscription owns `tsidashboardblobstorage`.
-  See `docs/azure-it-request.md`.
+- ~~Service principal.~~ **Issued 2026-09-29:** `tsidashboard-pipeline`, Storage Blob Data
+  Contributor on the `dashboard-public` container only, on `tsidashboardblobstorage` in
+  PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires
+  2027-09-28. A second principal `tsi-analytics` holds the same role; confirm on the call.
 - ~~`popdens` display-direction confirmation.~~ Confirmed 2026-09-17: keep
   scored + inverted; dense countries display low. No code change.
 - Call scheduling. She prefers to wait until IT finishes, then close remaining

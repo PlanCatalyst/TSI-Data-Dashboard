@@ -144,15 +144,12 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   2026-05-17. `pri/macrosec` contract key is `mspi` as of 2026-09-19, backed by
   `MSPI_INDEX` (`src/calculating/mspi.py`). Issues #3 (`agoda`),
   #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification) were all closed 2026-07-07.
-- **The 2026-07-07 fix session is committed and pushed.** Scoring fixes and
-  regenerated bundled fixtures are on `main`; the remaining gap is republishing
-  those results to the live Blob snapshot.
-- **The live Blob serves a pre-fix snapshot.** `dashboard-public/v1/meta.json` reports
-  `pipelineRunId: fresh-20260701`, which predates the fixes above. The deployed dashboard therefore
-  still shows the saturated `ag` pillar. A republish is required and has been promised to the client.
-- **No `.env` at repo root.** Publish credentials are not currently held locally. The
-  republish waits on the new service principal (or any credentials that still exist
-  off-repo).
+- **Live Blob republished 2026-09-29** (`pipelineRunId: refresh-20260929`) with the
+  2026-07-07 scoring fixes, `mspi`, and the additive `indicatorStatus` field. The hosted
+  frontend needs a redeploy (manual `Deploy dashboard` workflow) to render the status field.
+- **Publish credentials exist locally.** `.env` at repo root holds the four `AZURE_*` values
+  for service principal `tsidashboard-pipeline` (Storage Blob Data Contributor on the
+  `dashboard-public` container only). Secret expires 2027-09-28. Never commit or print it.
 - `conces` / macrosec: client declined the `hdi` substitution (2026-08-13) and
   supplied the composite spec on **2026-09-17** (`docs/spec-macrosec-index.md`).
   Contract key **`mspi`** landed 2026-09-19. Composer wired and scored
@@ -185,16 +182,13 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   manually dispatched, CI-gated workflow and requires the
   `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
   environment.
-- **Storage account ownership is unconfirmed, and the IT ask hit the wrong account.**
-  PlanCatalyst IT replied 2026-09-24 that no `dashboard-public` container exists, with a screenshot
-  of storage account `tsidatadashboard98a4` holding only `app-package-tsi-function-78a9cef` and
-  `azure-webjobs-hosts` (Functions runtime containers). The dashboard reads a different account,
-  `tsidashboardblobstorage`, which is live and anonymous-readable today. `tsidatadashboard98a4`
-  also has `allowBlobPublicAccess` disabled (verified: HTTP 409 `PublicAccessNotPermitted`), so a
-  container created there cannot be made anonymous-readable without an account-level change. If
-  `tsidashboardblobstorage` is a personal subscription it must migrate before handoff, and moving it
-  requires a frontend rebuild and redeploy because the Blob URL is baked in at build time. The reply
-  for IT, including the no-public-access fallback, is `docs/azure-it-request.md`.
+- **Storage account ownership confirmed 2026-09-29.** `tsidashboardblobstorage` sits in
+  PlanCatalyst's subscription, resource group `tsi-data-dashboard`, Canada Central. No
+  migration. `dashboard-public` is the only anonymous container (level Blob);
+  `validated-scores`, `powerbi-data-indicators` and `$logs` are private. The pipeline principal
+  has rights on `dashboard-public` only, so `runtime.upload_azure` for validated CSVs stays off
+  unless IT grants a second scoped role. `tsidatadashboard98a4` is their Functions account and
+  is unrelated. History of the IT exchange: `docs/azure-it-request.md`.
 - **ACR / containerised pipeline: descoped 2026-09-04.** At the confirmed 6-month refresh cadence the
   registry push, image build and container host are not worth their cost. Publish runs manually from
   a workstation, documented in `docs/runbook-refresh.md`. The container path stays available if the
