@@ -146,7 +146,7 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   #4 (`susag`), #5 (`clean`) and #6 (`popdens` verification) were all closed 2026-07-07.
 - **Live Blob republished 2026-09-29** (`pipelineRunId: refresh-20260929`) with the
   2026-07-07 scoring fixes, `mspi`, and the additive `indicatorStatus` field. The hosted
-  frontend needs a redeploy (manual `Deploy dashboard` workflow) to render the status field.
+  frontend was redeployed the same day and renders it.
 - **Publish credentials exist locally.** `.env` at repo root holds the four `AZURE_*` values
   for service principal `tsidashboard-pipeline` (Storage Blob Data Contributor on the
   `dashboard-public` container only). Secret expires 2027-09-28. Never commit or print it.
@@ -181,7 +181,8 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   CI supplies the production Blob URL explicitly. Production deployment is a
   manually dispatched, CI-gated workflow and requires the
   `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
-  environment.
+  environment (set 2026-09-29; recovery steps in `docs/runbook-refresh.md`). The SWA is
+  `tsi-dashboard-frontend` in resource group `tsi-data-dashboard`, PlanCatalyst's subscription.
 - **Storage account ownership confirmed 2026-09-29.** `tsidashboardblobstorage` sits in
   PlanCatalyst's subscription, resource group `tsi-data-dashboard`, Canada Central. No
   migration. `dashboard-public` is the only anonymous container (level Blob);

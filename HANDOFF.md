@@ -17,7 +17,7 @@ state:
    field. Credentials: service principal `tsidashboard-pipeline`, Storage Blob Data Contributor on
    the `dashboard-public` container only, storage account `tsidashboardblobstorage` in
    PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires 2027-09-28.
-   The hosted frontend build still needs a redeploy to pick up the status field.
+   The hosted frontend was redeployed the same evening and renders the status field.
 
 **Operations:** publishing remains a manual run documented in
 `docs/runbook-refresh.md`. A twice-yearly Azure Container Apps Job is tracked as
@@ -147,9 +147,8 @@ See `TASKS.md` for deliverables and milestones.
 4. ~~**Anthony (blocker):** Grant ACR push rights~~ — **Descoped 2026-09-04.** Replaced by a manual
    publish per `docs/runbook-refresh.md`.
 5. ~~**Thomas (now):** Commit the 2026-07-07 fix work.~~ **Done 2026-09-08.**
-6. ~~**Thomas:** Republish `dashboard-public/v1/`.~~ **Done 2026-09-29**, run id
-   `refresh-20260929`. Next: dispatch the Deploy dashboard workflow so the hosted build reads
-   `indicatorStatus`.
+6. ~~**Thomas:** Republish `dashboard-public/v1/` and redeploy the frontend.~~ **Both done
+   2026-09-29**, run id `refresh-20260929`.
 7. **Thomas (unblocked):** Mock parity pass; responsive QA at Wix iframe widths before the client
    places the embed.
 8. ~~**Thomas:** Route `conces` MVP exclusion sign-off to PlanCatalyst.~~ — **Answered 2026-08-13;

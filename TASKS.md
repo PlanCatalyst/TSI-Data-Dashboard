@@ -5,8 +5,8 @@
 > Contract truth: `docs/data-contract.md`. Invariants: `CLAUDE.md`.
 
 Status (2026-09-29): **live Blob republished** as `refresh-20260929` with the
-2026-07-07 scoring fixes, `mspi` and `indicatorStatus`. Frontend redeploy
-pending. All client-side questions are answered; Reyna offered a wrap-up call
+2026-07-07 scoring fixes, `mspi` and `indicatorStatus`, and the **frontend
+redeployed** the same evening. All client-side questions are answered; Reyna offered a wrap-up call
 this week or next. Earlier: forecasting MVP merged 2026-09-15.
 
 **Ownership (2026-09-19):** Thomas is finishing the project. Anthony is no
@@ -84,10 +84,12 @@ subscription (resource group `tsi-data-dashboard`). Service principal
   meta last, verified live: `mspi` in `pri`, 216 countries with `indicatorStatus`
   (117 scored / 5 incomplete / 94 out of scope on the published set).
   `Cache-Control: public, max-age=3600` confirmed on the payloads.
-- Dispatch the **Deploy dashboard** workflow from `main` so the hosted build carries the
-  status rendering. Then verify the live site against the new snapshot.
-- Deploy the forecast-enabled frontend build, then publish forecasts with
-  `runtime.run_forecasts: true`.
+- ~~Dispatch the **Deploy dashboard** workflow.~~ **Done 2026-09-29.** First run failed on a
+  missing `AZURE_STATIC_WEB_APPS_API_TOKEN`; secret set from `az staticwebapp secrets list`,
+  rerun green. Hosted bundle verified to carry the status rendering and the production Blob
+  URL. Recovery steps added to `docs/runbook-refresh.md`.
+- ~~Deploy the forecast-enabled frontend build~~ (deployed 2026-09-29), then publish
+  forecasts with `runtime.run_forecasts: true` when ready.
 - Mock parity pass and responsive QA at Wix iframe widths.
 - Wix embed E2E on `plancatalyst.org` once Reyna places the iframe.
 - Route client sign-off (Reyna is final authority).
