@@ -1,6 +1,7 @@
 """Country Macro Socio-Economic Performance Index (mspi) composer.
 
-Client spec: ``docs/spec-macrosec-index.md`` (index_version 1.0).
+Client spec: ``docs/spec-macrosec-index.md`` (index_version 1.1, revised
+2026-09-23; scope refinement accepted 2026-09-29).
 
 Builds one ``MSPI_INDEX`` row per country-year whose four components are all
 present. ``value`` is the higher-is-better composite on [0, 100].
@@ -17,7 +18,8 @@ import math
 import numpy as np
 import pandas as pd
 
-INDEX_VERSION = "1.0"
+INDEX_VERSION = "1.1"
+CLIENT_DOC_REVISION = "2026-09-23"
 MSPI_SERIES_CODE = "MSPI_INDEX"
 MSPI_INDICATOR = "Country Macro Socio-Economic Performance Index"
 
@@ -70,7 +72,11 @@ _COMPONENT_NAMES = {
     "n_conc": "concessionality",
 }
 _COMPONENT_COLS = tuple(_COMPONENT_NAMES)
-_PANEL_COLS = ["country_code", "country_name", "year", *_COMPONENT_COLS, "debt_basis"]
+# Raw IDS (Debtor Reporting System) inputs. A country that never reports any
+# of these has no IDS history and is out of scope even if its lending type
+# says otherwise (client decision 2026-09-29).
+_IDS_RAW_COLS = ("concessional_pct", "pv_gni", "pv_exp", "fv_gni", "fv_exp", "ds_exp")
+_PANEL_COLS = ["country_code", "country_name", "year", *_COMPONENT_COLS, "debt_basis", "ids_reported"]
 
 
 def norm_income(gdp_pc: pd.Series) -> pd.Series:
@@ -241,6 +247,7 @@ def _component_panel(df: pd.DataFrame) -> pd.DataFrame:
             "n_debt": n_debt.to_numpy(),
             "n_conc": n_conc.to_numpy(),
             "debt_basis": basis.values,
+            "ids_reported": panel[list(_IDS_RAW_COLS)].notna().any(axis=1).to_numpy(),
         }
     )
     return out[_PANEL_COLS].reset_index(drop=True)
@@ -287,6 +294,11 @@ def mspi_country_status(
     out of scope.
 
     Status is country-level because lending classification has no history.
+    A country in scope by lending type but with **no IDS observation in any
+    year** is ``out_of_scope``: it has stopped (or never started) reporting to
+    the Debtor Reporting System, which is what the lending-type proxy was
+    standing in for. The test is on reported data, not income level, so a
+    high-income country that still reports (Guyana) stays in scope.
     ``incomplete_data`` means no year has a complete component set;
     ``missing_components`` then lists the components absent in the most recent
     year that has any component at all, so the list is never empty on that
@@ -314,6 +326,9 @@ def mspi_country_status(
         comp = sub[list(_COMPONENT_COLS)] if not sub.empty else pd.DataFrame(columns=list(_COMPONENT_COLS))
         if not comp.empty and comp.notna().all(axis=1).any():
             rows.append((code, MSPI_FRONTEND_KEY, STATUS_SCORED, ""))
+            continue
+        if sub.empty or not bool(sub["ids_reported"].any()):
+            rows.append((code, MSPI_FRONTEND_KEY, STATUS_OUT_OF_SCOPE, ""))
             continue
         any_data = comp.notna().any(axis=1) if not comp.empty else pd.Series(dtype=bool)
         if any_data.any():

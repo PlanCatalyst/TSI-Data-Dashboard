@@ -188,11 +188,30 @@ def test_status_incomplete_lists_missing_components_from_latest_year():
     assert _status_map(out) == {"KEN": ("incomplete_data", "concessionality")}
 
 
-def test_status_incomplete_with_no_component_data_lists_all_four():
+def test_status_in_scope_by_lending_type_but_no_ids_history_is_out_of_scope():
+    """Client decision 2026-09-29: no IDS observation in any year = out of scope."""
     from src.calculating.mspi import mspi_country_status
 
-    out = mspi_country_status(pd.DataFrame(columns=["country_code", "year", "value", "series_code"]), _metadata(ERI=True))
-    assert _status_map(out) == {"ERI": ("incomplete_data", "income|fragility|debt_risk|concessionality")}
+    # No data at all.
+    out = mspi_country_status(pd.DataFrame(columns=["country_code", "year", "value", "series_code"]), _metadata(POL=True))
+    assert _status_map(out) == {"POL": ("out_of_scope", "")}
+
+    # Income and governance present, but every IDS series absent (a graduate).
+    df = _complete_components()
+    df = df[~df["series_code"].str.startswith("DT.")]
+    out = mspi_country_status(df, _metadata(KEN=True))
+    assert _status_map(out) == {"KEN": ("out_of_scope", "")}
+
+
+def test_status_incomplete_when_some_ids_history_exists():
+    """One IDS observation keeps a country in scope; the gap is then named."""
+    from src.calculating.mspi import mspi_country_status
+
+    df = _complete_components()
+    # Keep concessionality, drop the debt-stock and service series.
+    df = df[~df["series_code"].isin(["DT.DOD.PVLX.GN.ZS", "DT.DOD.PVLX.EX.ZS", "DT.TDS.DECT.EX.ZS"])]
+    out = mspi_country_status(df, _metadata(KEN=True))
+    assert _status_map(out) == {"KEN": ("incomplete_data", "debt_risk")}
 
 
 def test_status_out_of_scope_overrides_data_and_covers_unknown_countries():
