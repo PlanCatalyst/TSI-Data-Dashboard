@@ -648,7 +648,7 @@ pillars:
             id: null
             name: "Country Macro Socio-Economic Performance Index"
             definition: >
-              PlanCatalyst composite (index_version 1.0) of four equally weighted
+              PlanCatalyst composite (index_version 1.1) of four equally weighted
               World Bank components: log GDP per capita (NY.GDP.PCAP.CD), mean of
               six WGI EST dimensions, an LIC-DSF debt-risk proxy from IDS, and
               inverted concessional-debt share (DT.DOD.ALLC.ZS). Client spec:

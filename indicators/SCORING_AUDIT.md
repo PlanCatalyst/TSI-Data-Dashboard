@@ -83,7 +83,7 @@ Open semantic question: none.
 
 PlanCatalyst declined the HDI substitution (2026-08-13) and supplied the Country Macro
 Socio-Economic Performance Index on 2026-09-17. Spec: `docs/spec-macrosec-index.md`
-(`index_version: "1.0"`). Four equal-weight World Bank components (income, WGI fragility,
+(`index_version: "1.1"`, revised 2026-09-23, scope refinement 2026-09-29). Four equal-weight World Bank components (income, WGI fragility,
 LIC-DSF debt-risk proxy, non-concessional share); null if any component is null; higher =
 better before the pipeline invert.
 
