@@ -296,6 +296,34 @@ and requires `AZURE_STATIC_WEB_APPS_API_TOKEN` in the GitHub `production`
 environment.
 
 ```zsh
+gh workflow run deploy-dashboard.yml --ref main
+gh run watch <run-id> --compact --exit-status   # run id is printed by the dispatch
+```
+
+**Where things live (confirmed 2026-09-29).** Static Web App
+`tsi-dashboard-frontend`, resource group `tsi-data-dashboard`, subscription
+"Azure subscription 1" (PlanCatalyst), same place as storage account
+`tsidashboardblobstorage`. Public host
+`jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
+
+**If the deploy step fails with `deployment_token was not provided`,** the
+environment secret is missing or was rotated. Re-set it without the value ever
+touching a terminal or a file (needs `az login` on that subscription and
+`gh auth` with repo admin):
+
+```zsh
+az staticwebapp secrets list --name tsi-dashboard-frontend \
+  --resource-group tsi-data-dashboard --query "properties.apiKey" -o tsv \
+  | tr -d '\n' | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --env production
+gh run rerun <run-id> --failed
+```
+
+**Credential expiry.** The pipeline service principal secret
+(`tsidashboard-pipeline`) expires **2027-09-28**. The first refresh after that
+date needs a rotated secret from PlanCatalyst IT before the `--azure` publish
+will authenticate; ask for it a month ahead.
+
+```zsh
 cd dashboard
 npm ci
 npm audit --audit-level=moderate
