@@ -52,77 +52,25 @@ export function MapPage() {
             pillars={meta.pillars}
           />
 
-          {/* Legend overlay — anchored to the map area, matches the mock 1:1 */}
-          <div className="map-overlay" style={{ minWidth: 160 }}>
-            <div className="mov-title">Overall index</div>
-            <div style={{ display: "flex", alignItems: "stretch", gap: 7, margin: "6px 0 4px" }}>
-              <div
-                style={{
-                  width: 14,
-                  borderRadius: 3,
-                  background: `linear-gradient(to bottom, ${MAP_COLOR_STOPS.map((s) => s.color).join(", ")})`,
-                  flexShrink: 0,
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  fontSize: 9.5,
-                  color: "var(--mut)",
-                  lineHeight: 1.2,
-                }}
-              >
-                {MAP_COLOR_STOPS.map((s, i) => (
-                  <span
-                    key={s.color}
-                    style={{
-                      fontWeight: i === 0 || i === MAP_COLOR_STOPS.length - 1 ? 600 : 400,
-                      color: i === 0 || i === MAP_COLOR_STOPS.length - 1 ? "var(--txt)" : "var(--mut)",
-                    }}
-                  >
-                    {s.labelEdge}
-                  </span>
-                ))}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  fontSize: 9.5,
-                  color: "var(--mut)",
-                  lineHeight: 1.2,
-                  paddingTop: 1,
-                }}
-              >
-                {MAP_COLOR_STOPS.map((s) => (
-                  <span key={s.label}>{s.label}</span>
-                ))}
+          {/* Legend: design system .legend, anchored inside the map area. */}
+          <div className="legend map-legend" aria-label="Map legend">
+            <span className="eyebrow">Overall index</span>
+            <div className="legend-ramp">
+              {MAP_COLOR_STOPS.map((s) => (
+                <div key={s.label} className="row">
+                  <i style={{ background: s.color }} aria-hidden="true" />
+                  <span>{s.label}</span>
+                  <span className="small">{s.labelEdge}</span>
+                </div>
+              ))}
+              <div className="row">
+                <i style={{ background: "var(--map-null)" }} aria-hidden="true" />
+                <span>No data</span>
+                <span />
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5, fontSize: 9.5, color: "var(--mut)" }}>
-              <div
-                style={{
-                  width: 14,
-                  height: 10,
-                  borderRadius: 2,
-                  background: "#e8ecf0",
-                  border: "1px solid #d0d5dc",
-                  flexShrink: 0,
-                }}
-              />
-              No data
-            </div>
-            <div style={{ marginTop: 7, fontSize: 9.5, color: "var(--mut)", lineHeight: 1.4 }}>
-              Click to explore
-              <br />
-              Double-click to reset
-            </div>
-            <div style={{ marginTop: 7, paddingTop: 6, borderTop: "1px solid var(--bd)", fontSize: 9, color: "var(--mut)", lineHeight: 1.4 }}>
-              {SCORE_INTERPRETATION_NOTE_SHORT}
-            </div>
+            <p className="small legend-help">Click a country to explore. Double-click to reset.</p>
+            <p className="small legend-note">{SCORE_INTERPRETATION_NOTE_SHORT}</p>
           </div>
         </div>
 

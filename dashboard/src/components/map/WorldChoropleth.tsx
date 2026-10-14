@@ -17,17 +17,21 @@ import { ErrorState } from "../states/ErrorState";
 // https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json into public/geo/.
 const WORLD_ATLAS_URL = "/geo/countries-110m.json";
 
-const NO_DATA_FILL = "#dde2ea";
-const SELECTED_STROKE = "#0079c1";
-const DEFAULT_STROKE = "#fff";
+// Colours are design-system tokens (--map-*), applied through style() so
+// var() resolves. Direction is unchanged from v1: darker = higher score
+// (lower need). Flipping to darker = higher need is an open question for the
+// client (requirements v2, section 7); only the token order changes if so.
+const NO_DATA_FILL = "var(--map-null)";
+const SELECTED_STROKE = "var(--pc-blue)";
+const DEFAULT_STROKE = "var(--map-stroke)";
 
-// Five-bucket sequential palette from the mock; keep order high → low.
+// Five-bucket sequential ramp; keep order high to low.
 export const MAP_COLOR_STOPS = [
-  { min: 80, color: "#1a4f72", label: "Very high", labelEdge: "80+" },
-  { min: 65, color: "#0079c1", label: "High",      labelEdge: "65" },
-  { min: 50, color: "#5aaed4", label: "Moderate",  labelEdge: "50" },
-  { min: 35, color: "#a8d4e8", label: "Low",       labelEdge: "35" },
-  { min: 0,  color: "#d4ebcf", label: "Very low",  labelEdge: "<35" },
+  { min: 80, color: "var(--map-6)", label: "Very high", labelEdge: "80+" },
+  { min: 65, color: "var(--map-4)", label: "High",      labelEdge: "65" },
+  { min: 50, color: "var(--map-3)", label: "Moderate",  labelEdge: "50" },
+  { min: 35, color: "var(--map-1)", label: "Low",       labelEdge: "35" },
+  { min: 0,  color: "var(--map-0)", label: "Very low",  labelEdge: "<35" },
 ] as const;
 
 export function mapColor(score: number | null): string {
@@ -256,10 +260,10 @@ export function WorldChoropleth({
       .attr("class", "country")
       .merge(sel)
       .attr("d", (d) => path(d as d3.GeoPermissibleObjects) ?? "")
-      .attr("stroke", DEFAULT_STROKE)
+      .style("stroke", DEFAULT_STROKE)
       .attr("stroke-width", 0.5)
       .style("cursor", (d) => (byNumericId.has(Number(d.id)) ? "pointer" : "default"))
-      .attr("fill", (d) => {
+      .style("fill", (d) => {
         const c = byNumericId.get(Number(d.id));
         return c ? mapColor(getScore(c)) : NO_DATA_FILL;
       });
@@ -272,7 +276,7 @@ export function WorldChoropleth({
       .filter(function () {
         return d3.select(this).classed("selected");
       })
-      .attr("stroke", SELECTED_STROKE)
+      .style("stroke", SELECTED_STROKE)
       .attr("stroke-width", 2);
 
     merged
@@ -374,24 +378,21 @@ export function WorldChoropleth({
       )}
 
       {tooltip && (
-        <div
-          className="map-tip"
-          style={{ display: "block", left: tooltip.x, top: tooltip.y, position: "absolute" }}
-        >
-          <strong>{tooltip.country.name}</strong>
-          <div className="tip-row">
+        <div className="tip map-tip" style={{ left: tooltip.x, top: tooltip.y }}>
+          <b>{tooltip.country.name}</b>
+          <div className="row">
             <span>Overall</span>
-            <span>{displayOverall(tooltip.country) ?? "—"}</span>
+            <span className="v">{displayOverall(tooltip.country) ?? "\u2014"}</span>
           </div>
           {pillars.map((p) => (
-            <div key={p.key} className="tip-row">
+            <div key={p.key} className="row">
               <span>{p.label}</span>
-              <span>{tooltip.country.scores[p.key] ?? "—"}</span>
+              <span className="v">{tooltip.country.scores[p.key] ?? "\u2014"}</span>
             </div>
           ))}
-          <div className="tip-row">
+          <div className="row">
             <span>Region</span>
-            <span>{regionLabel[tooltip.country.region] ?? tooltip.country.region}</span>
+            <span className="v">{regionLabel[tooltip.country.region] ?? tooltip.country.region}</span>
           </div>
         </div>
       )}
