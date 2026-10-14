@@ -302,15 +302,27 @@ system approved 2026-10-14; reference page linked at the top of this
 document.
 
 ```
-B1. Tokens file, Google Fonts, nav underline (§7.4)
-B2. Panel layout to flex + width; close resets expand (§7.2 B1, B1b)
-B3. Panel rebuild on the score-row pattern (§2, §7)
-B4. Legend and tooltip as tokenised components; map component untouched (§7.2 B3, REQ7.11a)
-B5. Remaining routes: Explore, Compare, About, Trends (§7)
-B6. Reveal hook and motion tokens wired (§7.5)
-B7. CI hex and radius guardrail (REQ7.6)
-B8. Before/after screenshots and the reviewer review (AC2.3, AC7.7)
+B1. Tokens file, Google Fonts, nav underline (§7.4) ............ done 2026-10-14, fcb72f3
+B2. Panel layout to flex + width; close resets expand (§7.2 B1, B1b) ... done, 884defc
+B3. Panel rebuild on the score-row pattern (§2, §7) ............ done, eb7a10d
+B4. Legend and tooltip as tokenised components; map component untouched (§7.2 B3, REQ7.11a) ... done, 2f3fed4
+B5. Remaining routes: Explore, Compare, About, Trends (§7) ..... done, d476f5c
+B6. Reveal hook and motion tokens wired (§7.5) ................. done, ad25976
+B7. CI hex and radius guardrail (REQ7.6) ....................... done, 31a4d65
+B8. Before/after screenshots and the reviewer review (AC2.3, AC7.7) ... open
 ```
+
+Notes from the build (2026-10-14):
+
+- The v1 choropleth ramp reads darker = higher score (lower need). B4 kept
+  that direction and only swapped hex for `--map-*` tokens. Flipping to
+  darker = higher need, as the design system proposes, is a token reorder
+  in `WorldChoropleth.tsx` once the reviewer answers the open question.
+- Pillar, region and country colours come from one module,
+  `dashboard/src/components/scores/series-color.ts`. The contract's
+  `pillar.color` is no longer read by the UI.
+- SVG fills and strokes are set through `style` rather than presentation
+  attributes so `var()` resolves in every browser.
 
 ### Pass C: operations and handoff
 
