@@ -123,6 +123,14 @@ ndgain: # name must match client_factory.py
     # Base path of the ND-GAIN ZIP file (downloaded from ND-GAIN site).
     base: data/raw/nd-gain/ndgain_countryindex_2026.zip
 
+  # Client-operable refresh (requirements v2, REQ3.3). When a container is
+  # named here or in NDGAIN_BLOB_CONTAINER, the newest .zip under the prefix
+  # is downloaded at run time and used instead of zip_path.base. Empty keeps
+  # the local file. The Container Apps Job sets the env var; local runs do not.
+  blob:
+    container: ""
+    prefix: "sources/ndgain/"
+
   # Indicator prefixes used inside the ND-GAIN ZIP files.
   indicators:
     # Indicators for constructing a country's Vulnerability index
@@ -216,6 +224,20 @@ wb_wgi: # name must match fetch_factory.py
     request_timeout: 60
     max_retries: 3
     retry_backoff_factor: 0.5
+
+# ====================================================================
+# Scoring
+# ====================================================================
+scoring:
+  # How a value already better than the client's benchmark is scored.
+  #   clamp      v1 rule. Need floors at 0, so every better-than-benchmark
+  #              country shows 100 on the dashboard with no trend.
+  #   soft_floor requirements v2 option B. Benchmark maps to need 25; better
+  #              values spread over 0 to 25, worse values over 25 to 100.
+  # Changing this changes every published score: bump index_version and
+  # update docs/data-contract.md and indicators/SCORING_AUDIT.md first.
+  # Awaiting the client's decision (requirements v2, section 1.4).
+  below_benchmark: clamp
 
 # ====================================================================
 # General Settings
