@@ -74,25 +74,25 @@ export function DomainTrendsChart({
                 y={PAD.t}
                 width={Math.max(0, W - PAD.r - divX)}
                 height={trackH}
-                fill="#fef6e6"
+                fill="var(--need-moderate-tint)"
                 opacity={0.65}
               />
-              <text x={divX + 6} y={15} fontSize={8.5} fontWeight={700} fill="#8a5713">
+              <text x={divX + 6} y={15} fontSize={8.5} fontWeight={700} fill="var(--need-moderate-ink)">
                 PROJECTED
               </text>
-              <text x={PAD.l + 4} y={15} fontSize={8.5} fontWeight={700} fill="#667481">
+              <text x={PAD.l + 4} y={15} fontSize={8.5} fontWeight={700} fill="var(--n-600)">
                 OBSERVED
               </text>
             </>
           )}
           {[0, 25, 50, 75, 100].map((v) => (
             <g key={v}>
-              <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="#eef0f3" strokeWidth={1} />
-              <text x={PAD.l - 5} y={yS(v) + 3.5} textAnchor="end" fontSize={9} fill="#b0b8c2">{v}</text>
+              <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="var(--n-100)" strokeWidth={1} />
+              <text x={PAD.l - 5} y={yS(v) + 3.5} textAnchor="end" fontSize={9} fill="var(--n-400)">{v}</text>
             </g>
           ))}
           {yearLabelIdx.map((i) => (
-            <text key={i} x={xS(i)} y={H - PAD.b + 12} textAnchor="middle" fontSize={9} fill="#9aa4ae">
+            <text key={i} x={xS(i)} y={H - PAD.b + 12} textAnchor="middle" fontSize={9} fill="var(--n-600)">
               {years[i]}
             </text>
           ))}
@@ -103,7 +103,7 @@ export function DomainTrendsChart({
               y1={PAD.t}
               x2={divX}
               y2={H - PAD.b}
-              stroke="#c8892f"
+              stroke="var(--need-moderate-ink)"
               strokeWidth={1.5}
               strokeDasharray="4,3"
             />
@@ -187,7 +187,7 @@ export function DomainTrendsChart({
                       cx={xS(i).toFixed(1)}
                       cy={yS(v).toFixed(1)}
                       r={3}
-                      fill="#fff"
+                      fill="var(--n-0)"
                       stroke={s.pillar.color}
                       strokeWidth={1.5}
                       onMouseEnter={(e) => {
@@ -204,53 +204,34 @@ export function DomainTrendsChart({
 
         {hover && (
           <div
+            className="tip"
             style={{
               position: "fixed",
               left: hover.x,
               top: hover.y - 8,
               transform: "translate(-50%, -100%)",
-              background: "#1e2a35",
-              color: "#fff",
-              padding: "8px 12px",
-              borderRadius: 7,
-              fontSize: 12,
               pointerEvents: "none",
-              zIndex: 9999,
-              boxShadow: "0 2px 12px rgba(0,0,0,.3)",
-              minWidth: 130,
-              lineHeight: 1.5,
+              zIndex: "var(--z-tooltip)",
+              minWidth: 150,
             }}
           >
-            <strong style={{ display: "block", marginBottom: 4 }}>
+            <b>
               {years[hover.yearIdx]}
               {firstProjectedYear != null &&
               !projectionsDisabled &&
               years[hover.yearIdx] >= firstProjectedYear
                 ? " (projected)"
                 : ""}
-            </strong>
+            </b>
             {series.map((s) => {
               const band = s.bands?.[hover.yearIdx] ?? null;
               const val = s.data[hover.yearIdx] ?? s.forecast?.[hover.yearIdx] ?? null;
               return (
-                <div key={s.pillar.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: s.pillar.color,
-                      display: "inline-block",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span>{s.pillar.label}:</span>
-                  <span style={{ fontWeight: 700, marginLeft: "auto" }}>
-                    {val != null
-                      ? val
-                      : band
-                        ? `${band.lo}–${band.hi}`
-                        : "—"}
+                <div key={s.pillar.key} className="row">
+                  <span className="dot" style={{ background: s.pillar.color }} />
+                  <span>{s.pillar.label}</span>
+                  <span className="v">
+                    {val != null ? val : band ? `${band.lo} to ${band.hi}` : "\u2014"}
                   </span>
                 </div>
               );
@@ -260,28 +241,17 @@ export function DomainTrendsChart({
       </div>
 
       {/* Legend */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10, fontSize: 11 }}>
+      <div className="trend-periods" style={{ marginTop: "var(--sp-2)" }}>
         {series.map((s) => (
-          <span key={s.pillar.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <span
-              style={{
-                width: 16,
-                height: 2.5,
-                background: s.pillar.color,
-                borderRadius: 2,
-                display: "inline-block",
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ color: "var(--mut)" }}>{s.pillar.label}</span>
+          <span key={s.pillar.key} className="trend-period">
+            <span className="trend-period-line" style={{ background: s.pillar.color }} aria-hidden="true" />
+            <span className="small">{s.pillar.label}</span>
           </span>
         ))}
       </div>
 
-      {projectionsDisabled && (
-        <div style={{ fontSize: 11, color: "var(--mut)", fontStyle: "italic", marginTop: 6 }}>
-          {projectionsNote ?? "Projections currently disabled — historical only."}
-        </div>
+      {projectionsDisabled && projectionsNote && (
+        <p className="chart-note">{projectionsNote}</p>
       )}
     </div>
   );
