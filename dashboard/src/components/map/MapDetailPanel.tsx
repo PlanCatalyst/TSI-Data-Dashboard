@@ -8,6 +8,7 @@ import type {
   TimeseriesPayload,
 } from "../../data/contract/types";
 import {
+  basketSeries,
   computePillarTimeseries,
   computeSubdomainScores,
   groupIndicatorKeysByPillar,
@@ -160,16 +161,11 @@ export function MapDetailPanel({
     });
   }, [meta, pillarTimeseries, allChartYears, projectionsEnabled, country, projectionIndex]);
 
-  // Overall line: per-year mean of whichever pillar means exist that year.
-  // Mirrors displayOverall's fallback so the line and the headline agree in
-  // spirit; null where no pillar has data.
+  // Overall line: basket mean over the pillar series (DQ-03), so a year is
+  // drawn only when the pillar basket is substantially complete. Null
+  // otherwise; never a mean over a different set of pillars.
   const overallSeries = useMemo(() => {
-    const data = allChartYears.map((_, i) => {
-      const vals = pillarSeries
-        .map((s) => s.data[i])
-        .filter((v): v is number => v != null);
-      return meanFinite(vals);
-    });
+    const data = basketSeries(pillarSeries.map((s) => s.data), allChartYears.length);
     return { pillar: OVERALL_PILLAR, data };
   }, [pillarSeries, allChartYears]);
 
