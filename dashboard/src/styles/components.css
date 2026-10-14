@@ -299,39 +299,22 @@
 @media (max-width: 480px) {
   .map-area-wrap { height: min(72vw, 360px); }
 }
-.map-overlay {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background: rgba(255,255,255,.95);
-  border: 1px solid var(--bd);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-}
-.mov-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--mut); margin-bottom: 6px; }
-.leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; color: var(--txt); }
-.leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+/* Legend (map overlay) */
+.legend { background: rgba(255, 255, 255, 0.94); border: var(--rule); padding: var(--sp-3); display: grid; gap: var(--sp-2); width: max-content; max-width: calc(100% - 2 * var(--sp-4)); }
+.legend .row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; font: var(--t-small); color: var(--n-800); }
+.legend .row i { width: 14px; height: 14px; display: block; border: 1px solid rgba(22, 32, 42, 0.15); }
+.legend .row .small { font-variant-numeric: tabular-nums; }
+.legend-ramp { display: grid; gap: var(--sp-1); }
+.legend p { margin: 0; max-width: 24ch; }
+.legend-note { border-top: var(--rule); padding-top: var(--sp-2); }
+.map-legend { position: absolute; inset: auto auto var(--sp-4) var(--sp-4); z-index: var(--z-overlay); }
 @media (max-width: 480px) {
-  .map-overlay { font-size: 10px; padding: 6px 8px; }
-  .mov-title { font-size: 9px; }
-  .leg-row { font-size: 10px; margin-bottom: 2px; }
+  .map-legend { inset: auto auto var(--sp-2) var(--sp-2); padding: var(--sp-2); }
+  .map-legend .legend-help, .map-legend .legend-note { display: none; }
 }
-.map-tip {
-  position: absolute;
-  background: #1e2a35;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 7px;
-  font-size: 12px;
-  pointer-events: none;
-  display: none;
-  z-index: 20;
-  min-width: 140px;
-  max-width: 190px;
-}
-.map-tip strong { display: block; font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-.tip-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 3px; font-size: 11px; opacity: .9; }
+
+/* Map tooltip: .tip from the design system, positioned by the component. */
+.map-tip { position: absolute; pointer-events: none; z-index: var(--z-tooltip); min-width: 150px; max-width: 220px; }
 
 /* ── DESIGN SYSTEM COMPONENTS ──
    Mirrors docs/design-system/index.html section 3. Change the reference page
