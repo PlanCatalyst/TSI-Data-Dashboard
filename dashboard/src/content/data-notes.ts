@@ -69,7 +69,7 @@ export function describeIndicatorStatus(status: IndicatorStatus | null | undefin
  * are sparse in the current snapshot.
  */
 export const EXPLORE_TABLE_FOOTNOTE =
-  "— means missing data, not zero. Pillar scores reflect the published contract; some pillars are sparse or empty in the current snapshot. Ranking on a sparse column only reflects countries that have data.";
+  "A dash means missing data, not zero. Pillar scores reflect the published contract; some pillars are sparse or empty in the current snapshot. Ranking on a sparse column only reflects countries that have data.";
 
 /** Generic, snapshot-relative message for a pillar that has no data for the current selection. */
 export const NO_DATA_FOR_SELECTION =
@@ -80,17 +80,29 @@ export const NO_DATA_IN_SNAPSHOT =
   "Not available in the current data snapshot.";
 
 /**
+ * One sentence on the client's benchmark rule (requirements v2, AC1.5). Each
+ * indicator is scored against a PlanCatalyst benchmark; a country already
+ * better than the benchmark shows the top score for that indicator, so flat
+ * lines at 100 are the rule, not a data gap. Update when the reviewer picks a
+ * scoring option (section 1.4).
+ */
+export const BENCHMARK_RULE_NOTE =
+  "Each indicator is scored against a PlanCatalyst benchmark; a country already better than the benchmark shows 100 for it, which is why some lines sit flat at the top.";
+
+/**
  * Shared score-interpretation footnote shown on Map, Explore, and Compare so the
  * reading of every score is consistent across the product. Higher = more
  * favourable (lower need); partial coverage can inflate a sparse latest year;
  * the index is a need signal, not a conflict measure.
  */
 export const SCORE_INTERPRETATION_NOTE =
-  "Scores are 0–100, higher = more favourable (lower development need). Need bands: 75–100 LOW · 50–74 MODERATE · 25–49 HIGH · 0–24 SEVERE. LATEST = published value for the most recent year with data; ALL YEARS = client-side estimate when no published value exists. Partial coverage can inflate a sparse latest year (see the confidence flag). This index measures development need, not conflict.";
+  "Scores run 0 to 100; higher means more favourable (lower development need). Need bands: 75 to 100 low, 50 to 74 moderate, 25 to 49 high, 0 to 24 severe. " +
+  BENCHMARK_RULE_NOTE +
+  " Latest means the published value for the most recent year with data; All years means a client-side estimate when no published value exists. Partial coverage can inflate a sparse latest year (see the confidence flag). This index measures development need, not conflict.";
 
 /** Compact one-liner for tight spaces (map legend, card footers). */
 export const SCORE_INTERPRETATION_NOTE_SHORT =
-  "Higher = more favourable (lower need). Partial coverage may inflate sparse years; index does not measure conflict.";
+  "Higher means more favourable (lower need). " + BENCHMARK_RULE_NOTE + " Partial coverage may inflate sparse years.";
 
 /**
  * If every indicator under a pillar/subdomain is deferred-by-design, return the
