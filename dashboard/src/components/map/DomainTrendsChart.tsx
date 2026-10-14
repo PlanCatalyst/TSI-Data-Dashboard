@@ -74,25 +74,25 @@ export function DomainTrendsChart({
                 y={PAD.t}
                 width={Math.max(0, W - PAD.r - divX)}
                 height={trackH}
-                fill="var(--need-moderate-tint)"
+                style={{ fill: "var(--need-moderate-tint)" }}
                 opacity={0.65}
               />
-              <text x={divX + 6} y={15} fontSize={8.5} fontWeight={700} fill="var(--need-moderate-ink)">
+              <text x={divX + 6} y={15} fontSize={8.5} fontWeight={700} style={{ fill: "var(--need-moderate-ink)" }}>
                 PROJECTED
               </text>
-              <text x={PAD.l + 4} y={15} fontSize={8.5} fontWeight={700} fill="var(--n-600)">
+              <text x={PAD.l + 4} y={15} fontSize={8.5} fontWeight={700} style={{ fill: "var(--n-600)" }}>
                 OBSERVED
               </text>
             </>
           )}
           {[0, 25, 50, 75, 100].map((v) => (
             <g key={v}>
-              <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="var(--n-100)" strokeWidth={1} />
-              <text x={PAD.l - 5} y={yS(v) + 3.5} textAnchor="end" fontSize={9} fill="var(--n-400)">{v}</text>
+              <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} style={{ stroke: "var(--n-100)" }} strokeWidth={1} />
+              <text x={PAD.l - 5} y={yS(v) + 3.5} textAnchor="end" fontSize={9} style={{ fill: "var(--n-400)" }}>{v}</text>
             </g>
           ))}
           {yearLabelIdx.map((i) => (
-            <text key={i} x={xS(i)} y={H - PAD.b + 12} textAnchor="middle" fontSize={9} fill="var(--n-600)">
+            <text key={i} x={xS(i)} y={H - PAD.b + 12} textAnchor="middle" fontSize={9} style={{ fill: "var(--n-600)" }}>
               {years[i]}
             </text>
           ))}
@@ -103,7 +103,7 @@ export function DomainTrendsChart({
               y1={PAD.t}
               x2={divX}
               y2={H - PAD.b}
-              stroke="var(--need-moderate-ink)"
+              style={{ stroke: "var(--need-moderate-ink)" }}
               strokeWidth={1.5}
               strokeDasharray="4,3"
             />
@@ -187,7 +187,7 @@ export function DomainTrendsChart({
                       cx={xS(i).toFixed(1)}
                       cy={yS(v).toFixed(1)}
                       r={3}
-                      fill="var(--n-0)"
+                      style={{ fill: "var(--n-0)" }}
                       stroke={s.pillar.color}
                       strokeWidth={1.5}
                       onMouseEnter={(e) => {

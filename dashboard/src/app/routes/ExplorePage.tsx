@@ -9,19 +9,9 @@ import {
   pillarScoreTooltip,
 } from "../../data/contract/score-context";
 import { NeedBadge } from "../../components/scores/ScoreWithContext";
+import { regionColor, seriesColor } from "../../components/scores/series-color";
 import { TrendsPanel } from "./TrendsPanel";
 import { EXPLORE_TABLE_FOOTNOTE, SCORE_INTERPRETATION_NOTE } from "../../content/data-notes";
-
-const REG_COLORS: Record<string, string> = {
-  afe: "#0079c1",
-  afw: "#005d96",
-  eap: "#b2cd5a",
-  eca: "#7a9a1f",
-  lcr: "#e07b35",
-  mna: "#435d7f",
-  sar: "#7a5a9a",
-  nam: "#2a7a3a",
-};
 
 function trendDelta(trend: Array<number | null>): number | null {
   const vals = trend.filter((v): v is number => v != null);
@@ -37,13 +27,13 @@ function TrendLabel({ trend }: { trend: Array<number | null> }) {
 }
 
 function DomainBar({ val, color }: { val: number | null; color: string }) {
-  if (val == null) return <span style={{ color: "var(--mut)" }}>—</span>;
+  if (val == null) return <span style={{ color: "var(--n-600)" }}>—</span>;
   return (
     <div className="spark-wrap">
       <div className="spark-bg">
         <div className="spark-fill" style={{ width: `${val}%`, background: color }} />
       </div>
-      <span style={{ fontSize: 11, fontWeight: 600, color: "#1e2a35", minWidth: 24, textAlign: "right" }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--n-900)", minWidth: 24, textAlign: "right" }}>
         {val}
       </span>
     </div>
@@ -222,12 +212,12 @@ export function ExplorePage() {
                           const oc = overallContext(c);
                           return (
                             <>
-                              <DomainBar val={oc.value} color="#1e2a35" />
+                              <DomainBar val={oc.value} color="var(--n-900)" />
                               {oc.band && (
                                 <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 2 }}>
                                   <NeedBadge band={oc.band} size={8.5} />
                                   {oc.source && (
-                                    <span style={{ fontSize: 8, color: "var(--mut)", letterSpacing: ".3px" }}>
+                                    <span style={{ fontSize: 8, color: "var(--n-600)", letterSpacing: ".3px" }}>
                                       {derivationLabel(oc.source)}
                                     </span>
                                   )}
@@ -244,7 +234,7 @@ export function ExplorePage() {
                           : `${p.label}: no published value in this snapshot`;
                         return (
                           <td key={p.key} title={tip}>
-                            <DomainBar val={val} color={p.color} />
+                            <DomainBar val={val} color={seriesColor(p.key)} />
                           </td>
                         );
                       })}
@@ -258,7 +248,7 @@ export function ExplorePage() {
                 countries.every(c => (c.scores[p.key] ?? null) == null)
               );
               return (
-                <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic", padding: "8px 14px 10px", margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic", padding: "8px 14px 10px", margin: 0, lineHeight: 1.5 }}>
                   {EXPLORE_TABLE_FOOTNOTE}
                   {emptyPillars.length > 0 && (
                     <> {emptyPillars.map(p => p.label).join(", ")} {emptyPillars.length === 1 ? "has" : "have"} no data in this snapshot.</>
@@ -280,7 +270,7 @@ export function ExplorePage() {
                     className="region-bar-fill"
                     style={{
                       width: `${Math.round(r.count / total * 100)}%`,
-                      background: REG_COLORS[r.code] ?? "#0079c1",
+                      background: regionColor(r.code),
                     }}
                   />
                 </div>

@@ -39,7 +39,7 @@ function FrameworkCard({ group, subdomains, indicators }: FrameworkCardProps) {
               <div key={ind.key} className="fw-item">
                 {ind.sdg !== "—" && `${ind.sdg} · `}{ind.label}
                 {ind.key in DEFERRED_INDICATORS && (
-                  <em style={{ color: "var(--mut)", fontSize: 11, marginLeft: 4 }} title={DEFERRED_INDICATORS[ind.key]}>
+                  <em style={{ color: "var(--n-600)", fontSize: 11, marginLeft: 4 }} title={DEFERRED_INDICATORS[ind.key]}>
                     (deferred)
                   </em>
                 )}
@@ -117,7 +117,7 @@ export function AboutPage() {
           frontend change is needed.
         </li>
       </ul>
-      <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+      <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
         Scoring direction and known gaps are documented in{" "}
         <code>indicators/SCORING_AUDIT.md</code> in the repository.
       </p>
@@ -130,11 +130,11 @@ export function AboutPage() {
       </p>
 
       {meta?.projections.enabled === false ? (
-        <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+        <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
           Note: {meta.projections.note}
         </p>
       ) : meta?.projections.enabled === true ? (
-        <p style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+        <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
           Forecast intervals (when published) use value_lo/value_hi bands for eligible
           series. Where a forecast is unavailable: {UX_UNAVAILABLE_COPY}
           {meta.projections.firstProjectedYear != null
@@ -155,7 +155,7 @@ export function AboutPage() {
               />
             ))}
           </div>
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>{SOURCE_NOTE}</p>
+          <p style={{ fontSize: 12, color: "var(--n-600)" }}>{SOURCE_NOTE}</p>
         </>
       )}
     </div>

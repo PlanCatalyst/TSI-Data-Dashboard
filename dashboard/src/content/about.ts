@@ -90,27 +90,27 @@ export type FrameworkCardGroup = {
 export const FRAMEWORK_CARDS: FrameworkCardGroup[] = [
   {
     title: "Domain 1: Impact — Healthcare",
-    color: "#0079c1",
+    color: "var(--pc-blue)",
     pillars: ["health"],
   },
   {
     title: "Domain 1: Impact — Agriculture & Social infrastructure",
-    color: "#7a9a1f",
+    color: "var(--s-agri)",
     pillars: ["ag", "si"],
   },
   {
     title: "Cross-cutting themes",
-    color: "#7a6058",
+    color: "var(--s-context)",
     pillars: ["women", "climate"],
   },
   {
     title: "Domain 2: Country context",
-    color: "#435d7f",
+    color: "var(--pc-slate)",
     pillars: ["ctx"],
   },
   {
     title: "Domain 3: Socio-economic performance",
-    color: "#3a5a6a",
+    color: "var(--s-socio)",
     pillars: ["pri"],
   },
 ];

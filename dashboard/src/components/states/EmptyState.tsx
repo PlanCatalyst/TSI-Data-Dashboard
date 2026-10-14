@@ -5,9 +5,9 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, message }: EmptyStateProps) {
   return (
-    <div className="state-card">
-      <strong>{title}</strong>
-      <p>{message}</p>
+    <div className="state">
+      <span className="h2">{title}</span>
+      <p className="small">{message}</p>
     </div>
   );
 }
