@@ -5,6 +5,7 @@ from typing import Iterable, Optional
 
 import pandas as pd
 
+from src.calculating.dimensions import select_dimensions
 from src.calculating.factory import IndicatorScorerFactory
 from src.calculating.mspi import append_mspi_rows, mspi_country_status
 from src.calculating.pillar_aggregate import compute_pillar_scores, compute_subdomain_scores
@@ -152,6 +153,8 @@ def score_indicators(
 
     df = _apply_agoda_gdp_normalization(df)
     df = append_mspi_rows(df)
+    # One row per (country, year, series) before anything is scored (DQ-02).
+    df = select_dimensions(df)
 
     # Only score rows whose series_code is one the factory knows about.
     # Component-only rows (e.g. ND-GAIN per-indicator scores written for

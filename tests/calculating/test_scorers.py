@@ -75,3 +75,15 @@ def test_factory_default_is_clamp_and_rejects_unknown_mode():
     assert IndicatorScorerFactory("soft_floor").for_series("ND_GAIN_VULN").below_benchmark == "soft_floor"
     with pytest.raises(ValueError):
         IndicatorScorerFactory("minmax")
+
+
+def test_inverse_ratio_missing_value_stays_missing():
+    # DQ-06: NaN compared False against the benchmark and became need 0.
+    out = InverseRatioScorer(global_avg_val=27.1).score(_df([None, 50.0]))
+    assert pd.isna(out.iloc[0])
+    assert out.iloc[1] > 0
+
+
+def test_ratio_threshold_missing_value_stays_missing():
+    out = RatioThresholdScorer(threshold=25.0, global_average=25.0).score(_df([None, 10.0, 80.0]))
+    assert pd.isna(out.iloc[0]) and out.iloc[1] == 0.0 and out.iloc[2] > 0
