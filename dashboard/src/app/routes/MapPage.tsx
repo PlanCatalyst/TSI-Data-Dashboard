@@ -10,9 +10,17 @@ import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 export function MapPage() {
   const { meta, countries, timeseries, projections } = useDashboardData();
   const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
-  // Expand widens the detail panel (~75%); collapse restores the default width
-  // (panel stays visible — this is not dismiss). Only user toggle shrinks it.
-  const [panelExpanded, setPanelExpanded] = useState(false);
+  // Expand widens the detail panel to 75%; collapse restores the default
+  // width (the panel stays visible, this is not dismiss). The expanded
+  // state only has meaning while a country is selected, so it is derived
+  // below and reset on close (requirements v2, bug B1).
+  const [wantExpanded, setWantExpanded] = useState(false);
+  const panelExpanded = wantExpanded && selectedIso3 !== null;
+
+  const closePanel = () => {
+    setSelectedIso3(null);
+    setWantExpanded(false);
+  };
 
   // Hooks before any early return.
   const regionLabel = useMemo<Record<string, string>>(
@@ -39,7 +47,7 @@ export function MapPage() {
             countries={countries}
             getScore={getScore}
             selectedIso3={selectedIso3}
-            onSelect={(c) => setSelectedIso3(c ? c.iso3 : null)}
+            onSelect={(c) => (c ? setSelectedIso3(c.iso3) : closePanel())}
             regionLabel={regionLabel}
             pillars={meta.pillars}
           />
@@ -124,9 +132,9 @@ export function MapPage() {
           timeseries={timeseries}
           projections={projections}
           regionLabel={regionLabel}
-          onClose={() => setSelectedIso3(null)}
+          onClose={closePanel}
           expanded={panelExpanded}
-          onToggleExpand={() => setPanelExpanded((v) => !v)}
+          onToggleExpand={() => setWantExpanded((v) => !v)}
         />
       </div>
     </section>

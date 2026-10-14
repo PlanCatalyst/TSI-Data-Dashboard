@@ -238,50 +238,66 @@
 .cmp-domain-row { display: grid; grid-template-columns: 90px 1fr 28px; align-items: center; gap: 6px; padding: 4px 12px; }
 
 /* ── MAP ── */
-/* Break out of .app-content's 1rem padding so the map fills edge-to-edge */
-/* like the reference mock. Negative margins offset the padding precisely. */
-.map-section { margin: -1rem; }
+/* Break out of .app-content padding so the map fills edge to edge. */
+.map-section { margin: calc(-1 * var(--sp-6)); }
+@media (max-width: 480px) { .map-section { margin: calc(-1 * var(--sp-4)); } }
+
+/* Flex row, not grid: WebKit does not animate grid-template-columns, so the
+   panel's width is the animated property (REQ7.11b). The map flexes to fill
+   whatever is left and re-projects through its own ResizeObserver. */
 .map-layout {
-  display: grid;
-  /* Default: map flexes, detail panel fixed ~380px (collapse restores this). */
-  grid-template-columns: minmax(0, 1fr) 380px;
-  /* Stable height that mirrors the mock's "fills the viewport below the nav" */
-  /* feel without going circular in iframe height-resize calculations. */
+  display: flex;
+  align-items: stretch;
   height: min(720px, calc(100vh - 60px));
   min-height: 480px;
-  background: #fff;
-  border-top: 1px solid var(--bd);
-  transition: grid-template-columns 0.28s ease;
+  background: var(--n-0);
+  border-top: var(--rule);
+  overflow: hidden;
 }
-/* Expanded: panel ≈ 75% of map+panel viewport; map keeps ~25% on the left. */
-.map-layout.panel-expanded {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+.map-area-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--n-50);
 }
-.map-area-wrap { position: relative; overflow: hidden; min-width: 0; height: 100%; background: #e8eff6; }
 .map-area-wrap .map-area { position: absolute; inset: 0; }
-.detail-panel { background: #fff; border-left: 1px solid var(--bd); overflow-y: auto; min-width: 0; height: 100%; }
+.detail-panel {
+  flex: 0 0 auto;
+  width: 380px;
+  max-width: 80%;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--n-0);
+  border-left: var(--rule);
+  transition: width var(--dur-move) var(--ease-move);
+}
+.map-layout.panel-expanded .detail-panel { width: 75%; }
 @media (max-width: 1024px) {
-  .map-layout { grid-template-columns: minmax(0, 1fr) 320px; }
-  .map-layout.panel-expanded {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
-  }
+  .detail-panel { width: 320px; }
+  .map-layout.panel-expanded .detail-panel { width: 75%; }
 }
 @media (max-width: 860px) {
   .map-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: min(55vw, 420px) auto;
+    flex-direction: column;
     height: auto;
     min-height: 0;
+  }
+  .map-area-wrap { flex: 0 0 auto; height: min(55vw, 420px); }
+  .detail-panel,
+  .map-layout.panel-expanded .detail-panel {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    border-left: none;
+    border-top: var(--rule);
     transition: none;
   }
-  /* Stacked layout: expand is full-width (already 100% of the column). */
-  .map-layout.panel-expanded {
-    grid-template-columns: 1fr;
-  }
-  .detail-panel { height: auto; max-height: none; border-left: none; border-top: 1px solid var(--bd); }
 }
 @media (max-width: 480px) {
-  .map-layout { grid-template-rows: min(72vw, 360px) auto; }
+  .map-area-wrap { height: min(72vw, 360px); }
 }
 .map-overlay {
   position: absolute;
