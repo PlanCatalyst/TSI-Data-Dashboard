@@ -1,0 +1,795 @@
+<title>PlanCatalyst Dashboard Design System</title>
+<!--
+  PlanCatalyst Dashboard Design System, v1.0 (approved 2026-10-14)
+
+  WHAT THIS FILE IS
+  The single reference for the dashboard's visual language and motion.
+  It is both a human-readable spec and the implementation source:
+  the :root block below is copied verbatim into
+  dashboard/src/styles/tokens.css, and every component specimen here
+  maps to one class family in dashboard/src/styles/components.css.
+  Requirements: docs/requirements-v2.md section 7.
+
+  BRAND SOURCE
+  plancatalyst.org (Wix theme vars + inline styles, extracted 2026-10-14).
+  Blue #0079C1 and green #B2CD5A are headline accent colours on the site.
+  Slate #2B5672 is their secondary text. Everything is square, white,
+  photography-led, thin 1px rules, no shadows. Montserrat Bold headings.
+  Body is DIN Next Light (licensed, unavailable), so the dashboard keeps
+  Inter for body and numerals (tabular figures).
+
+  THEME
+  Deliberately single-theme (light). The dashboard embeds in a white Wix
+  page and never renders dark. Every colour is still a token.
+
+  HOW TO READ THE COMMENTS
+  "IMPL:" lines tell the implementer what to do in the React codebase.
+  "WHY:" lines record the design reasoning so a change is deliberate.
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* =====================================================================
+   1. TOKENS
+   IMPL: copy this :root block into dashboard/src/styles/tokens.css and
+   delete the legacy aliases (--brand, --bd, --txt, --mut, --radius).
+   Layout concept: white sheet, 1px rules carry structure, blue is the
+   only interactive colour, green is reserved for "positive" accents.
+   ===================================================================== */
+:root {
+  /* ---- Colour: brand (from plancatalyst.org) ---- */
+  --pc-blue:      #0079C1;   /* primary action, links, selected state   */
+  --pc-blue-ink:  #005D96;   /* blue on white at AA for small text       */
+  --pc-blue-tint: #E6F3FB;   /* selected row, hover surface              */
+  --pc-green:     #B2CD5A;   /* brand accent word; never a button fill   */
+  --pc-green-ink: #6F8A14;   /* green at AA for text                     */
+  --pc-green-tint:#F3F8E6;
+  --pc-slate:     #2B5672;   /* secondary headings, panel chrome         */
+  --pc-navy:      #1A2B6D;   /* display headings only                    */
+
+  /* ---- Colour: neutrals (cool bias toward the blue) ---- */
+  --n-0:   #FFFFFF;   /* surface                                          */
+  --n-50:  #F5F7F9;   /* page ground, table stripe                        */
+  --n-100: #EDF0F3;   /* hover on neutral surfaces                        */
+  --n-200: #D8DEE5;   /* rules, borders                                   */
+  --n-400: #8A96A3;   /* placeholder, disabled text                       */
+  --n-600: #5B6873;   /* muted text, captions (AA on white)               */
+  --n-800: #2A333B;   /* body text                                        */
+  --n-900: #16202A;   /* headings, numerals                               */
+
+  /* ---- Colour: need bands (semantic, cool to warm) ----
+     WHY: distinct from brand green so "moderate" never reads as brand.
+     Each band has a fill (chips, map, dots), an ink (text at AA on
+     white) and a tint (row background). Thresholds stay 75/50/25. */
+  --need-low:      #1E7F74;  --need-low-ink:      #156B61;  --need-low-tint:      #E4F3F1;
+  --need-moderate: #C59A1E;  --need-moderate-ink: #7E6008;  --need-moderate-tint: #FBF3DD;
+  --need-high:     #D96F2A;  --need-high-ink:     #9E4A12;  --need-high-tint:     #FBEADF;
+  --need-severe:   #B5302A;  --need-severe-ink:   #8E2520;  --need-severe-tint:   #F8E3E1;
+
+  /* ---- Colour: data status (indicatorStatus) ---- */
+  --status-scored:     var(--need-low-ink);
+  --status-incomplete: var(--need-moderate-ink);
+  --status-outscope:   var(--n-600);
+
+  /* ---- Colour: chart series, one per pillar, fixed order ----
+     WHY: fixed mapping so the same pillar is the same colour on every
+     chart, every country. */
+  --s-health:   #0079C1;
+  --s-agri:     #7A9A1F;
+  --s-social:   #2B5672;
+  --s-gender:   #8A5BA6;
+  --s-climate:  #1E7F74;
+  --s-context:  #C27C2C;
+  --s-socio:    #6B7A89;
+  --s-overall:  #16202A;   /* overall index line, always on top */
+
+  /* ---- Colour: choropleth (sequential, brand blue ramp) ----
+     Darker = higher need, so attention goes where need is. Confirm with
+     client before shipping (today's map direction is not documented). */
+  --map-0: #E6F3FB; --map-1: #B9DCF1; --map-2: #7FBDE3; --map-3: #3F96CF;
+  --map-4: #0079C1; --map-5: #005D96; --map-6: #0B3D66;
+  --map-null: #ECEFF2;  /* no data: neutral, never a band colour */
+  --map-stroke: #FFFFFF;
+  --map-selected: var(--n-900);
+
+  /* ---- Type ---- */
+  --f-display: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --f-body:    "Inter", "Segoe UI", Arial, sans-serif;
+  --t-display: 700 2rem/1.2 var(--f-display);        /* 32px  page title        */
+  --t-h1:      700 1.5rem/1.25 var(--f-display);     /* 24px  country name      */
+  --t-h2:      600 1.125rem/1.3 var(--f-display);    /* 18px  section           */
+  --t-eyebrow: 600 0.6875rem/1.2 var(--f-body);      /* 11px  UPPER, tracked    */
+  --t-body:    400 0.875rem/1.5 var(--f-body);       /* 14px                    */
+  --t-small:   400 0.75rem/1.45 var(--f-body);       /* 12px  captions          */
+  --t-num-lg:  600 1.75rem/1 var(--f-body);          /* 28px  overall score     */
+  --t-num:     600 1.125rem/1 var(--f-body);         /* 18px  pillar score      */
+  --track-eyebrow: 0.08em;
+
+  /* ---- Space (4px base) ---- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+
+  /* ---- Shape ----
+     WHY: the brand is square. Only dots and avatars are round. */
+  --radius: 0;
+  --radius-full: 50%;
+  --rule: 1px solid var(--n-200);
+  --rule-strong: 1px solid var(--n-400);
+  --shadow-none: none;
+  --shadow-float: 0 2px 8px rgba(22, 32, 42, 0.10);  /* tooltips, menus only */
+  --focus: 0 0 0 2px var(--n-0), 0 0 0 4px var(--pc-blue);
+
+  /* ---- Layers ---- */
+  --z-map: 1; --z-overlay: 10; --z-panel: 20; --z-tooltip: 30; --z-nav: 40;
+
+  /* ---- Breakpoints (reference only; CSS cannot read vars in @media) ----
+     sm 480 / md 768 / lg 1024 / xl 1280. Panel docks right above lg,
+     becomes a bottom sheet at md and below. */
+
+  /* ---- Motion ----
+     WHY: slow, even, settles. No springs, no expo-out, no pop. */
+  --dur-micro:  200ms;   /* hover, press, focus                     */
+  --dur-move:   600ms;   /* layout: panel expand, column resize     */
+  --dur-reveal: 1100ms;  /* entrance: panel content, page sections  */
+  --dur-draw:   1400ms;  /* chart line draw-in, first render only   */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);     /* quint-out: entrances */
+  --ease-move:  cubic-bezier(0.45, 0, 0.55, 1);     /* ease-in-out: layout  */
+  --stagger:    120ms;
+  --travel:     14px;
+}
+
+/* =====================================================================
+   2. BASE
+   ===================================================================== */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--n-50); color: var(--n-800);
+  font: var(--t-body); -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1100px; margin: 0 auto; padding-block: var(--sp-8) var(--sp-16); padding-inline: var(--sp-4); }
+h1, h2, h3, p { margin: 0; }
+.display { font: var(--t-display); color: var(--pc-navy); text-wrap: balance; }
+.h1 { font: var(--t-h1); color: var(--n-900); }
+.h2 { font: var(--t-h2); color: var(--pc-slate); }
+.eyebrow { font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; color: var(--n-600); }
+.small { font: var(--t-small); color: var(--n-600); }
+.num-lg { font: var(--t-num-lg); font-variant-numeric: tabular-nums; color: var(--n-900); }
+.num { font: var(--t-num); font-variant-numeric: tabular-nums; color: var(--n-900); }
+a { color: var(--pc-blue-ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.8125rem; background: var(--n-100); padding: 1px 4px; }
+pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem; line-height: 1.5; background: var(--n-900); color: var(--n-50); padding: var(--sp-4); overflow-x: auto; margin: 0; }
+
+/* Reference-page scaffolding (not part of the system) */
+.ds-head { display: grid; gap: var(--sp-3); padding-bottom: var(--sp-6); border-bottom: var(--rule-strong); margin-bottom: var(--sp-8); }
+.ds-meta { display: flex; flex-wrap: wrap; gap: var(--sp-4); }
+.ds-section { display: grid; gap: var(--sp-4); padding-block: var(--sp-8); border-bottom: var(--rule); }
+.ds-section > .lead { max-width: 65ch; color: var(--n-600); }
+.ds-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.ds-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+.ds-note { font: var(--t-small); color: var(--n-600); max-width: 65ch; }
+.ds-note b { color: var(--n-800); font-weight: 600; }
+.spec { display: grid; gap: var(--sp-2); }
+.spec .label { font: var(--t-small); color: var(--n-600); }
+.ds-toc { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+
+/* Swatches */
+.sw { display: grid; grid-template-columns: 44px 1fr; gap: var(--sp-3); align-items: center; background: var(--n-0); border: var(--rule); padding: var(--sp-2); }
+.sw i { display: block; width: 44px; height: 44px; border: var(--rule); }
+.sw b { display: block; font-weight: 600; color: var(--n-900); font-size: 0.8125rem; }
+.sw span { font: var(--t-small); color: var(--n-600); font-variant-numeric: tabular-nums; }
+.ramp { display: grid; grid-template-columns: repeat(8, 1fr); border: var(--rule); }
+.ramp i { height: 36px; display: block; }
+.ramp-labels { display: grid; grid-template-columns: 1fr 1fr; font: var(--t-small); color: var(--n-600); }
+
+/* Spacing specimen */
+.sp-bar { display: flex; align-items: flex-end; gap: var(--sp-4); }
+.sp-bar div { background: var(--pc-blue-tint); border-top: 2px solid var(--pc-blue); font: var(--t-small); color: var(--n-600); text-align: center; padding-top: var(--sp-1); }
+
+/* Type specimen */
+.type-row { display: grid; grid-template-columns: 110px 1fr; gap: var(--sp-4); align-items: baseline; padding-block: var(--sp-3); border-bottom: var(--rule); }
+.type-row:last-child { border-bottom: 0; }
+
+/* =====================================================================
+   3. COMPONENTS
+   IMPL: one class family per component. Variants are modifier classes.
+   State comes from :hover / :focus-visible / [disabled] / [aria-*].
+   ===================================================================== */
+
+/* ---- Button ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 36px; padding: 0 var(--sp-4);
+  font: 500 0.875rem/1 var(--f-body); letter-spacing: 0.01em;
+  border: 1px solid transparent; border-radius: var(--radius); cursor: pointer;
+  background: var(--pc-blue); color: var(--n-0);
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+.btn:hover { background: var(--pc-blue-ink); }
+.btn:active { background: var(--pc-navy); }
+.btn:focus-visible { outline: none; box-shadow: var(--focus); }
+.btn[disabled] { background: var(--n-200); color: var(--n-400); cursor: not-allowed; }
+.btn--secondary { background: var(--n-0); color: var(--pc-blue-ink); border-color: var(--pc-blue); }
+.btn--secondary:hover { background: var(--pc-blue-tint); }
+.btn--secondary:active { background: var(--pc-blue-tint); border-color: var(--pc-blue-ink); }
+.btn--ghost { background: transparent; color: var(--n-800); border-color: transparent; }
+.btn--ghost:hover { background: var(--n-100); }
+.btn--ghost:active { background: var(--n-200); }
+.btn--icon { width: 36px; padding: 0; }
+.btn--sm { min-height: 28px; padding: 0 var(--sp-3); font-size: 0.75rem; }
+.btn--sm.btn--icon { width: 28px; }
+/* WHY no green button: green is the brand's accent word colour. As a
+   fill it fails contrast with white text (2.0:1). It appears only as
+   the "positive" stripe and in the eyebrow accent. */
+
+/* ---- Chip (need band) and Badge (status) ---- */
+.chip {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: 22px; padding: 0 var(--sp-2);
+  font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase;
+  border-radius: var(--radius); white-space: nowrap;
+}
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: var(--radius-full); background: currentColor; }
+.chip--low      { background: var(--need-low-tint);      color: var(--need-low-ink); }
+.chip--moderate { background: var(--need-moderate-tint); color: var(--need-moderate-ink); }
+.chip--high     { background: var(--need-high-tint);     color: var(--need-high-ink); }
+.chip--severe   { background: var(--need-severe-tint);   color: var(--need-severe-ink); }
+.badge {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
+  font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase;
+  border: var(--rule); color: var(--n-600); background: var(--n-0);
+}
+.badge--scored     { color: var(--status-scored);     border-color: currentColor; }
+.badge--incomplete { color: var(--status-incomplete); border-color: currentColor; }
+.badge--outscope   { color: var(--status-outscope); }
+
+/* ---- Nav ---- */
+.nav { display: flex; gap: var(--sp-1); border-bottom: var(--rule); }
+.nav a {
+  position: relative; padding: var(--sp-3) var(--sp-3); color: var(--n-600);
+  font: 500 0.875rem/1 var(--f-body); text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.nav a::after { content: ""; position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: -1px; height: 2px; background: var(--pc-blue); transform: scaleX(0); transform-origin: left; transition: transform var(--dur-micro) var(--ease-out); }
+.nav a:hover { color: var(--n-900); text-decoration: none; }
+.nav a[aria-current="page"] { color: var(--n-900); }
+.nav a[aria-current="page"]::after { transform: scaleX(1); }
+.nav a:focus-visible { outline: none; box-shadow: var(--focus); }
+/* IMPL: replaces .nav-link pills (999px radius, filled). Underline, not pill. */
+
+/* ---- Section header (eyebrow + optional action) ---- */
+.sec { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); padding-bottom: var(--sp-2); border-bottom: var(--rule); }
+.sec .eyebrow { color: var(--pc-slate); }
+
+/* ---- Panel chrome ---- */
+.panel { background: var(--n-0); border-left: var(--rule); display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.panel-head { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-3); padding: var(--sp-4); border-bottom: var(--rule); align-items: start; }
+.panel-head .actions { display: flex; gap: var(--sp-1); }
+.panel-body { padding: var(--sp-4); display: grid; gap: var(--sp-6); align-content: start; }
+/* IMPL: .detail-panel header is currently a blue block with white text.
+   WHY white: the brand uses colour for accents only, never as a slab. */
+
+/* ---- Score row (replaces the 7-tile grid) ----
+   WHY: one row per pillar, score and band only on first paint. Coverage,
+   year and trend live in the expanded state. Fixes label clipping. */
+.score-rows { display: grid; }
+.score-row {
+  display: grid; grid-template-columns: 10px 1fr auto auto; gap: var(--sp-3); align-items: center;
+  padding: var(--sp-3) 0; border-bottom: var(--rule); cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out);
+}
+.score-row:hover { background: var(--n-50); }
+.score-row:focus-visible { outline: none; box-shadow: inset var(--focus); }
+.score-row .stripe { width: 10px; height: 28px; display: block; }
+.score-row .name { font-weight: 500; color: var(--n-900); min-width: 0; }
+.score-row .meta { font: var(--t-small); color: var(--n-600); }
+.score-row[aria-expanded="true"] { background: var(--pc-blue-tint); }
+.score-detail { padding: var(--sp-3) var(--sp-3) var(--sp-4) 22px; border-bottom: var(--rule); display: grid; gap: var(--sp-2); background: var(--n-50); }
+.score-detail dl { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; font: var(--t-small); }
+.score-detail dt { color: var(--n-600); }
+.score-detail dd { margin: 0; color: var(--n-800); font-variant-numeric: tabular-nums; }
+
+/* ---- Trend indicator ---- */
+.trend { display: inline-flex; align-items: center; gap: var(--sp-1); font: var(--t-small); font-weight: 500; }
+.trend--up { color: var(--need-low-ink); }
+.trend--down { color: var(--need-severe-ink); }
+.trend--flat { color: var(--n-600); }
+
+/* ---- Disclosure ---- */
+.disc { border-top: var(--rule); }
+.disc > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: var(--sp-3) 0; font-weight: 500; color: var(--n-900); }
+.disc > summary::-webkit-details-marker { display: none; }
+.disc > summary::after { content: "+"; color: var(--n-600); font-weight: 400; transition: transform var(--dur-micro) var(--ease-out); }
+.disc[open] > summary::after { content: "\2212"; }
+.disc > summary:focus-visible { outline: none; box-shadow: var(--focus); }
+.disc .body { padding-bottom: var(--sp-4); color: var(--n-800); }
+
+/* ---- Table ---- */
+.tbl { width: 100%; border-collapse: collapse; font: var(--t-body); }
+.tbl th { text-align: left; font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; color: var(--n-600); padding: var(--sp-2) var(--sp-3); border-bottom: var(--rule-strong); white-space: nowrap; }
+.tbl th button { all: unset; cursor: pointer; display: inline-flex; gap: var(--sp-1); align-items: center; }
+.tbl th button:focus-visible { box-shadow: var(--focus); }
+.tbl th[aria-sort] button::after { content: "\2193"; color: var(--pc-blue); }
+.tbl th[aria-sort="ascending"] button::after { content: "\2191"; }
+.tbl td { padding: var(--sp-2) var(--sp-3); border-bottom: var(--rule); font-variant-numeric: tabular-nums; }
+.tbl tr:hover td { background: var(--n-50); }
+.tbl .r { text-align: right; }
+
+/* ---- Legend (map overlay) ---- */
+.legend { background: rgba(255,255,255,0.94); border: var(--rule); padding: var(--sp-3); display: grid; gap: var(--sp-2); width: max-content; max-width: 100%; }
+.legend .row { display: grid; grid-template-columns: 14px 1fr; gap: var(--sp-2); align-items: center; font: var(--t-small); color: var(--n-800); }
+.legend .row i { width: 14px; height: 14px; display: block; border: 1px solid rgba(22,32,42,0.15); }
+/* IMPL: anchor inside .map-area-wrap with inset: auto auto 16px 16px;
+   never an inline minWidth. On md and below it collapses to a
+   single-line ramp under the map. */
+
+/* ---- Tooltip ---- */
+.tip { background: var(--n-900); color: var(--n-0); padding: var(--sp-2) var(--sp-3); font: var(--t-small); box-shadow: var(--shadow-float); display: inline-grid; gap: 2px; max-width: 240px; }
+.tip b { color: var(--n-0); font-weight: 600; }
+.tip .v { font-variant-numeric: tabular-nums; }
+
+/* ---- State cards ---- */
+.state { border: var(--rule); background: var(--n-0); padding: var(--sp-6); display: grid; gap: var(--sp-2); justify-items: start; }
+.state .h2 { color: var(--n-900); }
+.state--error { border-left: 3px solid var(--need-severe); }
+.state--loading .bar { width: 100%; height: 2px; background: var(--n-200); position: relative; overflow: hidden; }
+.state--loading .bar::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--pc-blue); animation: load var(--dur-draw) var(--ease-move) infinite; }
+@keyframes load { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* ---- Input ---- */
+.input { height: 36px; border: var(--rule-strong); border-color: var(--n-200); padding: 0 var(--sp-3); font: var(--t-body); color: var(--n-900); background: var(--n-0); border-radius: var(--radius); width: 100%; max-width: 320px; }
+.input::placeholder { color: var(--n-400); }
+.input:focus { outline: none; border-color: var(--pc-blue); box-shadow: var(--focus); }
+
+/* =====================================================================
+   4. MOTION PRIMITIVES
+   IMPL: one hook, useReveal(ref, { order }), adds .reveal and .is-in.
+   Stagger is set by --i on each child; the hook sets it in hierarchy
+   order (title, overall, rows, chart, breakdown), never DOM order.
+   ===================================================================== */
+.reveal { opacity: 1; transform: none; }
+.reveal.is-armed { opacity: 0; transform: translateY(var(--travel)); }
+.reveal.is-in {
+  opacity: 1; transform: none;
+  transition: opacity var(--dur-reveal) var(--ease-out), transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger));
+}
+/* Layout move: panel expand/collapse
+   IMPL: flex + width, NOT grid-template-columns. Safari does not animate
+   grid tracks, so the grid version snaps and transitionend never fires.
+   Width interpolates px to % in every browser. The map is flex: 1 1 0
+   with min-width: 0, so it takes whatever the panel leaves. */
+.layout { display: flex; height: 220px; border: var(--rule); background: var(--n-0); overflow: hidden; }
+.layout .map { flex: 1 1 0; min-width: 0; background: var(--map-1); display: grid; place-items: center; text-align: center; color: var(--pc-blue-ink); font: var(--t-small); padding: var(--sp-3); }
+.layout .pane {
+  flex: 0 0 auto; width: 280px; max-width: 80%;
+  border-left: var(--rule); padding: var(--sp-3); display: grid; gap: var(--sp-2); align-content: start; min-width: 0; overflow: hidden;
+  transition: width var(--dur-move) var(--ease-move);
+}
+.layout.is-expanded .pane { width: 75%; }
+.layout .pane .wide { display: none; }
+.layout.is-expanded .pane .wide { display: block; }
+/* Chart draw-in: first render only */
+.draw path { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+.draw.is-in path { animation: draw var(--dur-draw) var(--ease-out) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+/* Map hover */
+.country { fill: var(--map-2); stroke: var(--map-stroke); transition: fill var(--dur-micro) var(--ease-out); cursor: pointer; }
+.country:hover { fill: var(--map-4); }
+.country.is-selected { stroke: var(--map-selected); stroke-width: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal.is-in, .layout, .btn, .nav a, .nav a::after, .score-row, .country { transition: none !important; }
+  .reveal.is-armed { opacity: 1; transform: none; }
+  .draw path, .draw.is-in path { animation: none; stroke-dashoffset: 0; }
+  .state--loading .bar::after { animation: none; width: 100%; }
+}
+
+/* Reference-page: panel mock frame */
+.mock { border: var(--rule); background: var(--n-0); max-width: 380px; }
+.mock-wide { display: grid; grid-template-columns: 1fr; gap: var(--sp-4); }
+@media (min-width: 768px) { .mock-wide { grid-template-columns: 1fr 1fr; } }
+.sv { width: 100%; height: auto; display: block; }
+.ds-cmp { display: grid; gap: var(--sp-2); }
+.ds-cmp .cap { font: var(--t-small); color: var(--n-600); }
+.ds-cmp .frame { border: var(--rule); background: var(--n-0); padding: var(--sp-3); display: grid; gap: var(--sp-2); }
+.ds-cmp .frame.bad { border-color: var(--need-severe); }
+</style>
+
+<div class="page">
+
+  <header class="ds-head">
+    <div class="eyebrow">PlanCatalyst · TSI Data Dashboard</div>
+    <h1 class="display">Dashboard Design System</h1>
+    <p class="lead" style="max-width:65ch;color:var(--n-600)">The visual language and motion rules for the dashboard, derived from plancatalyst.org. Square, white, blue for action, green for accent, structure carried by type and 1px rules. This page is the implementation source: its token block is the token file.</p>
+    <div class="ds-meta">
+      <span class="badge badge--scored">v1.0 approved</span>
+      <span class="badge">2026-10-14</span>
+      <span class="badge">docs/requirements-v2.md §7</span>
+    </div>
+    <nav class="ds-toc small">
+      <a href="#principles">Principles</a>
+      <a href="#colour">Colour</a>
+      <a href="#type">Type</a>
+      <a href="#space">Space and shape</a>
+      <a href="#components">Components</a>
+      <a href="#panel">Panel pattern</a>
+      <a href="#motion">Motion</a>
+      <a href="#impl">Implementation</a>
+    </nav>
+  </header>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="principles">
+    <div class="sec"><span class="eyebrow">Principles</span></div>
+    <div class="ds-grid">
+      <div class="spec"><b class="h2">Square</b><p class="ds-note">Radius is 0 everywhere. Only dots and avatars are circles. The site has no rounded container.</p></div>
+      <div class="spec"><b class="h2">White sheet</b><p class="ds-note">Surfaces are white on a cool off-white ground. No colour slabs, no shadows on content. Tooltips and menus are the only floating elements.</p></div>
+      <div class="spec"><b class="h2">Blue acts, green accents</b><p class="ds-note">Blue is the only interactive colour. Green appears as a positive mark or an accent word, never as a button fill.</p></div>
+      <div class="spec"><b class="h2">Type carries structure</b><p class="ds-note">Hierarchy comes from Montserrat headings, tracked eyebrows and 1px rules. Not from boxes.</p></div>
+      <div class="spec"><b class="h2">Need is semantic</b><p class="ds-note">Need bands use their own cool-to-warm set. They never borrow the brand colours, so "moderate" cannot read as "PlanCatalyst green".</p></div>
+      <div class="spec"><b class="h2">Motion settles</b><p class="ds-note">Reveals glide in over a second and settle. Layout moves ease both ways. Nothing pops, springs or bounces.</p></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="colour">
+    <div class="sec"><span class="eyebrow">Colour</span><span class="small">All values are tokens in <code>:root</code></span></div>
+
+    <div class="spec"><span class="label">Brand, from plancatalyst.org</span>
+      <div class="ds-grid">
+        <div class="sw"><i style="background:var(--pc-blue)"></i><div><b>--pc-blue</b><span>#0079C1 · action, links, selection</span></div></div>
+        <div class="sw"><i style="background:var(--pc-blue-ink)"></i><div><b>--pc-blue-ink</b><span>#005D96 · blue text at AA</span></div></div>
+        <div class="sw"><i style="background:var(--pc-blue-tint)"></i><div><b>--pc-blue-tint</b><span>#E6F3FB · selected surface</span></div></div>
+        <div class="sw"><i style="background:var(--pc-green)"></i><div><b>--pc-green</b><span>#B2CD5A · accent mark only</span></div></div>
+        <div class="sw"><i style="background:var(--pc-green-ink)"></i><div><b>--pc-green-ink</b><span>#6F8A14 · green text at AA</span></div></div>
+        <div class="sw"><i style="background:var(--pc-slate)"></i><div><b>--pc-slate</b><span>#2B5672 · section eyebrows</span></div></div>
+        <div class="sw"><i style="background:var(--pc-navy)"></i><div><b>--pc-navy</b><span>#1A2B6D · display headings</span></div></div>
+      </div>
+    </div>
+
+    <div class="spec"><span class="label">Neutrals, cool bias</span>
+      <div class="ramp">
+        <i style="background:var(--n-0)"></i><i style="background:var(--n-50)"></i><i style="background:var(--n-100)"></i><i style="background:var(--n-200)"></i><i style="background:var(--n-400)"></i><i style="background:var(--n-600)"></i><i style="background:var(--n-800)"></i><i style="background:var(--n-900)"></i>
+      </div>
+      <div class="ramp-labels"><span>--n-0 surface · 50 ground · 100 hover · 200 rules</span><span style="text-align:right">400 disabled · 600 muted · 800 body · 900 heading</span></div>
+    </div>
+
+    <div class="spec"><span class="label">Need bands (thresholds unchanged: 75 / 50 / 25)</span>
+      <div class="ds-grid">
+        <div class="sw"><i style="background:var(--need-low)"></i><div><b>Low need</b><span>#1E7F74 · ink #156B61 · tint #E4F3F1</span></div></div>
+        <div class="sw"><i style="background:var(--need-moderate)"></i><div><b>Moderate need</b><span>#C59A1E · ink #7E6008 · tint #FBF3DD</span></div></div>
+        <div class="sw"><i style="background:var(--need-high)"></i><div><b>High need</b><span>#D96F2A · ink #9E4A12 · tint #FBEADF</span></div></div>
+        <div class="sw"><i style="background:var(--need-severe)"></i><div><b>Severe need</b><span>#B5302A · ink #8E2520 · tint #F8E3E1</span></div></div>
+      </div>
+      <p class="ds-note"><b>Rule.</b> Fill for marks and map, ink for text, tint for backgrounds. Text never sits directly on a fill. The ink values pass AA on white and on the tint. Teal and gold replace the old green and olive so the brand green stays unambiguous.</p>
+    </div>
+
+    <div class="spec"><span class="label">Chart series, fixed per pillar</span>
+      <div class="ds-row">
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-health);width:20px;height:20px"></i><b>Healthcare</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-agri);width:20px;height:20px"></i><b>Agriculture</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-social);width:20px;height:20px"></i><b>Social infrastructure</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-gender);width:20px;height:20px"></i><b>Gender equality</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-climate);width:20px;height:20px"></i><b>Climate adaptation</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-context);width:20px;height:20px"></i><b>Country context</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-socio);width:20px;height:20px"></i><b>Socio-economic</b></span>
+        <span class="sw" style="grid-template-columns:20px 1fr"><i style="background:var(--s-overall);width:20px;height:20px"></i><b>Overall</b></span>
+      </div>
+    </div>
+
+    <div class="spec"><span class="label">Choropleth ramp (darker = higher need)</span>
+      <div class="ramp" style="grid-template-columns:repeat(8,1fr)">
+        <i style="background:var(--map-0)"></i><i style="background:var(--map-1)"></i><i style="background:var(--map-2)"></i><i style="background:var(--map-3)"></i><i style="background:var(--map-4)"></i><i style="background:var(--map-5)"></i><i style="background:var(--map-6)"></i><i style="background:var(--map-null);background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(22,32,42,.08) 4px 6px)"></i>
+      </div>
+      <div class="ramp-labels"><span>Low need</span><span style="text-align:right">High need · hatched = no data</span></div>
+      <p class="ds-note"><b>Decision to confirm with the client:</b> the current map's direction is not documented. This ramp sends the eye to where need is highest.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="type">
+    <div class="sec"><span class="eyebrow">Type</span><span class="small">Montserrat for headings, Inter for body and numbers</span></div>
+    <div>
+      <div class="type-row"><span class="small">--t-display 32</span><span class="display">Country-level need, by pillar</span></div>
+      <div class="type-row"><span class="small">--t-h1 24</span><span class="h1">Brazil</span></div>
+      <div class="type-row"><span class="small">--t-h2 18</span><span class="h2">Trend outlook</span></div>
+      <div class="type-row"><span class="small">--t-eyebrow 11</span><span class="eyebrow">Sub-domain breakdown</span></div>
+      <div class="type-row"><span class="small">--t-body 14</span><span>Scores are higher for lower development need. A pillar with one indicator moves on one source's coverage.</span></div>
+      <div class="type-row"><span class="small">--t-small 12</span><span class="small">5 of 11 indicators · 2024 · ND-GAIN 2026 release</span></div>
+      <div class="type-row"><span class="small">--t-num-lg 28</span><span class="num-lg">64.2</span></div>
+      <div class="type-row"><span class="small">--t-num 18</span><span class="num">84.1 <span class="num" style="color:var(--n-400)">0.7</span> <span class="num">100</span></span></div>
+    </div>
+    <p class="ds-note"><b>Why Inter stays.</b> The site's body face, DIN Next Light, is a licensed Wix font. Inter has tabular figures, which keep score columns aligned. Montserrat 600 and 700 only; no light weights, they fall apart at 11 to 14px.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="space">
+    <div class="sec"><span class="eyebrow">Space and shape</span><span class="small">4px base</span></div>
+    <div class="sp-bar">
+      <div style="width:4px;height:4px"></div>
+      <div style="width:8px;height:8px"></div>
+      <div style="width:12px;height:12px"></div>
+      <div style="width:16px;height:16px">4</div>
+      <div style="width:24px;height:24px">6</div>
+      <div style="width:32px;height:32px">8</div>
+      <div style="width:48px;height:48px">12</div>
+      <div style="width:64px;height:64px">16</div>
+    </div>
+    <p class="ds-note"><b>Usage.</b> sp-2 inside chips and table cells, sp-3 inside rows, sp-4 panel padding, sp-6 between panel sections, sp-8 between page sections. The site pads sections at 30px and 60px; sp-8 and sp-16 are the dashboard's equivalents.</p>
+    <div class="ds-grid">
+      <div class="ds-cmp"><span class="cap">Shape: radius 0, 1px rule, no shadow</span><div class="frame"><span class="small">Card, panel, chip, button, input</span></div></div>
+      <div class="ds-cmp"><span class="cap">Floating only: tooltip, menu</span><div class="frame" style="box-shadow:var(--shadow-float);border-color:transparent"><span class="small">--shadow-float, 2px 8px at 10%</span></div></div>
+      <div class="ds-cmp"><span class="cap">Focus ring, every interactive element</span><div class="frame"><button class="btn btn--secondary" style="box-shadow:var(--focus)">Focused</button></div></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="components">
+    <div class="sec"><span class="eyebrow">Components</span><span class="small">One class family each</span></div>
+
+    <div class="spec"><span class="label">Button · primary, secondary, ghost, icon, small, disabled</span>
+      <div class="ds-row">
+        <button class="btn">Compare countries</button>
+        <button class="btn btn--secondary">Reset filters</button>
+        <button class="btn btn--ghost">About the data</button>
+        <button class="btn btn--ghost btn--icon" aria-label="Close">&#x2715;</button>
+        <button class="btn btn--secondary btn--sm">Expand</button>
+        <button class="btn btn--ghost btn--icon btn--sm" aria-label="Expand panel">&#x2194;</button>
+        <button class="btn" disabled>Loading</button>
+      </div>
+      <p class="ds-note">Primary is for the one action that moves the user forward on a view. Panel chrome uses ghost icon buttons. Hover darkens, press goes navy, focus shows the ring.</p>
+    </div>
+
+    <div class="spec"><span class="label">Chip (need band) · Badge (data status)</span>
+      <div class="ds-row">
+        <span class="chip chip--low">Low need</span>
+        <span class="chip chip--moderate">Moderate need</span>
+        <span class="chip chip--high">High need</span>
+        <span class="chip chip--severe">Severe need</span>
+        <span class="badge badge--scored">Scored</span>
+        <span class="badge badge--incomplete">Incomplete data</span>
+        <span class="badge badge--outscope">Out of scope</span>
+        <span class="badge">Latest 2024</span>
+      </div>
+    </div>
+
+    <div class="spec"><span class="label">Nav · underline, no pills</span>
+      <nav class="nav"><a href="#" aria-current="page">Map</a><a href="#">Explore</a><a href="#">Compare</a><a href="#">About</a></nav>
+    </div>
+
+    <div class="spec"><span class="label">Input</span>
+      <input class="input" id="ds-search" type="search" placeholder="Search a country" aria-label="Search a country">
+    </div>
+
+    <div class="spec"><span class="label">Table · sortable header, tabular numerals, right-aligned numbers</span>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>Country</th><th>Region</th><th class="r" aria-sort="descending"><button>Overall</button></th><th class="r"><button>Healthcare</button></th><th>Need</th></tr></thead>
+          <tbody>
+            <tr><td>Chile</td><td>Latin America &amp; Caribbean</td><td class="r">78.4</td><td class="r">88.0</td><td><span class="chip chip--low">Low</span></td></tr>
+            <tr><td>Brazil</td><td>Latin America &amp; Caribbean</td><td class="r">64.2</td><td class="r">84.1</td><td><span class="chip chip--moderate">Moderate</span></td></tr>
+            <tr><td>Haiti</td><td>Latin America &amp; Caribbean</td><td class="r">31.7</td><td class="r">42.5</td><td><span class="chip chip--high">High</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ds-grid">
+      <div class="spec"><span class="label">Legend (map overlay)</span>
+        <div class="legend">
+          <span class="eyebrow">Overall index</span>
+          <div class="row"><i style="background:var(--map-1)"></i>Low need · 75 to 100</div>
+          <div class="row"><i style="background:var(--map-3)"></i>Moderate · 50 to 74</div>
+          <div class="row"><i style="background:var(--map-5)"></i>High · 25 to 49</div>
+          <div class="row"><i style="background:var(--map-6)"></i>Severe · 0 to 24</div>
+          <div class="row"><i style="background:var(--map-null)"></i>No data</div>
+        </div>
+      </div>
+      <div class="spec"><span class="label">Tooltip</span>
+        <div class="tip"><b>Brazil</b><span class="v">Overall 64.2 · Moderate need</span><span class="v" style="color:var(--n-400)">5 of 7 pillars scored · 2024</span></div>
+      </div>
+      <div class="spec"><span class="label">Disclosure</span>
+        <details class="disc" open><summary>Healthcare · 5 of 11 indicators</summary><div class="body small">Maternal mortality, under-5 mortality, TB incidence, malaria incidence, stunting.</div></details>
+        <details class="disc"><summary>Agriculture · 1 of 3 indicators</summary><div class="body small">Food insecurity (moderate or severe).</div></details>
+      </div>
+    </div>
+
+    <div class="spec"><span class="label">State cards</span>
+      <div class="ds-grid">
+        <div class="state state--loading"><span class="eyebrow">Loading</span><span class="h2">Fetching the latest snapshot</span><div class="bar"></div></div>
+        <div class="state"><span class="eyebrow">No selection</span><span class="h2">Pick a country on the map</span><p class="small">Scores, trends and indicator coverage appear here.</p></div>
+        <div class="state state--error"><span class="eyebrow">Could not load</span><span class="h2">The data snapshot is unavailable</span><p class="small">The previous snapshot stays live. Try again in a minute.</p><button class="btn btn--secondary btn--sm">Retry</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="panel">
+    <div class="sec"><span class="eyebrow">Pattern · country detail panel</span><span class="small">Requirements §2: 8 numbers above the fold</span></div>
+    <div class="mock-wide">
+      <div class="ds-cmp">
+        <span class="cap">Today: seven tiles, five values each, labels clipped</span>
+        <div class="frame bad" style="padding:0">
+          <div style="background:var(--pc-blue);color:#fff;padding:12px 16px"><b style="font-family:var(--f-display)">BR</b><br><span class="small" style="color:#cfe6f6">South America · Overall 64.2 · MODERATE NEED</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);font-size:10px;text-align:center">
+            <div style="padding:8px 4px;border-right:var(--rule)"><div class="eyebrow">Healthcare</div><div class="num" style="color:var(--need-low-ink)">84.1</div><div style="color:var(--need-low-ink)">LOW NEED</div><div class="badge" style="height:16px">LATEST</div><div>5/11 · 2024</div><div style="color:var(--need-severe-ink)">↓ Declining</div></div>
+            <div style="padding:8px 4px;border-right:var(--rule)"><div class="eyebrow">Agriculture</div><div class="num" style="color:var(--need-severe-ink)">0.7</div><div style="color:var(--need-severe-ink)">SEVERE</div><div class="badge" style="height:16px">LATEST</div><div>1/3 · 2024</div><div>→ Stable</div></div>
+            <div style="padding:8px 4px;border-right:var(--rule)"><div class="eyebrow">Social infr.</div><div class="num">99.6</div><div style="color:var(--need-low-ink)">LOW NEED</div><div class="badge" style="height:16px">LATEST</div><div>5/7 · 2024</div><div style="color:var(--need-low-ink)">▲ Improving</div></div>
+            <div style="padding:8px 4px;overflow:hidden;white-space:nowrap"><div class="eyebrow">Gende</div><div class="num">82.1</div><div style="color:var(--need-low-ink)">LOW NE</div><div class="badge" style="height:16px">LATES</div><div>1/1 · 20</div><div>▲ Impr</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ds-cmp">
+        <span class="cap">Proposed: score rows, one open, everything else one click away</span>
+        <div class="mock panel" style="border:var(--rule)">
+          <div class="panel-head">
+            <div style="display:grid;gap:4px">
+              <span class="eyebrow">Latin America &amp; Caribbean</span>
+              <span class="h1">Brazil</span>
+              <div class="ds-row" style="gap:8px"><span class="num-lg">64.2</span><span class="chip chip--moderate">Moderate need</span></div>
+            </div>
+            <div class="actions">
+              <button class="btn btn--ghost btn--icon btn--sm" aria-label="Expand panel">&#x2194;</button>
+              <button class="btn btn--ghost btn--icon btn--sm" aria-label="Close">&#x2715;</button>
+            </div>
+          </div>
+          <div class="panel-body" style="gap:16px">
+            <div class="score-rows">
+              <div class="score-row" tabindex="0" aria-expanded="true"><i class="stripe" style="background:var(--s-health)"></i><span class="name">Healthcare</span><span class="num">84.1</span><span class="chip chip--low">Low</span></div>
+              <div class="score-detail">
+                <dl><dt>Coverage</dt><dd>5 of 11 indicators</dd><dt>Latest</dt><dd>2024</dd><dt>Trend</dt><dd><span class="trend trend--down">&#x2193; Declining since 2019</span></dd></dl>
+                <a href="#" class="small">Show indicators</a>
+              </div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-agri)"></i><span class="name">Agriculture <span class="badge badge--incomplete" style="height:16px;margin-left:4px">1 of 3</span></span><span class="num">0.7</span><span class="chip chip--severe">Severe</span></div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-social)"></i><span class="name">Social infrastructure</span><span class="num">99.6</span><span class="chip chip--low">Low</span></div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-gender)"></i><span class="name">Gender equality</span><span class="num">82.1</span><span class="chip chip--low">Low</span></div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-climate)"></i><span class="name">Climate adaptation</span><span class="num">100</span><span class="chip chip--low">Low</span></div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-context)"></i><span class="name">Country context</span><span class="num">47.0</span><span class="chip chip--high">High</span></div>
+              <div class="score-row" tabindex="0"><i class="stripe" style="background:var(--s-socio)"></i><span class="name">Socio-economic</span><span class="num">26.1</span><span class="chip chip--high">High</span></div>
+            </div>
+            <details class="disc"><summary>Trend, 1990 to 2024</summary><div class="body small">Overall plus the open pillar by default. "All pillars" is a toggle.</div></details>
+            <details class="disc"><summary>Indicators and sources</summary><div class="body small">Per-indicator table with status badges.</div></details>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="ds-note"><b>What changed.</b> White header instead of a blue slab. Seven rows instead of a tile grid, so names never clip. A coverage badge only where coverage is thin (1 of 3). Chart and indicators behind disclosures. Above the fold: overall plus seven scores, eight numbers.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="motion">
+    <div class="sec"><span class="eyebrow">Motion</span><span class="small">Replay buttons re-run each specimen</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Token</th><th class="r">Value</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td><code>--dur-micro</code></td><td class="r">200ms</td><td>Hover, press, focus, map country fill</td></tr>
+          <tr><td><code>--dur-move</code></td><td class="r">600ms</td><td>Panel expand and collapse, column resize</td></tr>
+          <tr><td><code>--dur-reveal</code></td><td class="r">1100ms</td><td>Content entering: panel sections, page sections</td></tr>
+          <tr><td><code>--dur-draw</code></td><td class="r">1400ms</td><td>Chart line draw-in, first render only</td></tr>
+          <tr><td><code>--ease-out</code></td><td class="r">quint-out</td><td>Every entrance. Responds at once, settles slowly</td></tr>
+          <tr><td><code>--ease-move</code></td><td class="r">ease-in-out</td><td>Every layout change. Symmetric, no overshoot</td></tr>
+          <tr><td><code>--stagger</code></td><td class="r">120ms</td><td>Between siblings, in hierarchy order</td></tr>
+          <tr><td><code>--travel</code></td><td class="r">14px</td><td>Reveal offset. Short travel plus long duration reads smooth</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ds-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="ds-cmp">
+        <div class="ds-row" style="justify-content:space-between"><span class="cap">Panel reveal cascade · title, score, rows, chart</span><button class="btn btn--secondary btn--sm" id="replay-reveal">Replay</button></div>
+        <div class="frame" id="reveal-demo" style="min-height:220px">
+          <span class="reveal eyebrow" style="--i:0">Latin America &amp; Caribbean</span>
+          <span class="reveal h1" style="--i:0">Brazil</span>
+          <div class="reveal ds-row" style="--i:1;gap:8px"><span class="num-lg">64.2</span><span class="chip chip--moderate">Moderate need</span></div>
+          <div class="reveal score-row" style="--i:2"><i class="stripe" style="background:var(--s-health)"></i><span class="name">Healthcare</span><span class="num">84.1</span><span class="chip chip--low">Low</span></div>
+          <div class="reveal score-row" style="--i:3"><i class="stripe" style="background:var(--s-agri)"></i><span class="name">Agriculture</span><span class="num">0.7</span><span class="chip chip--severe">Severe</span></div>
+          <div class="reveal score-row" style="--i:4"><i class="stripe" style="background:var(--s-social)"></i><span class="name">Social infrastructure</span><span class="num">99.6</span><span class="chip chip--low">Low</span></div>
+          <svg class="reveal draw" style="--i:5" viewBox="0 0 300 60" width="100%" height="60" aria-hidden="true"><path d="M4 40 C 40 38, 70 30, 100 32 S 160 22, 200 20 S 270 14, 296 12" fill="none" stroke="var(--s-overall)" stroke-width="2"/></svg>
+        </div>
+        <p class="ds-note">Stagger order is hierarchy, not DOM order. Eyebrow and name share index 0 because they are one unit.</p>
+      </div>
+
+      <div class="ds-cmp">
+        <div class="ds-row" style="justify-content:space-between"><span class="cap">Panel open, expand, collapse, close · 600ms ease-in-out</span><button class="btn btn--secondary btn--sm" id="toggle-layout">Reopen / toggle</button></div>
+        <div class="layout" id="layout-demo">
+          <div class="map" id="layout-map">map · full width</div>
+          <div class="pane">
+            <div class="ds-row" style="justify-content:space-between"><span class="eyebrow">Latin America &amp; Caribbean</span><div class="ds-row" style="gap:4px"><button class="btn btn--ghost btn--icon btn--sm" id="layout-expand" aria-label="Expand panel">&#x2194;</button><button class="btn btn--ghost btn--icon btn--sm" id="layout-close" aria-label="Close panel">&#x2715;</button></div></div>
+            <span class="h2">Brazil</span>
+            <div class="ds-row" style="gap:8px"><span class="num">64.2</span><span class="chip chip--moderate">Moderate</span></div>
+            <span class="small wide">Expanded: the trend chart and indicator table get the room. Close from here resets the width too.</span>
+          </div>
+        </div>
+        <p class="ds-note">The panel animates its width; the map takes the rest. D3 re-projects once on <code>transitionend</code>. Close always returns the map to full width, which is bug B1 in the live dashboard today.</p>
+      </div>
+
+      <div class="ds-cmp">
+        <span class="cap">Map hover and selection · 200ms fill, outline on select</span>
+        <div class="frame">
+          <svg class="sv" viewBox="0 0 300 120" aria-hidden="true">
+            <path class="country" d="M10 20 L90 10 L120 50 L80 100 L20 90 Z"/>
+            <path class="country is-selected" d="M130 15 L200 20 L210 70 L160 110 L125 80 Z"/>
+            <path class="country" d="M220 30 L290 25 L285 90 L230 95 Z"/>
+          </svg>
+        </div>
+        <p class="ds-note">No pulse, no glow. The selected country gets a dark outline and keeps it until deselected. <b>The choropleth itself is not rebuilt.</b> <code>WorldChoropleth.tsx</code> stays; it only reads its fills, stroke and hover duration from tokens. Everything around it (legend, tooltip, panel, nav) is what changes.</p>
+      </div>
+
+      <div class="ds-cmp">
+        <span class="cap">Reduced motion</span>
+        <div class="frame"><p class="small">With <code>prefers-reduced-motion: reduce</code>, every reveal is instant and in place, layout changes snap, the chart is drawn fully, and the loading bar is static. Nothing is hidden from these users.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="ds-section" id="impl" style="border-bottom:0">
+    <div class="sec"><span class="eyebrow">Implementation</span><span class="small">dashboard/src</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Step</th><th>Where</th><th>What</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>styles/tokens.css</code></td><td>Replace with the <code>:root</code> block from this file. Remove legacy aliases.</td></tr>
+          <tr><td>2</td><td><code>styles/global.css</code></td><td>Google Fonts link for Montserrat and Inter in <code>index.html</code>. Nav to underline style. Body font from token.</td></tr>
+          <tr><td>3</td><td><code>styles/components.css</code></td><td>Migrate class by class to the families above. Every radius to 0 or 50%. Every hex to a token. Every transition to a motion token.</td></tr>
+          <tr><td>4</td><td><code>data/contract/score-context.ts</code></td><td>Band colours read CSS variables by band key instead of hex literals, so one source drives chips, map and charts.</td></tr>
+          <tr><td>5</td><td><code>app/routes/MapPage.tsx</code></td><td>Bug B1: <code>onClose</code> clears selection and expand together; derive <code>expanded</code> from both. Layout moves from grid tracks to flex plus panel width so the move animates in Safari.</td></tr>
+          <tr><td>5b</td><td><code>components/map/WorldChoropleth.tsx</code></td><td>Keep. Swap hex fills for the <code>--map-*</code> tokens and listen for <code>transitionend</code> to re-project once. No other change.</td></tr>
+          <tr><td>6</td><td><code>components/map/MapDetailPanel.tsx</code></td><td>Rebuild on panel-head, score-row, score-detail, disc. Remove inline styles.</td></tr>
+          <tr><td>7</td><td><code>hooks/useReveal.ts</code></td><td>Arms <code>.reveal</code> children, assigns <code>--i</code> in a given order, flips to <code>.is-in</code> on next frame.</td></tr>
+          <tr><td>8</td><td><code>.github/workflows</code></td><td>Guardrail step below. Fails the build on a hex literal outside tokens.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="spec"><span class="label">CI guardrail (AC7.1 and AC7.2)</span>
+<pre># fail on colour literals outside the token file
+if grep -rnE '#[0-9a-fA-F]{3,6}\b' dashboard/src --include='*.css' --include='*.ts' --include='*.tsx' \
+   | grep -v 'styles/tokens.css'; then echo "hex literal outside tokens.css"; exit 1; fi
+# fail on any radius other than 0 or 50%
+if grep -rnE 'border-radius:\s*(?!0;|50%)' dashboard/src --include='*.css' -P; then exit 1; fi</pre>
+    </div>
+    <p class="ds-note"><b>Order.</b> Tokens first, then the nav and the bug fix (small, visible wins), then the panel, then the remaining routes. Nothing is styled twice.</p>
+  </section>
+
+</div>
+
+<script>
+/* Reference-page demos. Not part of the system; the React hook is. */
+(function () {
+  var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function runReveal() {
+    var items = document.querySelectorAll('#reveal-demo .reveal');
+    items.forEach(function (el) { el.classList.remove('is-in'); el.classList.add('is-armed'); });
+    if (rm) { items.forEach(function (el) { el.classList.remove('is-armed'); el.classList.add('is-in'); }); return; }
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      items.forEach(function (el) { el.classList.remove('is-armed'); el.classList.add('is-in'); });
+    }); });
+  }
+  document.getElementById('replay-reveal').addEventListener('click', runReveal);
+  /* Page is complete at rest: the first run happens after load, from a visible state. */
+  window.addEventListener('load', function () { setTimeout(runReveal, 300); });
+
+  /* Panel demo. One source of truth: expanded is only true while open.
+     Mirrors the fix for bug B1 in MapPage.tsx. */
+  var layout = document.getElementById('layout-demo');
+  var pane = layout.querySelector('.pane');
+  var map = document.getElementById('layout-map');
+  var state = { open: true, expanded: false };
+  function render() {
+    pane.hidden = !state.open;
+    layout.classList.toggle('is-expanded', state.open && state.expanded);
+    map.textContent = state.open ? 'map · resizing' : 'map · full width';
+  }
+  document.getElementById('layout-expand').addEventListener('click', function () { state.expanded = !state.expanded; render(); });
+  document.getElementById('layout-close').addEventListener('click', function () { state.open = false; state.expanded = false; render(); });
+  document.getElementById('toggle-layout').addEventListener('click', function () {
+    if (!state.open) { state.open = true; state.expanded = false; } else { state.expanded = !state.expanded; }
+    render();
+  });
+  pane.addEventListener('transitionend', function (e) {
+    if (e.propertyName === 'width') { map.textContent = state.expanded ? 'map · re-projected, narrow' : 'map · re-projected, wide'; }
+  });
+})();
+</script>
