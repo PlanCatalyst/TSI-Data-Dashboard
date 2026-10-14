@@ -106,6 +106,20 @@ Three reasons:
 
 Nothing special. Consume the published JSON as "higher is better." No per-indicator inversion table in client code.
 
+## Dimension selection and basket aggregation (2026-10-14)
+
+Before scoring, `src/calculating/dimensions.py` reduces every series to one
+row per country-year: adolescent births keep the 15 to 19 band, IHR capacity
+is the mean of its 13 capacities, bank account ownership keeps adults 15+,
+every other series resolves to its BOTHSEX / ALLAREA / _T / ALLAGE totals.
+Conflicting leftovers block the run (validation rule R1).
+
+Subdomain and pillar scores are basket means (`pillar_aggregate.py`): the
+basket is the members with a value in the last five years, a year is scored
+only when 75% of the basket is present, members outside the basket are
+ignored. The frontend mirrors the rule. Issue log:
+`docs/data-quality-issues.md`.
+
 ## Below-benchmark rule (requirements v2, section 1.4)
 
 Every benchmark scorer (`RatioThresholdScorer`, `InverseRatioScorer`,
