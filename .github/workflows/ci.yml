@@ -62,6 +62,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Design token guardrail
+        run: npm run lint:tokens
+
       - name: Audit frontend dependencies
         run: npm audit --audit-level=moderate
 

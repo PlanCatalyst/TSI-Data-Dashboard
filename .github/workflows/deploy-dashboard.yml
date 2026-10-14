@@ -62,6 +62,10 @@ jobs:
         working-directory: dashboard
         run: npm ci
 
+      - name: Design token guardrail
+        working-directory: dashboard
+        run: npm run lint:tokens
+
       - name: Audit frontend dependencies
         working-directory: dashboard
         run: npm audit --audit-level=moderate

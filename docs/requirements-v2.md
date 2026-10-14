@@ -337,7 +337,7 @@ change to a token or motion value is made on that page first, then in code.
 Reyna reviews the result through the before/after screenshots (AC7.7), not
 the token values.
 
-### 8.1 Problem
+### 7.1 Problem
 
 The dashboard inherited its look from the client's original spec, a single
 dense HTML mock. A token file exists (`dashboard/src/styles/tokens.css`,
@@ -355,7 +355,7 @@ Nav links are pill-shaped (`999px` radius); the brand is square. Body font
 is Inter; the brand uses Montserrat. The result reads as a generic admin
 template rather than a PlanCatalyst product.
 
-### 8.2 Known UI bugs
+### 7.2 Known UI bugs
 
 | ID | Symptom | Cause (verified) | Fix |
 |----|---------|------------------|-----|
@@ -366,7 +366,7 @@ template rather than a PlanCatalyst product.
 | B4 | "Projection band coming soon" placeholder visible in production | Unfinished feature left in the panel | Remove until projections ship (§8) |
 | B5 | Others found during the redesign | | Logged in `TASKS.md` as they appear |
 
-### 8.3 Brand extraction from plancatalyst.org (2026-10-14)
+### 7.3 Brand extraction from plancatalyst.org (2026-10-14)
 
 Pulled from the live Wix site's theme variables and inline styles.
 
@@ -395,7 +395,7 @@ Pulled from the live Wix site's theme variables and inline styles.
 Section padding is 30 px and 30/60 px; micro padding 4 and 8 px. Thin 1 px
 rules separate content. Generous whitespace, photography-led, no shadows.
 
-### 8.4 Design system requirements
+### 7.4 Design system requirements
 
 - REQ7.1 One token file is the source of truth. Tokens cover colour (brand,
   neutral, need bands, chart series), type scale, spacing on a 4 px base,
@@ -421,7 +421,7 @@ rules separate content. Generous whitespace, photography-led, no shadows.
 - REQ7.7 Responsive behaviour is part of the system: breakpoints, panel
   behaviour under 1024 px, and iframe height handling are defined once.
 
-### 8.5 Motion system requirements
+### 7.5 Motion system requirements
 
 - REQ7.8 Durations: reveal 1.0 to 1.2 s, layout move 0.6 to 0.8 s, micro
   (hover, press, focus) 0.2 s. Easing: quint-out
@@ -449,11 +449,11 @@ rules separate content. Generous whitespace, photography-led, no shadows.
   reveal hook. The project has no animation dependency today and does not
   need one.
 
-### 8.6 Acceptance criteria
+### 7.6 Acceptance criteria
 
 - AC7.1 `grep` for hex literals in `dashboard/src` outside the token file
-  returns zero.
-- AC7.2 Every `border-radius` in the codebase is `0` or `50%`.
+  returns zero. Enforced by `npm run lint:tokens` in CI (delivered B7).
+- AC7.2 Every `border-radius` in the codebase is `0` or `50%`. Same script.
 - AC7.3 Closing the panel restores the map to full width; expand state does
   not survive a close (B1).
 - AC7.4 Every transition references a motion token; no literal durations in
