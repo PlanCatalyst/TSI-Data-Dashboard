@@ -22,6 +22,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
+from src.archive import archive_run
 from src.pipeline.utils import project_root
 from src.fetch.fetch_data import FetchData
 from src.fetch.ndgain_source import NdgainSourceError
@@ -41,6 +42,7 @@ _ENV_OVERRIDES = {
     "upload_azure": "PIPELINE_UPLOAD_AZURE",
     "publish_dashboard": "PIPELINE_PUBLISH_DASHBOARD",
     "run_forecasts": "PIPELINE_RUN_FORECASTS",
+    "archive_raw": "PIPELINE_ARCHIVE_RAW",
 }
 
 
@@ -106,7 +108,7 @@ class Orchestrator:
         paths_cfg = cfg.get("paths") or {}
         root = project_root()
 
-        defaults = {"fetch_raw": False, "upload_azure": True, "publish_dashboard": True, "run_forecasts": False}
+        defaults = {"fetch_raw": False, "upload_azure": True, "publish_dashboard": True, "run_forecasts": False, "archive_raw": True}
         for key, env in _ENV_OVERRIDES.items():
             runtime_cfg[key] = _env_bool(env, bool(runtime_cfg.get(key, defaults[key])))
         fetch_raw = runtime_cfg["fetch_raw"]
@@ -129,6 +131,9 @@ class Orchestrator:
             if rel:
                 (root / rel).mkdir(parents=True, exist_ok=True)
 
+        # One run id for the raw store and the published snapshot.
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
         # FETCH
         set_stage("fetch")
         if fetch_raw:
@@ -136,6 +141,11 @@ class Orchestrator:
         else:
             print("fetch_raw is false: reusing data/raw", flush=True)
             fetched_data = None
+
+        # RAW STORE: lossless copy of what fetch produced, with inventory
+        if runtime_cfg.get("archive_raw", True):
+            set_stage("raw store")
+            archive_run(cfg, root, run_id)
 
         # CLEAN
         set_stage("clean")
@@ -171,7 +181,6 @@ class Orchestrator:
             ProcessData(self.config_path).process()
 
         # PUBLISH contract JSON. Validation gates the upload; meta.json last.
-        run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         live = False
         if runtime_cfg.get("publish_dashboard", True):
             set_stage("publish")
