@@ -47,7 +47,7 @@ from src.calculating.mspi import (
 )
 from src.calculating.pipeline import INDICATOR_STATUS_FILENAME
 from dotenv import load_dotenv
-from azure.identity import ClientSecretCredential
+from src.upload.azure_credential import account_url as _account_url, blob_credential
 from azure.storage.blob import BlobServiceClient, ContentSettings
 
 from src.upload.atomic import azure_container_uploader, upload_payloads_then_meta
@@ -719,27 +719,14 @@ def publish(
     # Azure upload — validate credentials before attempting any upload,
     # unless a test injects upload_fn.
     if upload_fn is None:
-        tenant_id = os.getenv("AZURE_TENANT_ID")
-        client_id = os.getenv("AZURE_CLIENT_ID")
-        client_secret = os.getenv("AZURE_CLIENT_SECRET")
-        account_url = os.getenv("AZURE_STORAGE_ACCOUNT_URL")
-        missing = [k for k, v in {
-            "AZURE_TENANT_ID": tenant_id,
-            "AZURE_CLIENT_ID": client_id,
-            "AZURE_CLIENT_SECRET": client_secret,
-            "AZURE_STORAGE_ACCOUNT_URL": account_url,
-        }.items() if not v]
-        if missing:
-            raise EnvironmentError(f"Missing required env vars: {', '.join(missing)}")
-
-        credential = ClientSecretCredential(
-            tenant_id=tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-        )
+        # Service principal when the AZURE_* triple is set, otherwise the
+        # default chain (managed identity in the Container Apps Job).
+        account_url = _account_url()
+        if not account_url:
+            raise EnvironmentError("Missing required env var: AZURE_STORAGE_ACCOUNT_URL")
         container = BlobServiceClient(
             account_url=account_url,
-            credential=credential,
+            credential=blob_credential(),
         ).get_container_client(target_container)
         upload_fn = azure_container_uploader(container)
 

@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 import yaml
-from azure.identity import ClientSecretCredential
+from src.upload.azure_credential import azure_configured, blob_credential, credential_kind
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 
@@ -46,22 +46,10 @@ class UploadValidated:
         self.AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
         self.AZURE_STORAGE_ACCOUNT_URL = os.getenv("AZURE_STORAGE_ACCOUNT_URL")
 
-        has_all_azure_creds = all(
-            [
-                self.AZURE_TENANT_ID,
-                self.AZURE_CLIENT_ID,
-                self.AZURE_CLIENT_SECRET,
-                self.AZURE_STORAGE_ACCOUNT_URL,
-            ]
-        )
-
-        if has_all_azure_creds:
-            self.credential = ClientSecretCredential(
-                tenant_id=self.AZURE_TENANT_ID,
-                client_id=self.AZURE_CLIENT_ID,
-                client_secret=self.AZURE_CLIENT_SECRET,
-            )
+        if azure_configured():
+            self.credential = blob_credential()
             self.azure_enabled = True
+            self.log.info("Azure upload enabled (%s)", credential_kind())
         else:
             self.credential = None
             self.azure_enabled = False

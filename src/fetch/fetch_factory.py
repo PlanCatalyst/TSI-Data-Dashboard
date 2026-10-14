@@ -80,8 +80,16 @@ class DataFetcherFactory:
             if api_paths.get('geo_area_tree_url') is not None:
                 extra_kwargs['geo_area_tree_url'] = api_paths['geo_area_tree_url']
 
+        base = client_config[source]['base']
+        if client_type_lower == 'ndgain':
+            # Local ZIP by default; newest ZIP in Blob when NDGAIN_BLOB_CONTAINER
+            # is set (requirements v2, REQ3.3). Logs the file it picked.
+            from src.fetch.ndgain_source import resolve_ndgain_zip
+            from src.pipeline.utils import project_root
+            base = str(resolve_ndgain_zip(self.config, project_root()))
+
         return data_fetcher(
-            base=client_config[source]['base'],  # Passing in base API URL upon instantiation
+            base=base,  # Base API URL or resolved ZIP path
             credentials=None,  # Use None for now; None of the APIs require keys
             **extra_kwargs,
         )
