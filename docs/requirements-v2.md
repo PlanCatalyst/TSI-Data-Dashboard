@@ -157,6 +157,35 @@ Acceptance:
 - AC1.8 No series in the published `timeseries.json` has three or more
   sign-alternating jumps of 25 points unless logged as genuine.
 
+### 1.8 Raw data store and independent audit (added 2026-10-14, Thomas)
+
+Trust in the published numbers is rebuilt by re-deriving them from raw with
+code that does not touch the pipeline, and reconciling number by number.
+
+- REQ1.5 Every pipeline run writes a lossless raw data store
+  (`docs/raw-data-store.md`): every fetched file byte for byte with hashes,
+  archives and spreadsheets extracted, every API record flattened with every
+  field, and an inventory per source and series of countries, years and
+  record counts. On by default; same run id as the published snapshot.
+- REQ1.6 UN SDG and World Bank fetch from 1990, the dashboard axis, not 2010.
+- REQ1.7 After a pipeline run, an independent audit runs from the store:
+  one agent per source re-derives expected dashboard values from the raw
+  records and the spec with no pipeline imports; a record-accounting pass
+  explains every drop between raw and published; a deterministic reconciler
+  (`audit/reconcile.py`) compares expected and published for every country,
+  year and indicator; each mismatch class is root-caused and logged in
+  `docs/data-quality-issues.md`.
+
+Acceptance:
+
+- AC1.9 The store for a run reproduces the inventory of the pipeline's clean
+  tables: every series, country and year the pipeline published appears in
+  the store with a raw record.
+- AC1.10 Agreement per indicator between the independent derivation and the
+  published values is reported; anything under 100% has a named cause.
+- AC1.11 Every raw record is accounted for: published, or dropped with a
+  stated reason.
+
 ---
 
 ## 2. Side panel redesign

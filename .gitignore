@@ -110,6 +110,9 @@ data/interim/**
 data/processed/**
 !data/processed/.gitkeep
 
+data/store/**
+!data/store/README.md
+
 data/organized/**
 !data/organized/.gitkeep
 !data/organized/README.md

@@ -9,7 +9,7 @@ worldbank: # name must match client_factory.py
 
   # Inclusive start/end year for the World Bank "date" filter, e.g. date=2010:2024
   # Not all indicators have values for every year; nulls are expected.
-  start_year: 2010
+  start_year: 1990   # dashboard axis starts 1990; was 2010 until 2026-10-14 (raw store work)
   end_year: 2024
 
   api_paths: 
@@ -52,7 +52,7 @@ worldbank: # name must match client_factory.py
 unsdg: # name must match client_factory.py
 
   # Inclusive start/end year for UN SDG data fetching
-  start_year: 2010
+  start_year: 1990   # dashboard axis starts 1990; was 2010 until 2026-10-14 (raw store work)
   end_year: 2024
 
   api_paths: 
@@ -260,6 +260,10 @@ paths:
   # Projections outputs (actuals + forecast rows)
   data_processed: "data/processed/"
 
+  # Raw data store: lossless per-run copy of every fetched source with an
+  # inventory. Fork point for the independent audit. See docs/raw-data-store.md.
+  data_store: "data/store/"
+
 runtime:
 
   # When false, skip API/ZIP fetch and load existing raw files under paths.data_raw.
@@ -282,6 +286,10 @@ runtime:
   # Gate thresholds live in src.projections.quality_gates (assess_series);
   # do not use a local min_observations stand-in.
   # forecast_min_observations: 5  # removed — use PR A MIN_OBSERVATIONS=8
+
+  # Copy every fetched raw file into paths.data_store/<run_id>/ with an
+  # inventory, right after fetch. Env override PIPELINE_ARCHIVE_RAW.
+  archive_raw: true
 
   # Build contract JSON (meta/countries/timeseries) after scoring.
   # When upload_azure is true and Azure creds are set, also uploads to
