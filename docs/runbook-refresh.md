@@ -74,9 +74,13 @@ exported to reproduce a job run; with the `AZURE_*` service principal triple in
    ```
 
    Leave `PIPELINE_UPLOAD_AZURE` unset for a dry run into `data/organized/v1/`.
-5. Before a live publish, check nothing has saturated:
+5. The run stops itself on a blocking data quality finding (stage
+   "data validation"). Read `data/interim/validated/data_quality_report.md`,
+   log the defect in `docs/data-quality-issues.md`, fix the cause, rerun. To
+   run the rules alone against existing scored outputs:
 
    ```zsh
+   python3 -m src.validation
    python3 scripts/clamp_audit.py
    ```
 

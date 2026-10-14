@@ -347,6 +347,13 @@ without per-indicator inversion logic. This is a hard invariant; see §1.
 
 ## 6. Frontend-side derivations (NOT in the contract)
 
+Basket rule (2026-10-14): wherever the frontend averages series (pillar
+trend from indicators, overall from pillars, regional "Overall" from
+representative indicators) it uses `basketSeries` in `selectors.ts`, the same
+rule as the pipeline's `pillar_aggregate.py`: basket = members with a value in
+the last five years, a year is averaged only when 75% of the basket is
+present, else null. See `docs/data-quality-issues.md` DQ-03.
+
 These are computed in the browser from the published JSON and are listed here
 only so backend engineers understand what NOT to ship:
 

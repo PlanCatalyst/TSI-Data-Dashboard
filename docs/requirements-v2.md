@@ -116,6 +116,47 @@ Pick one. Recommendation is option B.
 - "Projection band coming soon" is still visible. Either ship projections or
   remove the placeholder before handoff.
 
+### 1.7 Data validation module (added 2026-10-14, Thomas)
+
+Thomas's review of the rebuilt UI on the published snapshot found that the
+zigzags Reyna described were not one defect but three, and that the fix has
+to be structural: every defect gets a log entry, a rule that catches it in
+data, and a stage that blocks publish on it.
+
+- REQ1.1 `docs/data-quality-issues.md` is the issue log. A dashboard defect is
+  logged there before it is fixed, with symptom, evidence, cause, the rule
+  that catches it, and status.
+- REQ1.2 `src/validation/` runs as the pipeline stage between score and
+  publish. Rules carry an ID and a severity; any `block` finding ends the run
+  with `PIPELINE RUN FAILED: data validation ...` and the previous snapshot
+  stays live. The report is written beside the scored CSVs.
+- REQ1.3 Disaggregated source rows are reduced to one row per country, year
+  and series by explicit rules before scoring (`src/calculating/dimensions.py`).
+  A new disaggregation that no rule covers is a blocking finding, never a
+  silent pick.
+- REQ1.4 Aggregates (subdomain, pillar, overall, regional) use a basket mean:
+  members with a value in the last five years form the basket, a year is
+  scored only when at least 75% of the basket is present, members outside the
+  basket are ignored. The pipeline and the frontend implement the same rule
+  with the same constants. Years with an incomplete basket are null, never
+  interpolated.
+
+Rules shipped: R1 conflicting duplicates (block), R2 score shape and ghost
+scores (block), R3 sawtooth series (block when systemic, warn for one
+country), R4 flat runs (warn until the scoring decision), R5 pinned share
+(warn), R6 basket presence (block), R7 single-member pillar (warn), R8
+country identity (block), R9 year sanity (block).
+
+Acceptance:
+
+- AC1.6 `python -m src.validation` against the current scored outputs reports
+  zero blocking findings; CI's backend tests cover every rule.
+- AC1.7 The log has an entry for every defect observed on the dashboard
+  since the 2026-10-14 review, and every entry names a rule or says why no
+  rule is possible.
+- AC1.8 No series in the published `timeseries.json` has three or more
+  sign-alternating jumps of 25 points unless logged as genuine.
+
 ---
 
 ## 2. Side panel redesign
@@ -298,6 +339,10 @@ A5. Regional averages: suppress or shade sparse years (§1.6)
     ... done, years under 50% regional coverage are not drawn, noted under the chart
 A6. Remove the projection placeholder (§1.6, B4) ... done, chart and About page
 AC1.5 benchmark sentence in the data notes ........ done (BENCHMARK_RULE_NOTE)
+A7. Data validation module, issue log, dimension rules, basket aggregation (§1.7)
+    ... done 2026-10-14. Found and fixed on first run: 93 ghost scores from
+        missing values (DQ-06), alternating disaggregations in 85 countries
+        (DQ-02), composition zigzag in every country (DQ-03).
 ```
 
 ### Pass B: UI/UX
