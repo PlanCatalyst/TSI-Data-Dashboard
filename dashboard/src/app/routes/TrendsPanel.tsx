@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { regionColor, seriesColor } from "../../components/scores/series-color";
+import { basketSeries } from "../../data/contract/selectors";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
 
@@ -72,13 +73,10 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
   function getDomainSeries(iso3: string, dk: string): (number | null)[] {
     if (meta == null) return [];
     if (dk === "overall") {
-      const repKeys = meta.pillars.map(p => p.repIndicator);
-      return meta.years.map((_, i) => {
-        const vals = repKeys
-          .map(k => timeseries[iso3]?.[k]?.[i])
-          .filter(v => v != null) as number[];
-        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-      });
+      // Basket mean over the representative indicators (DQ-03): a year is
+      // drawn only when the basket is substantially complete.
+      const members = meta.pillars.map(p => timeseries[iso3]?.[p.repIndicator] ?? meta.years.map(() => null));
+      return basketSeries(members, meta.years.length);
     }
     const repKey = meta.pillars.find(p => p.key === dk)?.repIndicator ?? dk;
     return timeseries[iso3]?.[repKey] ?? meta.years.map(() => null);

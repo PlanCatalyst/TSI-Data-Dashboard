@@ -80,6 +80,36 @@ export function computeFallbackPillarScores(
 
 // Per-year pillar averages computed from each pillar's indicator timeseries.
 // Used for trend charts to show year-by-year progression.
+// Basket mean (data quality issue DQ-03). Mirrors
+// src/calculating/pillar_aggregate.py exactly: the basket is the members with
+// any value in the last BASKET_WINDOW_YEARS of the series; a year is the mean
+// over basket members present that year only when at least
+// BASKET_MIN_PRESENCE of the basket is present, else null. Members outside
+// the basket are ignored. A plain mean of "whatever reported that year"
+// changes composition year to year and drew a zigzag through every country
+// from 1995 to 2002 (biennial governance data).
+export const BASKET_WINDOW_YEARS = 5;
+export const BASKET_MIN_PRESENCE = 0.75;
+
+export function basketSeries(members: Array<Array<number | null>>, length: number): Array<number | null> {
+  const nonEmpty = members.filter((m) => m.some((v) => v != null));
+  if (nonEmpty.length === 0) return Array.from({ length }, () => null);
+  let last = -1;
+  for (let i = length - 1; i >= 0 && last < 0; i--) {
+    if (nonEmpty.some((m) => m[i] != null)) last = i;
+  }
+  const lo = last - BASKET_WINDOW_YEARS + 1;
+  const basket = nonEmpty.filter((m) => {
+    for (let i = Math.max(0, lo); i <= last; i++) if (m[i] != null) return true;
+    return false;
+  });
+  const need = Math.max(1, Math.ceil(BASKET_MIN_PRESENCE * basket.length));
+  return Array.from({ length }, (_, i) => {
+    const vals = basket.map((m) => m[i]).filter((v): v is number => v != null);
+    return vals.length >= need ? meanRound(vals) : null;
+  });
+}
+
 export function computePillarTimeseries(
   country: CountryPayload,
   timeseries: TimeseriesPayload,
@@ -87,14 +117,11 @@ export function computePillarTimeseries(
 ): Record<string, Array<number | null>> {
   const indsByPillar = groupIndicatorKeysByPillar(meta);
   const result: Record<string, Array<number | null>> = {};
+  const n = meta.years.length;
   for (const p of meta.pillars) {
     const keys = indsByPillar[p.key] ?? [];
-    result[p.key] = meta.years.map((_, yi) => {
-      const vals = keys
-        .map((k) => (timeseries[country.iso3]?.[k] ?? [])[yi] ?? null)
-        .filter((v): v is number => v != null);
-      return meanRound(vals);
-    });
+    const members = keys.map((k) => timeseries[country.iso3]?.[k] ?? Array.from({ length: n }, () => null));
+    result[p.key] = basketSeries(members, n);
   }
   return result;
 }
