@@ -120,7 +120,11 @@ class InverseRatioScorer(IndicatorScorer):
         if self.below_benchmark == "soft_floor":
             below = country_gap < self.threshold_gap
             return soft_floor_scores(scores, self.threshold_gap - country_gap, below)
-        scores = scores.where(country_gap >= self.threshold_gap, other=0.0)
+        # A missing value compares False against the benchmark; without the
+        # isna() guard it became need 0, which the dashboard showed as 100
+        # (data quality issue DQ-06, 93 country-years in the 2026-07 snapshot).
+        better = country_gap < self.threshold_gap
+        scores = scores.where(~better | country_gap.isna(), other=0.0)
         return scores
 
 

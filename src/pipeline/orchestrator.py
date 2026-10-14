@@ -28,6 +28,7 @@ from src.fetch.ndgain_source import NdgainSourceError
 from src.clean.clean_data import CleanData
 from src.calculating.pipeline import run_pipeline as run_scoring_pipeline, scoring_inputs
 from src.upload.azure_credential import azure_configured, credential_kind
+from src.validation import DataQualityError, run_validation
 from src.upload.upload_validated import UploadValidated
 from src.upload.publish_dashboard import publish as publish_dashboard
 
@@ -78,6 +79,8 @@ class Orchestrator:
             return self._run(self._set_stage)
         except NdgainSourceError as exc:
             return self._fail("nd-gain source", str(exc))
+        except DataQualityError as exc:
+            return self._fail("data validation", str(exc))
         except Exception as exc:  # noqa: BLE001  one failure line, whatever the cause
             traceback.print_exc()
             return self._fail(self._stage, f"{type(exc).__name__}: {exc}")
@@ -150,6 +153,11 @@ class Orchestrator:
                 country_metadata_csv=metadata_csv,
                 below_benchmark=below_benchmark,
             )
+
+        # DATA VALIDATION: blocks publish on sawtooth series, conflicting
+        # disaggregations, basket violations (docs/data-quality-issues.md)
+        set_stage("data validation")
+        run_validation(root / validated_rel)
 
         # UPLOAD validated CSVs (private container) when upload_azure is on
         set_stage("upload validated")
