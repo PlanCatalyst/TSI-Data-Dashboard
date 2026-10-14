@@ -11,6 +11,7 @@ import {
   NeedBadge,
 } from "../../components/scores/ScoreWithContext";
 import { COUNTRY_PALETTE, seriesColor } from "../../components/scores/series-color";
+import { useReveal } from "../../hooks/useReveal";
 import {
   deferredNoteForIndicators,
   NO_DATA_FOR_SELECTION,
@@ -245,17 +246,19 @@ export function ComparePage() {
     setSelectedISOs(prev => prev.filter(x => x !== iso3));
   }
 
+  const revealRef = useReveal<HTMLElement>("compare");
+
   return (
-    <section>
-      <div className="hero" style={{ padding: "18px 20px 16px" }}>
-        <h1 style={{ fontSize: "clamp(15px, 2.5vw, 20px)" }}>Pillar Comparison — All Countries</h1>
+    <section ref={revealRef}>
+      <div className="hero" data-reveal="0">
+        <h1>Compare pillars across countries</h1>
         <p style={{ fontSize: "12.5px" }}>
           Each dot represents one country. Use filters to narrow the view. Select countries to compare side by side.
         </p>
       </div>
 
       {/* Region filter */}
-      <div className="fbar">
+      <div className="fbar" data-reveal="1">
         <span className="fbar-lbl">Region</span>
         <button className={activeRegion === "all" ? "fbtn active" : "fbtn"} onClick={() => setActiveRegion("all")}>All</button>
         {meta.regions.map(r => (
@@ -266,7 +269,7 @@ export function ComparePage() {
       </div>
 
       {/* Pillar filter */}
-      <div className="fbar">
+      <div className="fbar" data-reveal="2">
         <span className="fbar-lbl">Pillar</span>
         <button className={activeDomain === "all" ? "fbtn active" : "fbtn"} onClick={() => setActiveDomain("all")}>All</button>
         {meta.pillars.map(p => (
@@ -415,7 +418,7 @@ export function ComparePage() {
 
       {/* Sub-domain breakdown (comparison) or density strip charts (all countries) */}
       {selectedCountries.length > 0 ? (
-        <div className="cmp-body">
+        <div className="cmp-body" data-reveal="3">
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 12, paddingTop: 4 }}>
             Sub-domain breakdown
           </div>
@@ -495,7 +498,7 @@ export function ComparePage() {
           })}
         </div>
       ) : (
-        <div className="cmp-body">
+        <div className="cmp-body" data-reveal="3">
           {displayedPillars.map(p => {
             const pillarsSubdomains = meta.subdomains.filter(sd => sd.pillar === p.key);
             const hasAnyData = pillarsSubdomains.some(sd =>

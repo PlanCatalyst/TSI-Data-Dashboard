@@ -16,7 +16,7 @@ type Props = {
 // band, then the panel chrome. Mirrors .panel-head in the design system.
 export function PanelHead({ eyebrow, title, overall, expanded, onToggleExpand, onClose }: Props) {
   return (
-    <div className="panel-head">
+    <div className="panel-head" data-reveal="0">
       <div className="panel-title">
         <span className="eyebrow">{eyebrow}</span>
         <h2 className="h1">{title}</h2>

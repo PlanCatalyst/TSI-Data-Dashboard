@@ -11,6 +11,7 @@ import {
 import { NeedBadge } from "../../components/scores/ScoreWithContext";
 import { regionColor, seriesColor } from "../../components/scores/series-color";
 import { TrendsPanel } from "./TrendsPanel";
+import { useReveal } from "../../hooks/useReveal";
 import { EXPLORE_TABLE_FOOTNOTE, SCORE_INTERPRETATION_NOTE } from "../../content/data-notes";
 
 function trendDelta(trend: Array<number | null>): number | null {
@@ -65,6 +66,7 @@ export function ExplorePage() {
   const [sortCol, setSortCol] = useState<string>("health");
   const [sortDir, setSortDir] = useState<SortDir>(1);
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  const revealRef = useReveal<HTMLElement>("explore");
 
   if (!meta) return null;
 
@@ -150,9 +152,9 @@ export function ExplorePage() {
   const n = meta.years.length;
 
   return (
-    <section>
-      <div className="hero">
-        <h1>Country Development Indicators — Explore</h1>
+    <section ref={revealRef}>
+      <div className="hero" data-reveal="0">
+        <h1>Explore country indicators</h1>
         <p>Explore healthcare, agriculture, social infrastructure, and other indicators across PlanCatalyst countries.</p>
         <div className="hero-meta">
           <div><div className="hstat-num">{countries.length}</div><div className="hstat-lbl">Countries</div></div>
@@ -161,7 +163,7 @@ export function ExplorePage() {
           <div><div className="hstat-num">{meta.years[0]}–{meta.years[n - 1]}</div><div className="hstat-lbl">Time range</div></div>
         </div>
       </div>
-      <div className="fbar">
+      <div className="fbar" data-reveal="1">
         <span className="fbar-lbl">Region</span>
         <button
           className={activeRegion === "all" ? "fbtn active" : "fbtn"}
@@ -187,7 +189,7 @@ export function ExplorePage() {
         />
       </div>
       <div className="ov-body">
-        <div>
+        <div data-reveal="2">
           <div className="card">
             <div className="card-title">Country indicator summary</div>
             <div className="ind-table-wrap">
@@ -259,7 +261,7 @@ export function ExplorePage() {
             })()}
           </div>
         </div>
-        <div className="side-col">
+        <div className="side-col" data-reveal="3">
           <div className="card">
             <div className="card-title">Countries by region</div>
             {regionCounts.map(r => (
