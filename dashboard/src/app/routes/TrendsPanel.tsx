@@ -1,11 +1,8 @@
 import { useMemo, useState } from "react";
+import { regionColor, seriesColor } from "../../components/scores/series-color";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
 
-const REG_COLORS: Record<string, string> = {
-  afe: "#0079c1", afw: "#005d96", eap: "#b2cd5a", eca: "#7a9a1f",
-  lcr: "#e07b35", mna: "#435d7f", sar: "#7a5a9a", nam: "#2a7a3a",
-};
 const REG_DASH: Record<string, string> = {
   afe: "none", afw: "4,2", eap: "none", eca: "5,3",
   lcr: "2,2", mna: "5,3", sar: "4,2", nam: "2,2",
@@ -37,10 +34,10 @@ function SparkSVG({ series, color }: { series: (number | null)[]; color: string 
   return (
     <svg width={SW} height={SH} viewBox={`0 0 ${SW} ${SH}`}
       style={{ display: "block", overflow: "visible", verticalAlign: "middle" }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.6"
+      <polyline points={points} fill="none" style={{ stroke: color }} strokeWidth="1.6"
         strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
       {last && (
-        <circle cx={xS(last.i).toFixed(1)} cy={yS(last.v).toFixed(1)} r="2.5" fill={color} />
+        <circle cx={xS(last.i).toFixed(1)} cy={yS(last.v).toFixed(1)} r="2.5" style={{ fill: color }} />
       )}
     </svg>
   );
@@ -136,7 +133,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
   return (
     <div className="card">
       <div className="card-title">Trends across regions</div>
-      <p style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>
+      <p style={{ fontSize: 12, color: "var(--n-600)", marginBottom: 10 }}>
         Select a domain to see regional averages. Country sparklines show individual trajectories.
       </p>
 
@@ -154,7 +151,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
       </div>
 
       {/* Regional averages chart */}
-      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mut)", textTransform: "uppercase", letterSpacing: ".4px", margin: "10px 0 4px" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", margin: "10px 0 4px" }}>
         Regional averages — {meta.years[0]}–{meta.years[n - 1]}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
@@ -162,13 +159,13 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
         {/* Gridlines */}
         {[0, 25, 50, 75, 100].map(v => (
           <g key={v}>
-            <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="#eef0f3" strokeWidth="1" />
-            <text x={PAD.l - 4} y={yS(v) + 3.5} textAnchor="end" fontSize="9" fill="#b0b8c2">{v}</text>
+            <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} style={{ stroke: "var(--n-100)" }} strokeWidth="1" />
+            <text x={PAD.l - 4} y={yS(v) + 3.5} textAnchor="end" fontSize="9" style={{ fill: "var(--n-400)" }}>{v}</text>
           </g>
         ))}
         {/* Year labels */}
         {labelIndices.map(i => (
-          <text key={i} x={xS(i)} y={H - PAD.b + 11} textAnchor="middle" fontSize="9" fill="#9aa4ae">
+          <text key={i} x={xS(i)} y={H - PAD.b + 11} textAnchor="middle" fontSize="9" style={{ fill: "var(--n-600)" }}>
             {meta.years[i]}
           </text>
         ))}
@@ -180,7 +177,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
         {REGION_ORDER.map(r => {
           const avgs = regionAvgs[r];
           if (!avgs) return null;
-          const col = REG_COLORS[r];
+          const col = regionColor(r);
           const dash = REG_DASH[r];
           const pts = avgs
             .map((v, i) => v != null ? `${xS(i).toFixed(1)},${yS(v).toFixed(1)}` : null)
@@ -190,11 +187,11 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
           const lastVal = lastIdx !== -1 ? avgs[lastIdx] : null;
           return (
             <g key={r}>
-              <polyline points={pts} fill="none" stroke={col} strokeWidth="2"
+              <polyline points={pts} fill="none" style={{ stroke: col }} strokeWidth="2"
                 strokeDasharray={dash === "none" ? undefined : dash}
                 strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
               {lastVal != null && (
-                <circle cx={xS(lastIdx).toFixed(1)} cy={yS(lastVal).toFixed(1)} r="3" fill={col} />
+                <circle cx={xS(lastIdx).toFixed(1)} cy={yS(lastVal).toFixed(1)} r="3" style={{ fill: col }} />
               )}
             </g>
           );
@@ -202,21 +199,21 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
       </svg>
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 11, color: "var(--mut)" }}>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 11, color: "var(--n-600)" }}>
         {REGION_ORDER.filter(r => regionAvgs[r]).map(r => (
           <span key={r} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 16, height: 2, background: REG_COLORS[r], display: "inline-block" }} />
+            <span style={{ width: 16, height: 2, background: regionColor(r), display: "inline-block" }} />
             {regionLabel[r] ?? r}
           </span>
         ))}
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: "rgba(180,195,210,0.35)", display: "inline-block" }} />
+          <span style={{ width: 10, height: 10, background: "rgba(180,195,210,0.35)", display: "inline-block" }} />
           Country spread
         </span>
       </div>
 
       {/* Sparklines grid */}
-      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mut)", textTransform: "uppercase", letterSpacing: ".4px", margin: "14px 0 4px" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", margin: "14px 0 4px" }}>
         Country sparklines
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -235,7 +232,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
               return bLast - aLast;
             });
           if (!regionRows.length) return null;
-          const col = REG_COLORS[r];
+          const col = regionColor(r);
           const lastVals = regionRows
             .map(c => c.series.reduceRight<number | null>((acc, v) => acc ?? v, null))
             .filter(v => v != null) as number[];
@@ -244,25 +241,25 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
             : null;
 
           return (
-            <div key={r} style={{ border: "1px solid #dde2ea", borderTop: `3px solid ${col}`, borderRadius: "0 0 8px 8px", background: "#fff" }}>
+            <div key={r} style={{ border: "1px solid var(--n-200)", borderTop: `3px solid ${col}`, background: "var(--n-0)" }}>
               <div style={{ padding: "7px 8px 5px", display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#1e2a35" }}>{regionLabel[r] ?? r}</span>
-                <span style={{ fontSize: 11, color: "#5f6e7c", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--n-900)" }}>{regionLabel[r] ?? r}</span>
+                <span style={{ fontSize: 11, color: "var(--n-600)", whiteSpace: "nowrap" }}>
                   {regionRows.length} countries · avg <strong style={{ color: col }}>{regionAvg ?? "—"}</strong>
                 </span>
               </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", borderTop: "1px solid #dde2ea" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", borderTop: "1px solid var(--n-200)" }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: "3px 4px 4px 8px", fontSize: 9, fontWeight: 700, color: "#9aa4ae", textTransform: "uppercase", letterSpacing: ".3px", textAlign: "left" }}>Country</th>
-                    <th style={{ padding: "3px 4px", width: 56, fontSize: 9, fontWeight: 700, color: "#9aa4ae", textTransform: "uppercase", letterSpacing: ".3px" }}>
+                    <th style={{ padding: "3px 4px 4px 8px", fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".3px", textAlign: "left" }}>Country</th>
+                    <th style={{ padding: "3px 4px", width: 56, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".3px" }}>
                       {meta.years[0]}–{String(meta.years[n - 1]).slice(-2)}
                     </th>
-                    <th style={{ padding: "3px 4px", width: 28, fontSize: 9, fontWeight: 700, color: "#9aa4ae", textTransform: "uppercase", textAlign: "right" }}>Now</th>
-                    <th style={{ padding: "3px 8px 3px 4px", width: 30, fontSize: 9, fontWeight: 700, color: "#9aa4ae", textTransform: "uppercase", textAlign: "right" }}>Chg</th>
+                    <th style={{ padding: "3px 4px", width: 28, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", textAlign: "right" }}>Now</th>
+                    <th style={{ padding: "3px 8px 3px 4px", width: 30, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", textAlign: "right" }}>Chg</th>
                   </tr>
                 </thead>
-                <tbody style={{ borderTop: "1px solid #dde2ea" }}>
+                <tbody style={{ borderTop: "1px solid var(--n-200)" }}>
                   {regionRows.map(c => {
                     const nonNull = c.series
                       .map((v, i) => v != null ? { v, i } : null)
@@ -271,19 +268,19 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
                     const first = nonNull[0].v;
                     const last = nonNull[nonNull.length - 1];
                     const delta = Math.round(last.v - first);
-                    const deltaColor = delta > 3 ? "#2a7a3a" : delta < -3 ? "#c0392b" : "#9aa4ae";
+                    const deltaColor = delta > 3 ? "var(--need-low-ink)" : delta < -3 ? "var(--need-severe-ink)" : "var(--n-600)";
                     const shortName = c.name.length > 14 ? c.name.slice(0, 13) + "…" : c.name;
                     return (
                       <tr key={c.iso3} style={{ cursor: "default" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#f7f9fc")}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--n-50)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                        <td style={{ padding: "3px 4px 3px 8px", fontSize: 11, color: "#2a3a48", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 0 }}>
+                        <td style={{ padding: "3px 4px 3px 8px", fontSize: 11, color: "var(--n-800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 0 }}>
                           {shortName}
                         </td>
                         <td style={{ padding: "2px 4px", width: 56 }}>
                           <SparkSVG series={c.series} color={col} />
                         </td>
-                        <td style={{ padding: "2px 4px", width: 28, fontSize: 11.5, fontWeight: 700, color: "#1e2a35", textAlign: "right" }}>
+                        <td style={{ padding: "2px 4px", width: 28, fontSize: 11.5, fontWeight: 700, color: "var(--n-900)", textAlign: "right" }}>
                           {Math.round(last.v)}
                         </td>
                         <td style={{ padding: "2px 8px 2px 4px", width: 30, fontSize: 10.5, fontWeight: 600, color: deltaColor, textAlign: "right" }}>

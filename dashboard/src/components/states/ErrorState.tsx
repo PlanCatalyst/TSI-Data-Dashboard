@@ -5,11 +5,11 @@ type ErrorStateProps = {
 
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div className="state-card">
-      <strong>Unable to load dashboard data</strong>
-      <p>{message}</p>
+    <div className="state state--error" role="alert">
+      <span className="h2">Unable to load dashboard data</span>
+      <p className="small">{message}</p>
       {onRetry ? (
-        <button type="button" onClick={onRetry}>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={onRetry}>
           Retry
         </button>
       ) : null}

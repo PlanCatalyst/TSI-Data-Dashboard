@@ -10,13 +10,13 @@ import {
   DerivationBadge,
   NeedBadge,
 } from "../../components/scores/ScoreWithContext";
+import { COUNTRY_PALETTE, seriesColor } from "../../components/scores/series-color";
 import {
   deferredNoteForIndicators,
   NO_DATA_FOR_SELECTION,
   SCORE_INTERPRETATION_NOTE_SHORT,
 } from "../../content/data-notes";
 
-const COUNTRY_PALETTE = ["#0079c1", "#e07b35", "#2a7a3a", "#7a5a9a", "#c0392b"];
 
 function PillarTrendChart({
   pillar, series, years, note,
@@ -34,9 +34,9 @@ function PillarTrendChart({
   const hasData = series.some(s => s.data.some(v => v != null));
   if (!hasData) {
     return (
-      <div style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 8, padding: "10px 12px", minHeight: 130, display: "flex", flexDirection: "column" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: pillar.color, marginBottom: 6 }}>{pillar.label}</div>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--mut)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45, padding: "4px 6px" }}>
+      <div style={{ background: "var(--n-0)", border: "1px solid var(--n-200)", padding: "10px 12px", minHeight: 130, display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: seriesColor(pillar.key), marginBottom: 6 }}>{pillar.label}</div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--n-600)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45, padding: "4px 6px" }}>
           {note ?? NO_DATA_FOR_SELECTION}
         </div>
       </div>
@@ -54,19 +54,19 @@ function PillarTrendChart({
     : [0, Math.floor(n / 3), Math.floor((2 * n) / 3), n - 1];
 
   return (
-    <div style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 8, padding: "10px 12px" }}
+    <div style={{ background: "var(--n-0)", border: "1px solid var(--n-200)", padding: "10px 12px" }}
       onMouseLeave={() => setDotTip(null)}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: pillar.color, marginBottom: 6 }}>{pillar.label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: seriesColor(pillar.key), marginBottom: 6 }}>{pillar.label}</div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: "block", width: "100%", height: H, overflow: "visible" }}>
         {[0, 25, 50, 75, 100].map(v => (
           <g key={v}>
-            <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} stroke="#eef0f3" strokeWidth="1" />
-            <text x={PAD.l - 4} y={yS(v) + 3.5} textAnchor="end" fontSize="9" fill="#b0b8c2">{v}</text>
+            <line x1={PAD.l} y1={yS(v)} x2={W - PAD.r} y2={yS(v)} style={{ stroke: "var(--n-100)" }} strokeWidth="1" />
+            <text x={PAD.l - 4} y={yS(v) + 3.5} textAnchor="end" fontSize="9" style={{ fill: "var(--n-400)" }}>{v}</text>
           </g>
         ))}
         {labelIndices.map(i => (
-          <text key={i} x={xS(i)} y={H - PAD.b + 11} textAnchor="middle" fontSize="9" fill="#9aa4ae">
+          <text key={i} x={xS(i)} y={H - PAD.b + 11} textAnchor="middle" fontSize="9" style={{ fill: "var(--n-600)" }}>
             {years[i]}
           </text>
         ))}
@@ -77,14 +77,14 @@ function PillarTrendChart({
           return (
             <g key={s.iso3}>
               {pts && (
-                <polyline points={pts} fill="none" stroke={s.color} strokeWidth="2"
+                <polyline points={pts} fill="none" style={{ stroke: s.color }} strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
               )}
               {s.data.map((v, i) => v == null ? null : (
                 <circle
                   key={i}
                   cx={xS(i).toFixed(1)} cy={yS(v).toFixed(1)} r="3"
-                  fill={s.color} style={{ cursor: "pointer" }}
+                  style={{ fill: s.color, cursor: "pointer" }}
                   onMouseEnter={e => {
                     const r = (e.currentTarget as SVGCircleElement).getBoundingClientRect();
                     setDotTip({ x: r.left + r.width / 2, y: r.top, yearIdx: i });
@@ -100,8 +100,8 @@ function PillarTrendChart({
         <div style={{
           position: "fixed", left: dotTip.x, top: dotTip.y - 8,
           transform: "translate(-50%, -100%)",
-          background: "#1e2a35", color: "#fff",
-          padding: "8px 12px", borderRadius: 7, fontSize: 12,
+          background: "var(--n-900)", color: "var(--n-0)",
+          padding: "8px 12px", fontSize: 12,
           pointerEvents: "none", zIndex: 9999,
           boxShadow: "0 2px 12px rgba(0,0,0,.3)",
           minWidth: 130, lineHeight: 1.5,
@@ -123,13 +123,13 @@ function PillarTrendChart({
 }
 
 function DomainBar({ val, color }: { val: number | null; color: string }) {
-  if (val == null) return <span style={{ color: "var(--mut)", fontSize: 11 }}>—</span>;
+  if (val == null) return <span style={{ color: "var(--n-600)", fontSize: 11 }}>—</span>;
   return (
     <div className="spark-wrap">
       <div className="spark-bg">
         <div className="spark-fill" style={{ width: `${val}%`, background: color }} />
       </div>
-      <span style={{ fontSize: 11, fontWeight: 600, color: "#1e2a35", minWidth: 24, textAlign: "right" }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--n-900)", minWidth: 24, textAlign: "right" }}>
         {val}
       </span>
     </div>
@@ -277,7 +277,7 @@ export function ComparePage() {
       </div>
 
       {/* Country selector bar */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--bd)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ background: "var(--n-0)", borderBottom: "1px solid var(--n-200)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span className="fbar-lbl">Compare countries</span>
         <div ref={searchRef} style={{ position: "relative", flex: 1, minWidth: 160, maxWidth: 280 }}>
           <input
@@ -286,10 +286,10 @@ export function ComparePage() {
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); setShowDropdown(true); }}
             onFocus={() => { if (searchQuery) setShowDropdown(true); }}
-            style={{ width: "100%", padding: "5px 11px", border: "1px solid var(--bd)", borderRadius: 14, fontSize: 12, fontFamily: "inherit", outline: "none" }}
+            style={{ width: "100%", padding: "5px 11px", border: "1px solid var(--n-200)", fontSize: 12, fontFamily: "inherit", outline: "none" }}
           />
           {showDropdown && dropdownItems.length > 0 && (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid var(--bd)", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,.1)", zIndex: 200, maxHeight: 220, overflowY: "auto", fontSize: 12 }}>
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--n-0)", border: "1px solid var(--n-200)", boxShadow: "0 4px 16px rgba(0,0,0,.1)", zIndex: 200, maxHeight: 220, overflowY: "auto", fontSize: 12 }}>
               {dropdownItems.map(c => (
                 <div
                   key={c.iso3}
@@ -297,7 +297,7 @@ export function ComparePage() {
                   onMouseDown={() => { if (selectedISOs.length < 5) addCountry(c.iso3); }}
                 >
                   {c.name}
-                  <span style={{ color: "var(--mut)", fontSize: 11, marginLeft: 6 }}>{regionLabel[c.region] ?? c.region}</span>
+                  <span style={{ color: "var(--n-600)", fontSize: 11, marginLeft: 6 }}>{regionLabel[c.region] ?? c.region}</span>
                 </div>
               ))}
             </div>
@@ -314,7 +314,7 @@ export function ComparePage() {
         {selectedISOs.length > 0 && (
           <button
             onClick={() => setSelectedISOs([])}
-            style={{ padding: "5px 10px", background: "none", border: "1px solid var(--bd)", borderRadius: 14, fontSize: 12, fontFamily: "inherit", cursor: "pointer", color: "var(--mut)", whiteSpace: "nowrap" }}
+            style={{ padding: "5px 10px", background: "none", border: "1px solid var(--n-200)", fontSize: 12, fontFamily: "inherit", cursor: "pointer", color: "var(--n-600)", whiteSpace: "nowrap" }}
           >
             Clear
           </button>
@@ -323,14 +323,14 @@ export function ComparePage() {
 
       {/* Comparison detail panel */}
       {selectedCountries.length > 0 && (
-        <div style={{ background: "#f4f5f7", padding: "16px 20px 24px", borderBottom: "1px solid var(--bd)" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 12 }}>
+        <div style={{ background: "var(--n-50)", padding: "16px 20px 24px", borderBottom: "1px solid var(--n-200)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 12 }}>
             Selected country comparison
           </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {selectedCountries.map(c => (
               <div key={c.iso3} className="country-cmp-card">
-                <div style={{ background: "var(--blue)", color: "#fff", padding: "10px 14px" }}>
+                <div style={{ background: "var(--n-0)", color: "var(--n-900)", padding: "var(--sp-3) var(--sp-4)", borderBottom: "var(--rule)" }}>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>{c.name}</div>
                   <div style={{ fontSize: 11, opacity: 0.8 }}>{regionLabel[c.region] ?? c.region}</div>
                 </div>
@@ -339,9 +339,9 @@ export function ComparePage() {
                     const oc = overallContext(c);
                     return (
                       <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "start", gap: 6, padding: "4px 12px" }}>
-                        <span style={{ fontSize: 11, color: "var(--mut)", paddingTop: 1 }}>Overall</span>
+                        <span style={{ fontSize: 11, color: "var(--n-600)", paddingTop: 1 }}>Overall</span>
                         <div>
-                          <DomainBar val={oc.value} color="#1e2a35" />
+                          <DomainBar val={oc.value} color="var(--n-900)" />
                           {oc.band && (
                             <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
                               <NeedBadge band={oc.band} size={8.5} />
@@ -357,9 +357,9 @@ export function ComparePage() {
                     const ctx = val != null ? pillarScoreContext(c, p.key, timeseries, meta) : null;
                     return (
                       <div key={p.key} style={{ display: "grid", gridTemplateColumns: "80px 1fr", alignItems: "start", gap: 6, padding: "4px 12px" }}>
-                        <span style={{ fontSize: 11, color: "var(--mut)", paddingTop: 1 }}>{p.label}</span>
+                        <span style={{ fontSize: 11, color: "var(--n-600)", paddingTop: 1 }}>{p.label}</span>
                         <div>
-                          <DomainBar val={val} color={p.color} />
+                          <DomainBar val={val} color={seriesColor(p.key)} />
                           {ctx && (
                             <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
                               <NeedBadge band={ctx.band} size={8.5} />
@@ -376,7 +376,7 @@ export function ComparePage() {
             ))}
           </div>
 
-          <p style={{ marginTop: 12, fontSize: 11, color: "var(--mut)", lineHeight: 1.5, maxWidth: 760 }}>
+          <p style={{ marginTop: 12, fontSize: 11, color: "var(--n-600)", lineHeight: 1.5, maxWidth: 760 }}>
             Pillar summary scores above show published values (LATEST), available once a country has
             sufficient indicator coverage. The trends and sub-domain breakdown below include
             every available indicator, so some detail may appear for pillars that do not yet
@@ -386,7 +386,7 @@ export function ComparePage() {
 
           {/* Trend charts */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>
               Score trends by pillar
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
@@ -401,7 +401,7 @@ export function ComparePage() {
                 return <PillarTrendChart key={p.key} pillar={p} series={series} years={meta.years} note={note} />;
               })}
             </div>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, fontSize: 11, color: "var(--mut)" }}>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, fontSize: 11, color: "var(--n-600)" }}>
               {selectedCountries.map((c, ci) => (
                 <span key={c.iso3} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{ width: 16, height: 2, background: COUNTRY_PALETTE[ci % COUNTRY_PALETTE.length], display: "inline-block" }} />
@@ -416,7 +416,7 @@ export function ComparePage() {
       {/* Sub-domain breakdown (comparison) or density strip charts (all countries) */}
       {selectedCountries.length > 0 ? (
         <div className="cmp-body">
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 12, paddingTop: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 12, paddingTop: 4 }}>
             Sub-domain breakdown
           </div>
           {displayedPillars.map(p => {
@@ -426,10 +426,10 @@ export function ComparePage() {
             );
             const emptyNote = deferredNoteForIndicators(indKeysByPillar[p.key] ?? []) ?? NO_DATA_FOR_SELECTION;
             return (
-              <div key={p.key} style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
-                <div style={{ padding: "12px 16px 10px", borderBottom: "1px solid var(--bd)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 4, height: 18, background: p.color, borderRadius: 2, flexShrink: 0, display: "inline-block" }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--txt)" }}>{p.label}</span>
+              <div key={p.key} style={{ background: "var(--n-0)", border: "1px solid var(--n-200)", overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ padding: "12px 16px 10px", borderBottom: "1px solid var(--n-200)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 4, height: 18, background: seriesColor(p.key), flexShrink: 0, display: "inline-block" }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--n-800)" }}>{p.label}</span>
                   <div style={{ marginLeft: "auto", display: "flex", gap: 14, alignItems: "center" }}>
                     {selectedCountries.map((c, ci) => (
                       <span key={c.iso3} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
@@ -440,13 +440,13 @@ export function ComparePage() {
                   </div>
                 </div>
                 {!pillarHasData && (
-                  <div style={{ padding: "10px 16px", fontSize: 11.5, color: "var(--mut)", fontStyle: "italic", lineHeight: 1.5, borderBottom: pillarSubdomains.length ? "1px solid #f3f4f6" : "none", background: "#fafbfc" }}>
+                  <div style={{ padding: "10px 16px", fontSize: 11.5, color: "var(--n-600)", fontStyle: "italic", lineHeight: 1.5, borderBottom: pillarSubdomains.length ? "1px solid var(--n-100)" : "none", background: "var(--n-50)" }}>
                     {emptyNote}
                   </div>
                 )}
                 <div>
                   {pillarSubdomains.length === 0 ? (
-                    <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--mut)", fontStyle: "italic" }}>
+                    <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
                       No sub-domains defined for this pillar.
                     </div>
                   ) : pillarSubdomains.map((sd, sdIdx) => {
@@ -458,13 +458,13 @@ export function ComparePage() {
                       style={{
                         display: "flex", alignItems: "center", gap: 12,
                         padding: "9px 16px",
-                        borderBottom: sdIdx < pillarSubdomains.length - 1 ? "1px solid #f3f4f6" : "none",
+                        borderBottom: sdIdx < pillarSubdomains.length - 1 ? "1px solid var(--n-100)" : "none",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "0 0 170px", minWidth: 0 }}
                         title={sdDeferred ?? undefined}>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, display: "inline-block", flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: "var(--txt)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: seriesColor(p.key), display: "inline-block", flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: "var(--n-800)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {sd.label}{sdDeferred ? " ⓘ" : ""}
                         </span>
                       </div>
@@ -474,12 +474,12 @@ export function ComparePage() {
                           const col = COUNTRY_PALETTE[ci % COUNTRY_PALETTE.length];
                           return (
                             <div key={c.iso3} style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ flex: 1, height: 5, background: "#eef0f3", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ flex: 1, height: 5, background: "var(--n-100)", overflow: "hidden" }}>
                                 {val != null && (
-                                  <div style={{ width: `${val}%`, height: "100%", background: col, borderRadius: 3 }} />
+                                  <div style={{ width: `${val}%`, height: "100%", background: col, }} />
                                 )}
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: val != null ? col : "var(--mut)", minWidth: 22, textAlign: "right" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: val != null ? col : "var(--n-600)", minWidth: 22, textAlign: "right" }}>
                                 {val != null ? val : "—"}
                               </span>
                             </div>
@@ -503,17 +503,17 @@ export function ComparePage() {
             );
 
             return (
-              <div key={p.key} style={{ background: "#fff", border: "1px solid var(--bd)", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
-                <div style={{ padding: "12px 16px 8px", borderBottom: "1px solid #f0f2f5", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 3, height: 16, background: p.color, borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--txt)" }}>{p.label}</span>
-                  <span style={{ fontSize: 11, color: "var(--mut)", marginLeft: "auto" }}>
+              <div key={p.key} style={{ background: "var(--n-0)", border: "1px solid var(--n-200)", overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ padding: "12px 16px 8px", borderBottom: "1px solid var(--n-100)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 3, height: 16, background: seriesColor(p.key), display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--n-800)" }}>{p.label}</span>
+                  <span style={{ fontSize: 11, color: "var(--n-600)", marginLeft: "auto" }}>
                     {pillarsSubdomains.length} sub-domains · {filtered.length} countries
                   </span>
                 </div>
                 <div style={{ padding: "12px 16px 28px" }}>
                   {!hasAnyData ? (
-                    <div style={{ fontSize: 12, color: "var(--mut)", fontStyle: "italic", padding: "8px 0" }}>
+                    <div style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic", padding: "8px 0" }}>
                       Data not yet available for this pillar.
                     </div>
                   ) : (
@@ -547,7 +547,7 @@ export function ComparePage() {
                                   </div>
                                 )}
                                 {vals.length === 0 ? (
-                                  <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "var(--mut)", fontStyle: "italic" }}>
+                                  <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "var(--n-600)", fontStyle: "italic" }}>
                                     No data
                                   </span>
                                 ) : (() => {
@@ -558,7 +558,7 @@ export function ComparePage() {
                                       <div
                                         key={score}
                                         className="strip-dot"
-                                        style={{ left: `${score}%`, background: p.color, opacity }}
+                                        style={{ left: `${score}%`, background: seriesColor(p.key), opacity }}
                                         onMouseEnter={e => {
                                           const r = e.currentTarget.getBoundingClientRect();
                                           setTooltip({ x: r.left + r.width / 2, y: r.top, value: score, countries: names });
@@ -586,8 +586,8 @@ export function ComparePage() {
         <div style={{
           position: "fixed", left: tooltip.x, top: tooltip.y - 8,
           transform: "translate(-50%, -100%)",
-          background: "#1e2a35", color: "#fff",
-          padding: "8px 12px", borderRadius: 7, fontSize: 12,
+          background: "var(--n-900)", color: "var(--n-0)",
+          padding: "8px 12px", fontSize: 12,
           pointerEvents: "none", zIndex: 9999,
           boxShadow: "0 2px 12px rgba(0,0,0,.3)",
           minWidth: 120, maxWidth: 220, lineHeight: 1.5,

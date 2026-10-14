@@ -121,7 +121,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
   const divX = divIdx >= 0 ? xS(Math.max(0, divIdx)) : null;
   const forecastThrough = chartYears[chartYears.length - 1] ?? firstProjectedYear;
 
-  const deltaCol = bucket === "up" ? "#2a7a3a" : bucket === "down" ? "#c0392b" : "#817d77";
+  const deltaCol = bucket === "up" ? "var(--need-low-ink)" : bucket === "down" ? "var(--need-severe-ink)" : "var(--n-600)";
   const deltaStr =
     delta == null
       ? "—"
@@ -160,7 +160,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
           <div style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>
             {latest != null ? latest : "—"}
           </div>
-          <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 9.5, color: "var(--n-600)", marginTop: 3, lineHeight: 1.3 }}>
             {latest != null && latestIdx >= 0
               ? `as of ${years[latestIdx]}`
               : status?.status === "out_of_scope"
@@ -180,7 +180,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
             <div
               style={{
                 fontSize: 11,
-                color: "var(--mut)",
+                color: "var(--n-600)",
                 fontStyle: "italic",
                 padding: "20px 0",
                 textAlign: statusNote ? "left" : "center",
@@ -208,13 +208,13 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                       y={PAD.t}
                       width={Math.max(0, W - PAD.r - divX)}
                       height={tH}
-                      fill="#fef6e6"
+                      style={{ fill: "var(--need-moderate-tint)" }}
                       opacity={0.7}
                     />
-                    <text x={PAD.l + 4} y={12} fontSize={8} fontWeight={700} fill="#667481">
+                    <text x={PAD.l + 4} y={12} fontSize={8} fontWeight={700} style={{ fill: "var(--n-600)" }}>
                       OBSERVED
                     </text>
-                    <text x={divX + 5} y={12} fontSize={8} fontWeight={700} fill="#8a5713">
+                    <text x={divX + 5} y={12} fontSize={8} fontWeight={700} style={{ fill: "var(--need-moderate-ink)" }}>
                       PROJECTED
                     </text>
                   </>
@@ -226,7 +226,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                       y1={yS(y).toFixed(1)}
                       x2={W - PAD.r}
                       y2={yS(y).toFixed(1)}
-                      stroke="#eef0f3"
+                      style={{ stroke: "var(--n-100)" }}
                       strokeWidth={1}
                     />
                     <text
@@ -234,7 +234,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                       y={Number(yS(y).toFixed(1)) + 3.5}
                       textAnchor="end"
                       fontSize={9}
-                      fill="#b0b8c2"
+                      style={{ fill: "var(--n-400)" }}
                     >
                       {y}
                     </text>
@@ -247,7 +247,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                     y={(H - PAD.b + 11).toFixed(1)}
                     textAnchor="middle"
                     fontSize={9}
-                    fill="#b0b8c2"
+                    style={{ fill: "var(--n-400)" }}
                   >
                     {chartYears[i]}
                   </text>
@@ -258,19 +258,19 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                     y1={PAD.t}
                     x2={divX}
                     y2={H - PAD.b}
-                    stroke="#c8892f"
+                    style={{ stroke: "var(--need-moderate-ink)" }}
                     strokeWidth={1.5}
                     strokeDasharray="4,3"
                   />
                 )}
                 {bandPolygon && (
-                  <polygon points={bandPolygon} fill={color} opacity={0.12} />
+                  <polygon points={bandPolygon} style={{ fill: color }} opacity={0.12} />
                 )}
                 {linePts && (
                   <polyline
                     points={linePts}
                     fill="none"
-                    stroke={color}
+                    style={{ stroke: color }}
                     strokeWidth={2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -280,7 +280,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                   <polyline
                     points={forecastValuePts}
                     fill="none"
-                    stroke={color}
+                    style={{ stroke: color }}
                     strokeWidth={1.5}
                     strokeDasharray="4,3"
                     strokeLinecap="round"
@@ -295,7 +295,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                       cx={xS(i).toFixed(1)}
                       cy={yS(v).toFixed(1)}
                       r={3}
-                      fill={color}
+                      style={{ fill: color }}
                       opacity={0.85}
                     >
                       <title>{`${chartYears[i]}: ${v}`}</title>
@@ -311,7 +311,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                         cy={yS(b.value).toFixed(1)}
                         r={3.5}
                         fill="white"
-                        stroke={color}
+                        style={{ stroke: color }}
                         strokeWidth={1.5}
                       >
                         <title>{`${chartYears[i]} (forecast): ${b.value} [${b.lo}, ${b.hi}]`}</title>
@@ -325,7 +325,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                 <div
                   style={{
                     fontSize: 11,
-                    color: "var(--mut)",
+                    color: "var(--n-600)",
                     fontStyle: "italic",
                     marginTop: 4,
                     lineHeight: 1.35,

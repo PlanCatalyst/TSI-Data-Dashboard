@@ -119,13 +119,6 @@ a { color: var(--pc-blue-ink); }
   }
 }
 
-.state-card {
-  margin-top: var(--sp-4);
-  border: var(--rule);
-  background: var(--n-0);
-  padding: var(--sp-4);
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
