@@ -286,12 +286,18 @@ Goal: every number and line on the dashboard is one a domain reader can
 defend. Covers §1 and §1.6.
 
 ```
-A1. Scoring decision (§1.4) ........ needs Reyna; blocks A2
+A1. Scoring decision (§1.4) ........ needs Reyna; blocks the A2 switch and republish
 A2. Scorer change + SCORING_AUDIT + index_version bump + republish (§1)
+    ... built 2026-10-14 as `scoring.below_benchmark: clamp | soft_floor`
+        (default clamp, AC1.4 tests, AC1.2 audit text). Open: flip, bump, republish after A1.
 A3. Clamp audit across all RatioThreshold / InverseRatio indicators (§1.2)
+    ... done, `scripts/clamp_audit.py --write-audit`, table in SCORING_AUDIT.md
 A4. Single-indicator pillar rule or warning (§1.6, Brazil agriculture)
+    ... done as the "n of m" badge on low-confidence pillar rows (B3)
 A5. Regional averages: suppress or shade sparse years (§1.6)
-A6. Remove the projection placeholder (§1.6, B4)
+    ... done, years under 50% regional coverage are not drawn, noted under the chart
+A6. Remove the projection placeholder (§1.6, B4) ... done, chart and About page
+AC1.5 benchmark sentence in the data notes ........ done (BENCHMARK_RULE_NOTE)
 ```
 
 ### Pass B: UI/UX
@@ -328,10 +334,18 @@ Notes from the build (2026-10-14):
 
 ```
 C1. Container Apps Job + Blob-sourced ND-GAIN + completion line + alert (§3)
-C2. Playbook draft (§4) ............ needs C1; screenshots come from the real job
-C3. Playbook dry run with client (§4, AC4.2)
-C4. Vault and HANDOFF updates, close out
+    ... code done 2026-10-14: completion and failure lines (REQ3.5, 3.6),
+        managed identity capable credential (REQ3.2), newest-ZIP Blob source
+        with logged file (REQ3.3), env overrides for the job, provisioning
+        script `infra/container-apps-job.sh` with roles and alert (REQ3.1,
+        3.7, AC3.4). Open: run the script against Azure (Thomas), first
+        execution, AC3.2 and AC3.3 checks against the real job.
+C2. Playbook draft (§4) ............ text drafted in docs/playbook/playbook.md;
+        screenshots and .docx wait on C1 execution
+C3. Playbook dry run with client (§4, AC4.2) ... open
+C4. Vault and HANDOFF updates, close out ... running
 ```
+AC3.5 runbook reduced to the engineer path ... done
 
 Pass A and Pass B run in parallel; A1 is the only external dependency.
 Pass C starts once the job exists. B1 comes before any other B item so
