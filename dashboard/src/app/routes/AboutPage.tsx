@@ -10,6 +10,7 @@ import {
 } from "../../content/about";
 import { DEFERRED_INDICATORS } from "../../content/data-notes";
 import { UX_UNAVAILABLE_COPY } from "../../data/contract/projections";
+import { useReveal } from "../../hooks/useReveal";
 
 // ── Framework card (one card may span multiple pillars) ───────────────────────
 
@@ -57,9 +58,10 @@ function FrameworkCard({ group, subdomains, indicators }: FrameworkCardProps) {
 
 export function AboutPage() {
   const { meta } = useDashboardData();
+  const revealRef = useReveal<HTMLDivElement>("about");
 
   return (
-    <div className="about-body">
+    <div className="about-body" ref={revealRef}>
       <h2>About this tool</h2>
       {ABOUT_INTRO.map((paragraph, i) => (
         <p key={i}>{paragraph}</p>

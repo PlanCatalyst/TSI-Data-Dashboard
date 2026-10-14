@@ -501,3 +501,24 @@
 .sort-arrow.active { color: var(--pc-blue); }
 .col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 1; background: transparent; }
 .col-resize:hover, .col-resize.dragging { background: var(--pc-blue); opacity: 0.4; }
+
+/* ── MOTION PRIMITIVES ──
+   Mirrors docs/design-system/index.html section 4. Durations and easing are
+   tokens; this block only wires them to classes. useReveal() sets --i. */
+.reveal { opacity: 1; transform: none; }
+.reveal.is-armed { opacity: 0; transform: translateY(var(--travel)); }
+.reveal.is-in {
+  opacity: 1; transform: none;
+  transition: opacity var(--dur-reveal) var(--ease-out), transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger));
+}
+/* Chart line draw-in, first render only. Keyed by country so it replays on
+   a new selection, not on a series toggle. */
+.draw polyline { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw var(--dur-draw) var(--ease-out) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal.is-in { transition: none !important; }
+  .reveal.is-armed { opacity: 1; transform: none; }
+  .draw polyline { animation: none; stroke-dashoffset: 0; }
+}

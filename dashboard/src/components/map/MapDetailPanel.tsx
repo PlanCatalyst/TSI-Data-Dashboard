@@ -28,6 +28,7 @@ import {
 } from "../../data/contract/score-context";
 import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
 import { OVERALL_SERIES_KEY, seriesColor } from "../scores/series-color";
+import { useReveal } from "../../hooks/useReveal";
 import { DomainTrendsChart } from "./DomainTrendsChart";
 import { PanelHead } from "./PanelHead";
 import { ScoreRow } from "./ScoreRow";
@@ -79,6 +80,8 @@ export function MapDetailPanel({
   // Which pillar row is open. One at a time; the chart follows it (REQ2.3).
   const [openPillar, setOpenPillar] = useState<string | null>(null);
   const [showAllSeries, setShowAllSeries] = useState(false);
+  // Re-reveals head, rows, chart, breakdown in that order on each new country.
+  const revealRef = useReveal<HTMLElement>(country?.iso3 ?? null);
 
   // Hooks must run unconditionally; pass `country` through but guard inside.
   const pillarTimeseries = useMemo<Record<string, Array<number | null>>>(
@@ -206,7 +209,7 @@ export function MapDetailPanel({
   const focusPillar = openPillar ? meta.pillars.find((p) => p.key === openPillar) : undefined;
 
   return (
-    <aside className={panelClass} aria-label={`${country.name} detail`}>
+    <aside ref={revealRef} className={panelClass} aria-label={`${country.name} detail`}>
       <PanelHead
         eyebrow={regionLabel[country.region] ?? country.region}
         title={country.name}
@@ -217,7 +220,7 @@ export function MapDetailPanel({
       />
 
       <div className="panel-body">
-        <section className="dp-section" aria-label="Pillar scores">
+        <section className="dp-section" aria-label="Pillar scores" data-reveal="1">
           <div className="score-rows">
             {meta.pillars.map((p) => (
               <ScoreRow
@@ -233,7 +236,7 @@ export function MapDetailPanel({
           </div>
         </section>
 
-        <section className="dp-section" aria-label="Trend">
+        <section className="dp-section" aria-label="Trend" data-reveal="2">
           <div className="sec">
             <span className="eyebrow">
               Trend{focusPillar ? `: ${focusPillar.label}` : ""}
@@ -267,6 +270,7 @@ export function MapDetailPanel({
               with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.
             </p>
           )}
+          <div className="draw" key={country.iso3}>
           <DomainTrendsChart
             years={allChartYears}
             series={chartSeries}
@@ -274,6 +278,7 @@ export function MapDetailPanel({
             projectionsNote={meta.projections.note}
             firstProjectedYear={meta.projections.firstProjectedYear}
           />
+          </div>
           {!focusPillar && !showAllSeries && (
             <p className="chart-note">Open a pillar row to add it to the chart.</p>
           )}
@@ -282,7 +287,7 @@ export function MapDetailPanel({
           )}
         </section>
 
-        <section className="dp-section dp-section--breakdown" aria-label="Sub-domain breakdown">
+        <section className="dp-section dp-section--breakdown" aria-label="Sub-domain breakdown" data-reveal="3">
           <div className="sec">
             <span className="eyebrow">Sub-domain breakdown</span>
           </div>
@@ -322,7 +327,7 @@ export function MapDetailPanel({
         </section>
       </div>
 
-      <div className="src-note">
+      <div className="src-note" data-reveal="4">
         Sources: {Array.from(new Set(meta.indicators.map((i) => i.source))).join(", ")}.
         {" "}{SCORE_INTERPRETATION_NOTE_SHORT} Generated{" "}
         {new Date(meta.generatedAt).toLocaleDateString()}.
