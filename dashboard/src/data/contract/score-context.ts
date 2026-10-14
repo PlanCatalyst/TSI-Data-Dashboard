@@ -24,15 +24,18 @@ export type NeedKey = "low" | "moderate" | "high" | "severe";
 export type NeedBand = {
   key: NeedKey;
   label: string;
+  // Ink: text colour at AA on white. Fill: chips, dots, map swatches.
+  // Both are design-system tokens, never hex (AC7.1).
   color: string;
+  fill: string;
 };
 
-// Thresholds: 75–100 LOW, 50–74 MODERATE, 25–49 HIGH, 0–24 SEVERE.
+// Thresholds: 75 to 100 low, 50 to 74 moderate, 25 to 49 high, 0 to 24 severe.
 const NEED_BANDS: ReadonlyArray<{ min: number; band: NeedBand }> = [
-  { min: 75, band: { key: "low", label: "LOW NEED", color: "#2a7a3a" } },
-  { min: 50, band: { key: "moderate", label: "MODERATE NEED", color: "#7a9a1f" } },
-  { min: 25, band: { key: "high", label: "HIGH NEED", color: "#e07b35" } },
-  { min: 0, band: { key: "severe", label: "SEVERE NEED", color: "#c0392b" } },
+  { min: 75, band: { key: "low", label: "Low need", color: "var(--need-low-ink)", fill: "var(--need-low)" } },
+  { min: 50, band: { key: "moderate", label: "Moderate need", color: "var(--need-moderate-ink)", fill: "var(--need-moderate)" } },
+  { min: 25, band: { key: "high", label: "High need", color: "var(--need-high-ink)", fill: "var(--need-high)" } },
+  { min: 0, band: { key: "severe", label: "Severe need", color: "var(--need-severe-ink)", fill: "var(--need-severe)" } },
 ];
 
 // Human-readable need band for a score, or null when the score is missing.
@@ -55,11 +58,11 @@ export type ScoreSource = "latest" | "all-years" | "partial";
 export function derivationLabel(source: ScoreSource): string {
   switch (source) {
     case "latest":
-      return "LATEST";
+      return "Latest";
     case "all-years":
-      return "ALL YEARS";
+      return "All years";
     case "partial":
-      return "PARTIAL";
+      return "Partial";
   }
 }
 
@@ -92,11 +95,11 @@ export function confidenceLevel(cov: Coverage): Confidence {
 export function confidenceMeta(conf: Confidence): { label: string; color: string } {
   switch (conf) {
     case "high":
-      return { label: "High", color: "#2a7a3a" };
+      return { label: "High", color: "var(--status-scored)" };
     case "partial":
-      return { label: "Partial", color: "#c8851b" };
+      return { label: "Partial", color: "var(--status-incomplete)" };
     case "low":
-      return { label: "Low", color: "#c0392b" };
+      return { label: "Low", color: "var(--need-severe-ink)" };
   }
 }
 

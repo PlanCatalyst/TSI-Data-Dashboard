@@ -46,13 +46,6 @@ export function SubdomainBlock({
         onClick={() => hasIndicators && setOpen((o) => !o)}
         aria-expanded={open}
         aria-disabled={!hasIndicators}
-        style={{
-          width: "100%",
-          background: "#fff",
-          border: "none",
-          textAlign: "left",
-          cursor: hasIndicators ? "pointer" : "default",
-        }}
       >
         <div className="sd-head-left">
           <div className="sd-dot" style={{ background: pillar.color }} />

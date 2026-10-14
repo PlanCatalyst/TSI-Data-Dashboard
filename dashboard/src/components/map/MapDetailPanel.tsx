@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type {
   CountryPayload,
   MetaPayload,
+  Pillar,
   ProjectionsPayload,
   TimeseriesPayload,
 } from "../../data/contract/types";
@@ -10,7 +11,6 @@ import {
   computePillarTimeseries,
   computeSubdomainScores,
   groupIndicatorKeysByPillar,
-  trendBucket,
   trendDelta,
 } from "../../data/contract/selectors";
 import {
@@ -26,9 +26,11 @@ import {
   pillarScoreContext,
   type PillarScoreContext,
 } from "../../data/contract/score-context";
-import { ScoreWithContext } from "../scores/ScoreWithContext";
 import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
+import { OVERALL_SERIES_KEY, seriesColor } from "../scores/series-color";
 import { DomainTrendsChart } from "./DomainTrendsChart";
+import { PanelHead } from "./PanelHead";
+import { ScoreRow } from "./ScoreRow";
 import { SubdomainBlock } from "./SubdomainBlock";
 
 type Props = {
@@ -43,18 +45,19 @@ type Props = {
   onToggleExpand?: () => void;
 };
 
-function TrendChip({ delta }: { delta: number | null }) {
-  const bucket = trendBucket(delta);
-  if (bucket === "up") return <span style={{ color: "#2a7a3a" }}>▲ Improving</span>;
-  if (bucket === "down") return <span style={{ color: "#c0392b" }}>↓ Declining</span>;
-  if (bucket === "flat") return <span style={{ color: "#435d7f" }}>→ Stable</span>;
-  return <span style={{ color: "var(--mut)" }}>—</span>;
-}
-
 function meanFinite(vals: number[]): number | null {
   if (vals.length === 0) return null;
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 }
+
+// Synthetic series head for the overall line. Not a contract pillar; the
+// chart only needs key, label and colour.
+const OVERALL_PILLAR: Pillar = {
+  key: OVERALL_SERIES_KEY,
+  label: "Overall index",
+  color: seriesColor(OVERALL_SERIES_KEY),
+  repIndicator: "",
+};
 
 export function MapDetailPanel({
   country,
@@ -72,6 +75,10 @@ export function MapDetailPanel({
     () => (projectionsEnabled ? chartYears(meta, projections) : meta.years),
     [meta, projections, projectionsEnabled],
   );
+
+  // Which pillar row is open. One at a time; the chart follows it (REQ2.3).
+  const [openPillar, setOpenPillar] = useState<string | null>(null);
+  const [showAllSeries, setShowAllSeries] = useState(false);
 
   // Hooks must run unconditionally; pass `country` through but guard inside.
   const pillarTimeseries = useMemo<Record<string, Array<number | null>>>(
@@ -108,9 +115,9 @@ export function MapDetailPanel({
     return out;
   }, [country, meta, timeseries, projectionIndex, projectionsEnabled, allChartYears]);
 
-  // Domain chart: historical pillar means on meta.years; optional aggregated
-  // forecast bands from indicator §8 rows (mean of finite lo/hi only — never invent).
-  const domainSeries = useMemo(() => {
+  // Per-pillar historical means on meta.years, plus optional aggregated
+  // forecast bands from indicator rows (mean of finite lo/hi only).
+  const pillarSeries = useMemo(() => {
     const indsByPillar = groupIndicatorKeysByPillar(meta);
     return meta.pillars.map((p) => {
       const hist = pillarTimeseries[p.key] ?? meta.years.map(() => null);
@@ -146,229 +153,180 @@ export function MapDetailPanel({
         });
       }
 
-      return { pillar: p, data, bands, forecast };
+      return { pillar: { ...p, color: seriesColor(p.key) }, data, bands, forecast };
     });
-  }, [
-    meta,
-    pillarTimeseries,
-    allChartYears,
-    projectionsEnabled,
-    country,
-    projectionIndex,
-  ]);
+  }, [meta, pillarTimeseries, allChartYears, projectionsEnabled, country, projectionIndex]);
+
+  // Overall line: per-year mean of whichever pillar means exist that year.
+  // Mirrors displayOverall's fallback so the line and the headline agree in
+  // spirit; null where no pillar has data.
+  const overallSeries = useMemo(() => {
+    const data = allChartYears.map((_, i) => {
+      const vals = pillarSeries
+        .map((s) => s.data[i])
+        .filter((v): v is number => v != null);
+      return meanFinite(vals);
+    });
+    return { pillar: OVERALL_PILLAR, data };
+  }, [pillarSeries, allChartYears]);
+
+  const chartSeries = useMemo(() => {
+    if (showAllSeries) return [...pillarSeries, overallSeries];
+    const focus = openPillar ? pillarSeries.find((s) => s.pillar.key === openPillar) : undefined;
+    return focus ? [focus, overallSeries] : [overallSeries];
+  }, [showAllSeries, openPillar, pillarSeries, overallSeries]);
 
   const anyUnavailable = useMemo(() => {
     if (!projectionsEnabled) return false;
     return Object.values(projectionViews).some((v) => v.hasUnavailable);
   }, [projectionViews, projectionsEnabled]);
 
-  // Empty state — shown when no country has been selected yet.
   const panelClass = expanded ? "detail-panel is-expanded" : "detail-panel";
 
   if (!country) {
     return (
-      <div className={panelClass}>
+      <aside className={panelClass} aria-label="Country detail">
         <div className="dp-empty">
-          <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#b2cd5a" strokeWidth={1.5}>
-            <circle cx={12} cy={12} r={10} />
-            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-          <p>Select a country on the map to explore its indicators and trends.</p>
+          <div className="state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.25} aria-hidden="true">
+              <circle cx={12} cy={12} r={10} />
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            <p>Select a country on the map to see its scores and trends.</p>
+          </div>
         </div>
-      </div>
+      </aside>
     );
   }
 
   const overall = overallContext(country);
   const observedThrough = meta.years[meta.years.length - 1];
+  const firstYear = meta.years[0] ?? null;
   const projectedThrough = allChartYears[allChartYears.length - 1] ?? observedThrough;
+  const focusPillar = openPillar ? meta.pillars.find((p) => p.key === openPillar) : undefined;
 
   return (
-    <div className={panelClass}>
-      <div className="dp-hero">
-        <div className="dp-hero-text">
-          <h2>{country.name}</h2>
-          <p>
-            {regionLabel[country.region] ?? country.region}
-            {overall.value != null && (
-              <>
-                {" · "}
-                <span style={{ fontWeight: 600 }}>
-                  Overall {overall.estimated ? "~" : ""}{overall.value}
-                </span>
-                {overall.band && (
-                  <span style={{ fontWeight: 600 }}> · {overall.band.label}</span>
-                )}
-                {overall.estimated && (
-                  <span style={{ opacity: 0.8 }} title="No published overall score — mean of available pillar scores."> (partial)</span>
-                )}
-              </>
-            )}
-          </p>
-        </div>
-        <div className="dp-hero-actions">
-          {onToggleExpand && (
-            <button
-              type="button"
-              className="dp-chrome-btn"
-              onClick={onToggleExpand}
-              aria-label={expanded ? "Collapse detail panel" : "Expand detail panel"}
-              aria-pressed={expanded}
-              title={expanded ? "Collapse panel" : "Expand panel"}
-            >
-              {expanded ? "⟶" : "⟵"}
-            </button>
-          )}
-          {onClose && (
-            <button
-              type="button"
-              className="dp-chrome-btn"
-              onClick={onClose}
-              aria-label="Close country detail"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
+    <aside className={panelClass} aria-label={`${country.name} detail`}>
+      <PanelHead
+        eyebrow={regionLabel[country.region] ?? country.region}
+        title={country.name}
+        overall={overall}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+        onClose={onClose}
+      />
 
-      {/* Pillar score grid — mock's 4+3 split. Robust to N != 7 pillars: */}
-      {/* if more than 4, the first 4 sit on top and the rest fill row two. */}
-      {(() => {
-        const head = meta.pillars.slice(0, 4);
-        const tail = meta.pillars.slice(4);
-        const renderCell = (p: typeof meta.pillars[number]) => {
-          const ctx = pillarContexts[p.key];
-          const t = trendDelta(pillarTimeseries[p.key] ?? []);
-          return (
-            <div key={p.key} className="dp-sc">
-              <div className="dp-sc-lbl">{p.label}</div>
-              <ScoreWithContext
-                value={ctx?.value ?? null}
-                band={ctx?.band ?? null}
-                source={ctx?.source ?? null}
-                coverage={ctx?.coverage ?? null}
-                estimated={ctx?.estimated ?? false}
-                valueColor={p.color}
-                valueSize={17}
-                title={
-                  ctx?.estimated
-                    ? "Official pillar score unavailable — estimated from available indicators across all years."
-                    : undefined
-                }
+      <div className="panel-body">
+        <section className="dp-section" aria-label="Pillar scores">
+          <div className="score-rows">
+            {meta.pillars.map((p) => (
+              <ScoreRow
+                key={p.key}
+                pillar={p}
+                ctx={pillarContexts[p.key]}
+                delta={trendDelta(pillarTimeseries[p.key] ?? [])}
+                firstYear={firstYear}
+                expanded={openPillar === p.key}
+                onToggle={() => setOpenPillar((cur) => (cur === p.key ? null : p.key))}
               />
-              <div className="dp-sc-trend">
-                <TrendChip delta={t} />
-              </div>
-            </div>
-          );
-        };
-        return (
-          <>
-            <div
-              className="dp-scores"
-              style={{ gridTemplateColumns: `repeat(${head.length}, 1fr)` }}
-            >
-              {head.map(renderCell)}
-            </div>
-            {tail.length > 0 && (
-              <div
-                className="dp-scores"
-                style={{ gridTemplateColumns: `repeat(${tail.length}, 1fr)`, borderTop: "none" }}
-              >
-                {tail.map(renderCell)}
-              </div>
-            )}
-          </>
-        );
-      })()}
-
-      <div className="dp-sep" />
-      <div className="dp-section">
-        <div className="dp-section-title">Trend outlook</div>
-        <div className="trend-periods" aria-label="Chart data periods">
-          <span className="trend-period trend-period--observed">
-            <span className="trend-period-line" aria-hidden="true" />
-            Observed data through {observedThrough}
-          </span>
-          {projectionsEnabled && meta.projections.firstProjectedYear != null && (
-            <span className="trend-period trend-period--projected">
-              <span className="trend-period-line" aria-hidden="true" />
-              Projected {meta.projections.firstProjectedYear}–{projectedThrough}
-            </span>
-          )}
-        </div>
-        {projectionsEnabled && (
-          <p className="projection-explainer">
-            Solid lines are observed data. Dashed lines and shaded bands are model projections
-            with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.
-          </p>
-        )}
-        <DomainTrendsChart
-          years={allChartYears}
-          series={domainSeries}
-          projectionsDisabled={!projectionsEnabled}
-          projectionsNote={meta.projections.note}
-          firstProjectedYear={meta.projections.firstProjectedYear}
-        />
-        {projectionsEnabled && anyUnavailable && (
-          <div style={{ fontSize: 11, color: "var(--mut)", fontStyle: "italic", marginTop: 6 }}>
-            {UX_UNAVAILABLE_COPY}
+            ))}
           </div>
-        )}
-      </div>
+        </section>
 
-      <div className="dp-sep" />
-      <div className="dp-section">
-        <div className="dp-section-title">
-          Sub-domain breakdown
-          <span style={{ fontSize: 10, color: "var(--mut)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
-            click to expand indicators
-          </span>
-        </div>
-        {meta.pillars.map((p) => {
-          const sds = meta.subdomains.filter((sd) => sd.pillar === p.key);
-          if (sds.length === 0) return null;
-          return (
-            <div key={p.key} style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: ".4px",
-                  color: "var(--mut)",
-                  padding: "8px 0 6px",
-                  borderBottom: `2px solid ${p.color}33`,
-                  marginBottom: 6,
-                }}
+        <section className="dp-section" aria-label="Trend">
+          <div className="sec">
+            <span className="eyebrow">
+              Trend{focusPillar ? `: ${focusPillar.label}` : ""}
+            </span>
+            <div className="dp-section-actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                aria-pressed={showAllSeries}
+                onClick={() => setShowAllSeries((v) => !v)}
               >
-                {p.label}
-              </div>
-              {sds.map((sd) => (
-                <SubdomainBlock
-                  key={sd.key}
-                  subdomain={sd}
-                  pillar={p}
-                  score={subdomainScores[sd.key] ?? null}
-                  indicators={meta.indicators}
-                  timeseries={timeseries}
-                  iso3={country.iso3}
-                  years={meta.years}
-                  projectionViews={projectionsEnabled ? projectionViews : undefined}
-                  indicatorStatus={country.indicatorStatus}
-                />
-              ))}
+                {showAllSeries ? "Focus" : "All pillars"}
+              </button>
             </div>
-          );
-        })}
+          </div>
+          <div className="trend-periods" aria-label="Chart data periods">
+            <span className="trend-period">
+              <span className="trend-period-line" aria-hidden="true" />
+              Observed {firstYear} to {observedThrough}
+            </span>
+            {projectionsEnabled && meta.projections.firstProjectedYear != null && (
+              <span className="trend-period trend-period--projected">
+                <span className="trend-period-line" aria-hidden="true" />
+                Projected {meta.projections.firstProjectedYear} to {projectedThrough}
+              </span>
+            )}
+          </div>
+          {projectionsEnabled && (
+            <p className="projection-explainer">
+              Solid lines are observed data. Dashed lines and shaded bands are model projections
+              with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.
+            </p>
+          )}
+          <DomainTrendsChart
+            years={allChartYears}
+            series={chartSeries}
+            projectionsDisabled={!projectionsEnabled}
+            projectionsNote={meta.projections.note}
+            firstProjectedYear={meta.projections.firstProjectedYear}
+          />
+          {!focusPillar && !showAllSeries && (
+            <p className="chart-note">Open a pillar row to add it to the chart.</p>
+          )}
+          {projectionsEnabled && anyUnavailable && (
+            <p className="chart-note">{UX_UNAVAILABLE_COPY}</p>
+          )}
+        </section>
+
+        <section className="dp-section dp-section--breakdown" aria-label="Sub-domain breakdown">
+          <div className="sec">
+            <span className="eyebrow">Sub-domain breakdown</span>
+          </div>
+          <div className="dp-breakdown">
+            {meta.pillars.map((p) => {
+              const sds = meta.subdomains.filter((sd) => sd.pillar === p.key);
+              if (sds.length === 0) return null;
+              return (
+                <details key={p.key} className="disc">
+                  <summary>
+                    <span className="summary-left">
+                      <i className="stripe" style={{ background: seriesColor(p.key) }} aria-hidden="true" />
+                      {p.label}
+                      <span className="small">{sds.length} sub-domain{sds.length === 1 ? "" : "s"}</span>
+                    </span>
+                  </summary>
+                  <div className="body sd-list">
+                    {sds.map((sd) => (
+                      <SubdomainBlock
+                        key={sd.key}
+                        subdomain={sd}
+                        pillar={{ ...p, color: seriesColor(p.key) }}
+                        score={subdomainScores[sd.key] ?? null}
+                        indicators={meta.indicators}
+                        timeseries={timeseries}
+                        iso3={country.iso3}
+                        years={meta.years}
+                        projectionViews={projectionsEnabled ? projectionViews : undefined}
+                        indicatorStatus={country.indicatorStatus}
+                      />
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="src-note">
-        Sources: {Array.from(new Set(meta.indicators.map((i) => i.source))).join(" · ")}.
+        Sources: {Array.from(new Set(meta.indicators.map((i) => i.source))).join(", ")}.
         {" "}{SCORE_INTERPRETATION_NOTE_SHORT} Generated{" "}
         {new Date(meta.generatedAt).toLocaleDateString()}.
       </div>
-    </div>
+    </aside>
   );
 }

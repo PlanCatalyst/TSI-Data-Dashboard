@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 import {
   coverageText,
   derivationLabel,
@@ -8,55 +6,26 @@ import {
   type ScoreSource,
 } from "../../data/contract/score-context";
 
-// Small, shared score-context atoms so need / derivation / coverage labels
-// render identically on Map, Explore, and Compare and never drift.
+// Shared score-context atoms so need, derivation and coverage render
+// identically on Map, Explore and Compare. Styling lives in components.css
+// (.chip, .badge, .small) and comes from the design system.
 
-const PILL: CSSProperties = {
-  display: "inline-block",
-  fontSize: 9,
-  fontWeight: 700,
-  letterSpacing: ".4px",
-  textTransform: "uppercase",
-  lineHeight: 1.4,
-  padding: "1px 5px",
-  borderRadius: 4,
-  whiteSpace: "nowrap",
-};
-
-export function NeedBadge({ band, size = 9.5 }: { band: NeedBand | null; size?: number }) {
+// `size` is accepted for backwards compatibility with Explore and Compare
+// and is removed in Pass B5; the chip has one size.
+export function NeedBadge({ band }: { band: NeedBand | null; size?: number }) {
   if (!band) return null;
-  return (
-    <span
-      style={{
-        fontSize: size,
-        fontWeight: 700,
-        letterSpacing: ".4px",
-        textTransform: "uppercase",
-        color: band.color,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {band.label}
-    </span>
-  );
+  return <span className={`chip chip--${band.key}`}>{band.label}</span>;
 }
 
 export function DerivationBadge({ source }: { source: ScoreSource | null }) {
   if (!source) return null;
-  return (
-    <span style={{ ...PILL, color: "var(--mut)", background: "#eef0f3" }}>
-      {derivationLabel(source)}
-    </span>
-  );
+  const cls = source === "latest" ? "badge badge--scored" : "badge badge--incomplete";
+  return <span className={cls}>{derivationLabel(source)}</span>;
 }
 
 export function CoverageNote({ coverage }: { coverage: Coverage | null }) {
   if (!coverage) return null;
-  return (
-    <span style={{ fontSize: 9.5, color: "var(--mut)", whiteSpace: "nowrap" }}>
-      {coverageText(coverage)}
-    </span>
-  );
+  return <span className="small">{coverageText(coverage)}</span>;
 }
 
 type ScoreWithContextProps = {
@@ -73,8 +42,8 @@ type ScoreWithContextProps = {
   title?: string;
 };
 
-// Headline score plus its interpretive context, stacked vertically. Used for the
-// Map pillar grid and the Compare country cards.
+// Headline score plus its interpretive context, stacked vertically. Used by
+// the Compare country cards.
 export function ScoreWithContext({
   value,
   band,
@@ -82,7 +51,7 @@ export function ScoreWithContext({
   coverage = null,
   estimated = false,
   valueColor,
-  valueSize = 17,
+  valueSize,
   align = "center",
   title,
 }: ScoreWithContextProps) {
@@ -90,19 +59,15 @@ export function ScoreWithContext({
   return (
     <div
       title={title}
-      style={{ display: "flex", flexDirection: "column", alignItems: items, gap: 2, textAlign: align }}
+      style={{ display: "flex", flexDirection: "column", alignItems: items, gap: "var(--sp-1)", textAlign: align }}
     >
-      <div style={{ color: valueColor, fontSize: valueSize, fontWeight: 700, lineHeight: 1.1 }}>
+      <div className={valueSize && valueSize >= 24 ? "num-lg" : "num"} style={{ color: valueColor }}>
         {value != null ? `${estimated ? "~" : ""}${value}` : "—"}
       </div>
       {value != null && (
         <>
           <NeedBadge band={band} />
-          {source && (
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: align === "center" ? "center" : "flex-start" }}>
-              <DerivationBadge source={source} />
-            </div>
-          )}
+          {source && <DerivationBadge source={source} />}
           <CoverageNote coverage={coverage} />
         </>
       )}
