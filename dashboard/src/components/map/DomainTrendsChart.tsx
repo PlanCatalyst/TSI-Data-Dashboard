@@ -14,7 +14,8 @@ type Series = {
 type Props = {
   years: number[];
   series: Series[];
-  // Whether to show the projection-band note below the chart.
+  // When true the chart is historical only; the meta note is not shown
+  // (requirements v2, A6: no placeholder copy in production).
   projectionsDisabled?: boolean;
   projectionsNote?: string;
   /** When projections are enabled, vertical divider at/after this year. */
@@ -250,9 +251,6 @@ export function DomainTrendsChart({
         ))}
       </div>
 
-      {projectionsDisabled && projectionsNote && (
-        <p className="chart-note">{projectionsNote}</p>
-      )}
     </div>
   );
 }

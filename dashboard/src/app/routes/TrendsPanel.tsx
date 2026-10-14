@@ -9,6 +9,12 @@ const REG_DASH: Record<string, string> = {
 };
 const REGION_ORDER = ["afe", "afw", "eap", "eca", "lcr", "mna", "sar", "nam"];
 
+// A regional average drawn from a handful of early reporters reads as a real
+// regional trend and then "collapses" when the rest of the region starts
+// reporting (requirements v2, section 1.6, A5). Years where fewer than this
+// share of the region's countries have a value are not drawn.
+const REGION_MIN_COVERAGE = 0.5;
+
 // ── Sparkline SVG ────────────────────────────────────────────────────────────
 
 function SparkSVG({ series, color }: { series: (number | null)[]; color: string }) {
@@ -91,7 +97,8 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
       if (!rc.length) return [r, null];
       const avgs = Array.from({ length: n }, (_, i) => {
         const vals = rc.map(c => c.series[i]).filter(v => v != null) as number[];
-        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+        if (vals.length / rc.length < REGION_MIN_COVERAGE) return null;
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
       });
       return [r, avgs as (number | null)[]];
     })),
@@ -152,7 +159,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
 
       {/* Regional averages chart */}
       <div style={{ fontSize: 11, fontWeight: 600, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", margin: "10px 0 4px" }}>
-        Regional averages — {meta.years[0]}–{meta.years[n - 1]}
+        Regional averages, {meta.years[0]} to {meta.years[n - 1]}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: "block", width: "100%", height: H, overflow: "hidden" }}>
@@ -211,6 +218,9 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
           Country spread
         </span>
       </div>
+      <p className="small" style={{ margin: "var(--sp-2) 0 0" }}>
+        Years where fewer than half of a region's countries report a value are not drawn.
+      </p>
 
       {/* Sparklines grid */}
       <div style={{ fontSize: 11, fontWeight: 600, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", margin: "14px 0 4px" }}>
@@ -253,7 +263,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
                   <tr>
                     <th style={{ padding: "3px 4px 4px 8px", fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".3px", textAlign: "left" }}>Country</th>
                     <th style={{ padding: "3px 4px", width: 56, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".3px" }}>
-                      {meta.years[0]}–{String(meta.years[n - 1]).slice(-2)}
+                      {meta.years[0]} to {String(meta.years[n - 1]).slice(-2)}
                     </th>
                     <th style={{ padding: "3px 4px", width: 28, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", textAlign: "right" }}>Now</th>
                     <th style={{ padding: "3px 8px 3px 4px", width: 30, fontSize: 9, fontWeight: 700, color: "var(--n-600)", textTransform: "uppercase", textAlign: "right" }}>Chg</th>
@@ -269,7 +279,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
                     const last = nonNull[nonNull.length - 1];
                     const delta = Math.round(last.v - first);
                     const deltaColor = delta > 3 ? "var(--need-low-ink)" : delta < -3 ? "var(--need-severe-ink)" : "var(--n-600)";
-                    const shortName = c.name.length > 14 ? c.name.slice(0, 13) + "…" : c.name;
+                    const shortName = c.name.length > 14 ? c.name.slice(0, 13) + "\u2026" : c.name;
                     return (
                       <tr key={c.iso3} style={{ cursor: "default" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "var(--n-50)")}

@@ -127,16 +127,13 @@ export function AboutPage() {
       <h2>Indicator framework</h2>
       <p>
         {meta
-          ? `All ${meta.indicators.length} indicators are drawn from the SDG indicator framework and supplementary international databases, organised across ${meta.pillars.length} pillars covering ${meta.years[0]}–${meta.years[meta.years.length - 1]}.`
+          ? `All ${meta.indicators.length} indicators are drawn from the SDG indicator framework and supplementary international databases, organised across ${meta.pillars.length} pillars covering ${meta.years[0]} to ${meta.years[meta.years.length - 1]}.`
           : "Indicator framework data is not yet available."}
       </p>
 
-      {meta?.projections.enabled === false ? (
-        <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
-          Note: {meta.projections.note}
-        </p>
-      ) : meta?.projections.enabled === true ? (
-        <p style={{ fontSize: 12, color: "var(--n-600)", fontStyle: "italic" }}>
+      {/* Historical-only snapshots say nothing about projections (A6). */}
+      {meta?.projections.enabled === true ? (
+        <p className="small">
           Forecast intervals (when published) use value_lo/value_hi bands for eligible
           series. Where a forecast is unavailable: {UX_UNAVAILABLE_COPY}
           {meta.projections.firstProjectedYear != null

@@ -275,7 +275,6 @@ export function MapDetailPanel({
             years={allChartYears}
             series={chartSeries}
             projectionsDisabled={!projectionsEnabled}
-            projectionsNote={meta.projections.note}
             firstProjectedYear={meta.projections.firstProjectedYear}
           />
           </div>
