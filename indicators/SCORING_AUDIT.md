@@ -105,3 +105,78 @@ Three reasons:
 ## What the frontend must do with this
 
 Nothing special. Consume the published JSON as "higher is better." No per-indicator inversion table in client code.
+
+## Below-benchmark rule (requirements v2, section 1.4)
+
+Every benchmark scorer (`RatioThresholdScorer`, `InverseRatioScorer`,
+`GoalRatioScorer`) takes `below_benchmark`, set once in
+`src/config/settings.yaml` under `scoring.below_benchmark`. Default is `clamp`,
+the v1 behaviour, until the client picks an option. Switching to `soft_floor`
+changes every published score, so it requires an `index_version` bump and a
+`docs/data-contract.md` entry before the publisher runs (AC1.3). Test coverage:
+`tests/calculating/test_scorers.py` (AC1.4).
+
+| Mode | Rule for a value better than the benchmark | Rule for a value worse than the benchmark |
+|------|--------------------------------------------|-------------------------------------------|
+| `clamp` | Need 0 (dashboard 100). Every better-than-benchmark country ties and shows no trend. | `1 - benchmark / value`, scaled to 0 to 100 |
+| `soft_floor` | Need spreads linearly over 0 to 25 between the best observed value in the batch (0) and the benchmark (25). Ordering and trend are preserved. | `25 + 75 * (1 - benchmark / value)`, so the benchmark is 25 and the worst case is 100 |
+
+For `InverseRatioScorer` the comparison is on the gap (`100 - value`) against
+the benchmark gap; for `GoalRatioScorer` on `value / goal`. Same band, same
+midpoint.
+
+Before and after, pipeline orientation (higher = more need; the publish
+boundary inverts). Brazil, ND-GAIN vulnerability, benchmark 0.46:
+
+| Source value | 0.37 | 0.38 | 0.39 | 0.40 | 0.41 | 0.46 | 0.55 | 0.70 |
+|---|---|---|---|---|---|---|---|---|
+| `clamp` | 0 | 0 | 0 | 0 | 0 | 0 | 16.4 | 34.3 |
+| `soft_floor` | 0 | 2.8 | 5.6 | 8.3 | 11.1 | 25.0 | 37.3 | 50.7 |
+
+Safely managed water (`SH_H2O_SAFE`, `InverseRatioScorer`, benchmark gap 27.1):
+
+| Coverage % | 99 | 90 | 80 | 72.9 | 50 |
+|---|---|---|---|---|---|
+| `clamp` | 0 | 0 | 0 | 0 | 45.8 |
+| `soft_floor` | 0 | 8.6 | 18.2 | 25.0 | 59.3 |
+
+The best observed value anchors the lower band per scoring batch, so the
+anchor moves when the data does. That is acceptable for a relative-need
+dashboard and is the reason this is option B rather than fixed min-max
+(option C).
+
+## Benchmark clamp audit
+
+Generated 2026-10-14 by `scripts/clamp_audit.py` with `scoring.below_benchmark: clamp`. A pinned row is a real source value scored at the floor (need 0, dashboard 100) because the country is already better than the client benchmark. The last column counts countries whose score sits unchanged for ten or more consecutive years while the source value moves (requirements v2, AC1.1). Re-run after any scorer change.
+
+| Indicator | Country-years | Pinned at floor | Share | Countries flat 10+ years |
+|---|---:|---:|---:|---:|
+| `EG_ACS_ELEC` | 9522 | 6887 | 72.3% | 95 |
+| `SP_DYN_ADKL` | 3928 | 2759 | 70.2% | 69 |
+| `SH_DYN_MORT` | 8955 | 5633 | 62.9% | 131 |
+| `EG_EGY_CLEAN` | 8730 | 5420 | 62.1% | 103 |
+| `SH_STA_WASHARI` | 183 | 111 | 60.7% | 0 |
+| `ND_GAIN_VULN` | 5423 | 3172 | 58.5% | 112 |
+| `SH_STA_MALR` | 1635 | 905 | 55.4% | 46 |
+| `SH_STA_ANEM` | 2716 | 1490 | 54.9% | 103 |
+| `SH_STA_MORT` | 2730 | 1498 | 54.9% | 104 |
+| `FB_BNK_ACCSS` | 6554 | 3560 | 54.3% | 84 |
+| `AG_PRD_FIESMS` | 3417 | 1656 | 48.5% | 61 |
+| `SH_H2O_SAFE` | 5278 | 2490 | 47.2% | 82 |
+| `SH_TBS_INCD` | 3209 | 1513 | 47.1% | 90 |
+| `MPI_INDEX` | 243 | 113 | 46.5% | 0 |
+| `SH_STA_STNT` | 7290 | 3232 | 44.3% | 75 |
+| `SH_SAN_SAFE` | 5558 | 2325 | 41.8% | 68 |
+| `GII_INDEX` | 4600 | 1764 | 38.3% | 62 |
+| `SH_IHR_CAPS` | 15041 | 4152 | 27.6% | 0 |
+| `AG_LND_SUST` | 20 | 4 | 20.0% | 0 |
+| `SN_STA_OVWGT` | 7335 | 1288 | 17.6% | 32 |
+| `EN.POP.DNST` | 3617 | 627 | 17.3% | 236 |
+| `SI_POV_NAHC` | 777 | 94 | 12.1% | 1 |
+| `DC_TOF_AGRL` | 2134 | 179 | 8.4% | 6 |
+| `EG_FEC_RNEW` | 3231 | 248 | 7.7% | 13 |
+| `SH_FPL_MTMM` | 328 | 7 | 2.1% | 0 |
+| `SH_ACS_UNHC_25` | 2730 | 0 | 0.0% | 0 |
+| `MSPI_INDEX` | 1693 | 0 | 0.0% | 0 |
+| `HDI_INDEX` | 5940 | 0 | 0.0% | 0 |
+| `WGI_GOVEFF` | 5340 | 0 | 0.0% | 0 |

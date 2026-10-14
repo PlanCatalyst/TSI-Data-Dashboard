@@ -142,6 +142,7 @@ def score_indicators(
     interim_path: Path,
     extra_paths: Optional[Iterable[Path]] = None,
     harmonized: Optional[pd.DataFrame] = None,
+    below_benchmark: str = "clamp",
 ) -> pd.DataFrame:
     df = (
         harmonized.copy()
@@ -163,7 +164,7 @@ def score_indicators(
         # No series_code column at all - nothing to score.
         df = df.iloc[0:0].copy()
 
-    factory = IndicatorScorerFactory()
+    factory = IndicatorScorerFactory(below_benchmark=below_benchmark)
     scores = []
 
     for series_code, group in df.groupby("series_code", dropna=False):
@@ -200,11 +201,12 @@ def run_pipeline(
     validated_dir: Path,
     extra_interim_csvs: Optional[Iterable[Path]] = None,
     country_metadata_csv: Optional[Path] = None,
+    below_benchmark: str = "clamp",
 ) -> None:
     validated_dir.mkdir(parents=True, exist_ok=True)
 
     harmonized = load_harmonized_interim(interim_csv, extra_interim_csvs)
-    scored_df = score_indicators(interim_csv, harmonized=harmonized)
+    scored_df = score_indicators(interim_csv, harmonized=harmonized, below_benchmark=below_benchmark)
 
     # Phase 1 – full indicator scores with all disaggregations.
     scored_path = validated_dir / "Indicator_Scores_Full.csv"
@@ -256,10 +258,11 @@ if __name__ == "__main__":
     interim_csv = repo_root / unsdg_rel
     validated_dir = repo_root / validated_rel
     _, extras, metadata_csv = scoring_inputs(runtime, repo_root)
+    below_benchmark = (cfg.get("scoring") or {}).get("below_benchmark", "clamp")
     run_pipeline(
         interim_csv,
         validated_dir,
         extra_interim_csvs=extras,
         country_metadata_csv=metadata_csv,
+        below_benchmark=below_benchmark,
     )
-
