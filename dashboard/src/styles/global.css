@@ -6,11 +6,25 @@
 
 body {
   margin: 0;
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
-  color: var(--text);
-  background: var(--bg);
+  font: var(--t-body);
+  color: var(--n-800);
+  background: var(--n-50);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
+
+h1, h2, h3 {
+  font-family: var(--f-display);
+  color: var(--n-900);
+  text-wrap: balance;
+  margin: 0;
+}
+
+a { color: var(--pc-blue-ink); }
+
+.num, .score-value, td.num { font-variant-numeric: tabular-nums; }
+
+:focus-visible { outline: none; box-shadow: var(--focus); }
 
 .app-shell {
   min-height: 100vh;
@@ -20,9 +34,12 @@ body {
 }
 
 .app-header {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  padding: 0.75rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  border-bottom: var(--rule);
+  background: var(--n-0);
+  padding: 0 var(--sp-6);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -32,59 +49,87 @@ body {
 }
 
 .brand {
-  font-size: clamp(0.95rem, 3.5vw, 1.1rem);
+  font: var(--t-h2);
+  color: var(--pc-navy);
   margin: 0;
-  line-height: 1.3;
+  padding: var(--sp-3) 0;
   flex: 1 1 auto;
   min-width: 0;
 }
 
+/* Nav: underline, not pill. Mirrors .nav in the design system page. */
 .main-nav {
   display: flex;
-  gap: 0.35rem;
+  gap: var(--sp-1);
   flex-wrap: wrap;
   flex: 0 1 auto;
+  align-self: stretch;
 }
 
 .nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-4) var(--sp-3);
+  color: var(--n-600);
+  font: 500 0.875rem/1 var(--f-body);
   text-decoration: none;
-  color: var(--muted);
-  padding: 0.4rem 0.65rem;
-  border-radius: 999px;
-  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
   white-space: nowrap;
+  transition: color var(--dur-micro) var(--ease-out);
 }
 
-.nav-link.active {
-  background: var(--brand);
-  color: #fff;
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: -1px;
+  height: 2px;
+  background: var(--pc-blue);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-micro) var(--ease-out);
 }
+
+.nav-link:hover,
+.nav-link.active { color: var(--n-900); }
+.nav-link.active::after { transform: scaleX(1); }
 
 .app-content {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--sp-6);
   width: 100%;
 }
 
 @media (max-width: 480px) {
   .app-header {
-    padding: 0.6rem 0.75rem;
-    gap: 0.5rem;
+    padding: 0 var(--sp-4);
+    gap: 0;
   }
+  .brand { padding: var(--sp-3) 0 var(--sp-1); }
   .main-nav {
     width: 100%;
     justify-content: flex-start;
   }
+  .nav-link { padding: var(--sp-3) var(--sp-2); }
+  .nav-link::after { left: var(--sp-2); right: var(--sp-2); }
   .app-content {
-    padding: 0.75rem;
+    padding: var(--sp-4);
   }
 }
 
 .state-card {
-  margin-top: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 1rem;
+  margin-top: var(--sp-4);
+  border: var(--rule);
+  background: var(--n-0);
+  padding: var(--sp-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
