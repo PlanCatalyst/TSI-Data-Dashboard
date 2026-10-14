@@ -1,11 +1,48 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 import pandas as pd
 
 from src.calculating.base import IndicatorScorer
+
+# How a value that is already better than the client's benchmark is scored.
+#   clamp      : v1 behaviour. Need floors at 0, so every better-than-benchmark
+#                country shows the same top score and no trend (requirements
+#                v2, section 1.2).
+#   soft_floor : option B. The benchmark maps to need 25; values better than
+#                it spread linearly over [0, 25) down to the best observed
+#                value in the batch; values worse than it spread over [25, 100]
+#                with the original ratio formula. Ordering is preserved and
+#                trends below the benchmark become visible.
+# The active mode is a pipeline setting (settings.yaml scoring.below_benchmark)
+# so the client's decision is a config flip plus an index_version bump.
+BelowBenchmark = Literal["clamp", "soft_floor"]
+SOFT_FLOOR_BAND = 25.0
+
+
+def soft_floor_scores(
+    raw_need: pd.Series,
+    distance_below: pd.Series,
+    below_mask: pd.Series,
+) -> pd.Series:
+    """Combine the above-benchmark ratio score with a lower band for values
+    better than the benchmark.
+
+    raw_need       : the v1 formula result in [0, 100] for every row (NaN kept).
+    distance_below : how far each row is beyond the benchmark, in the
+                     indicator's own units, positive = better than benchmark.
+    below_mask     : True where the row is better than the benchmark.
+    """
+    above = SOFT_FLOOR_BAND + (100.0 - SOFT_FLOOR_BAND) * (raw_need.clip(0.0, 100.0) / 100.0)
+    best = distance_below.where(below_mask).max()
+    if pd.isna(best) or best <= 0:
+        below = pd.Series(SOFT_FLOOR_BAND, index=raw_need.index)
+    else:
+        below = SOFT_FLOOR_BAND * (1.0 - distance_below / best)
+    out = above.where(~below_mask, other=below)
+    return out.clip(0.0, 100.0).where(raw_need.notna())
 
 
 class SimpleDirectionalScorer(IndicatorScorer):
@@ -26,17 +63,27 @@ class RatioThresholdScorer(IndicatorScorer):
     specified global-average value.
     """
 
-    def __init__(self, threshold: float, global_average: Optional[float] = None):
+    def __init__(
+        self,
+        threshold: float,
+        global_average: Optional[float] = None,
+        below_benchmark: BelowBenchmark = "clamp",
+    ):
         self.threshold = float(threshold)
         self.global_average = (
             float(global_average) if global_average is not None else None
         )
+        self.below_benchmark = below_benchmark
 
     def score(self, df: pd.DataFrame) -> pd.Series:
         values = df["value"].astype(float)
         with np.errstate(divide="ignore", invalid="ignore"):
             raw = 1.0 - (self.threshold / values)
         scores = self.clamp_0_100(raw * 100.0)
+
+        if self.below_benchmark == "soft_floor":
+            below = values < self.threshold
+            return soft_floor_scores(scores, self.threshold - values, below)
 
         # If a global average is provided, harmonize: values better than the
         # global average (directionality implied by threshold) are set to 0.
@@ -60,15 +107,19 @@ class InverseRatioScorer(IndicatorScorer):
     global-average gap.
     """
 
-    def __init__(self, global_avg_val: float):
+    def __init__(self, global_avg_val: float, below_benchmark: BelowBenchmark = "clamp"):
         # Client framework provides the benchmark as the *gap* directly.
         self.threshold_gap = float(global_avg_val)
+        self.below_benchmark = below_benchmark
 
     def score(self, df: pd.DataFrame) -> pd.Series:
         country_gap = 100.0 - df["value"].astype(float)
         with np.errstate(divide="ignore", invalid="ignore"):
             raw = 1.0 - (self.threshold_gap / country_gap)
         scores = self.clamp_0_100(raw * 100.0)
+        if self.below_benchmark == "soft_floor":
+            below = country_gap < self.threshold_gap
+            return soft_floor_scores(scores, self.threshold_gap - country_gap, below)
         scores = scores.where(country_gap >= self.threshold_gap, other=0.0)
         return scores
 
@@ -102,17 +153,27 @@ class GoalRatioScorer(IndicatorScorer):
         score     = clamp_0_100(score_raw * 100)
     """
 
-    def __init__(self, goal: float, global_average: Optional[float] = None):
+    def __init__(
+        self,
+        goal: float,
+        global_average: Optional[float] = None,
+        below_benchmark: BelowBenchmark = "clamp",
+    ):
         self.goal = float(goal)
         self.global_average = (
             float(global_average) if global_average is not None else None
         )
+        self.below_benchmark = below_benchmark
 
     def score(self, df: pd.DataFrame) -> pd.Series:
         values = df["value"].astype(float)
         with np.errstate(divide="ignore", invalid="ignore"):
             raw = 1.0 - (values / self.goal)
         scores = self.clamp_0_100(raw * 100.0)
+
+        if self.below_benchmark == "soft_floor":
+            below = values > self.goal
+            return soft_floor_scores(scores, values - self.goal, below)
 
         if self.global_average is not None:
             mask = values > self.global_average

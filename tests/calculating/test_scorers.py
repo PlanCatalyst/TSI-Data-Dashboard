@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+import pandas as pd
+import pytest
+
+from src.calculating.factory import IndicatorScorerFactory
+from src.calculating.scorers import (
+    SOFT_FLOOR_BAND,
+    GoalRatioScorer,
+    InverseRatioScorer,
+    RatioThresholdScorer,
+)
+
+
+def _df(values):
+    return pd.DataFrame({"value": values})
+
+
+# Brazil, climate: ND-GAIN vulnerability 0.37 to 0.41 against the 0.46
+# benchmark. The clamp pins every year to 0 need (100 on the dashboard).
+BRAZIL = [0.37, 0.38, 0.39, 0.40, 0.41]
+BENCHMARK = 0.46
+
+
+def test_clamp_pins_better_than_benchmark_to_zero():
+    scorer = RatioThresholdScorer(threshold=BENCHMARK)
+    out = scorer.score(_df(BRAZIL + [0.46, 0.6, 0.9]))
+    assert (out.iloc[:5] == 0.0).all()
+    assert out.iloc[5] == 0.0
+    assert out.iloc[6] > 0.0
+
+
+def test_soft_floor_restores_variation_below_benchmark():
+    scorer = RatioThresholdScorer(threshold=BENCHMARK, below_benchmark="soft_floor")
+    out = scorer.score(_df(BRAZIL + [0.46, 0.6, 0.9]))
+    below = out.iloc[:5]
+    # strictly increasing need as vulnerability rises toward the benchmark
+    assert (below.diff().dropna() > 0).all()
+    assert below.iloc[0] == 0.0  # best observed value anchors the band
+    assert (below <= SOFT_FLOOR_BAND).all()
+    # the benchmark itself is the midpoint of the band boundary
+    assert out.iloc[5] == pytest.approx(SOFT_FLOOR_BAND)
+    # worse than benchmark stays above the band and keeps its ordering
+    assert out.iloc[6] > SOFT_FLOOR_BAND
+    assert out.iloc[7] > out.iloc[6]
+    assert out.max() <= 100.0
+
+
+def test_soft_floor_keeps_nulls_null():
+    scorer = RatioThresholdScorer(threshold=BENCHMARK, below_benchmark="soft_floor")
+    out = scorer.score(_df([0.40, None, 0.60]))
+    assert pd.isna(out.iloc[1])
+
+
+def test_inverse_ratio_soft_floor_below_benchmark_gap():
+    # value is a coverage percentage; gap = 100 - value; benchmark gap 27.1
+    scorer = InverseRatioScorer(global_avg_val=27.1, below_benchmark="soft_floor")
+    out = scorer.score(_df([99.0, 90.0, 80.0, 72.9, 50.0]))
+    assert (out.iloc[:3].diff().dropna() > 0).all()
+    assert out.iloc[3] == pytest.approx(SOFT_FLOOR_BAND, abs=1e-6)
+    assert out.iloc[4] > SOFT_FLOOR_BAND
+
+
+def test_goal_ratio_soft_floor_beyond_goal():
+    scorer = GoalRatioScorer(goal=0.02, below_benchmark="soft_floor")
+    out = scorer.score(_df([0.05, 0.03, 0.02, 0.01]))
+    assert out.iloc[0] == 0.0
+    assert out.iloc[0] < out.iloc[1] < out.iloc[2]
+    assert out.iloc[2] == pytest.approx(SOFT_FLOOR_BAND)
+    assert out.iloc[3] > SOFT_FLOOR_BAND
+
+
+def test_factory_default_is_clamp_and_rejects_unknown_mode():
+    assert IndicatorScorerFactory().for_series("ND_GAIN_VULN").below_benchmark == "clamp"
+    assert IndicatorScorerFactory("soft_floor").for_series("ND_GAIN_VULN").below_benchmark == "soft_floor"
+    with pytest.raises(ValueError):
+        IndicatorScorerFactory("minmax")
