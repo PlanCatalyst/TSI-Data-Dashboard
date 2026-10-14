@@ -1,23 +1,152 @@
-:root {
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --text: #1e293b;
-  --muted: #64748b;
-  --border: #d5dde5;
-  --brand: #0079c1;
-  --radius: 10px;
+/* PlanCatalyst Dashboard design tokens.
+   Source of truth: docs/design-system/index.html (v1.0, approved 2026-10-14).
+   Edit the reference page first, then copy the :root block here verbatim.
+   Guardrail: no hex literal may appear outside this file (see AC7.1). */
 
-  /* Mock design tokens */
-  --blue: #0079c1;
-  --blue-dk: #005d96;
-  --blue-lt: #e6f3fb;
-  --green: #b2cd5a;
-  --green-dk: #7a9a1f;
-  --green-lt: #f3f8e6;
-  --slate: #435d7f;
-  --slate-lt: #edf0f5;
-  --stone: #817d77;
-  --bd: #dde2ea;
-  --txt: #1e2a35;
-  --mut: #5f6e7c;
+:root {
+  /* ---- Colour: brand (from plancatalyst.org) ---- */
+  --pc-blue:      #0079C1;   /* primary action, links, selected state   */
+  --pc-blue-ink:  #005D96;   /* blue on white at AA for small text       */
+  --pc-blue-tint: #E6F3FB;   /* selected row, hover surface              */
+  --pc-green:     #B2CD5A;   /* brand accent word; never a button fill   */
+  --pc-green-ink: #6F8A14;   /* green at AA for text                     */
+  --pc-green-tint:#F3F8E6;
+  --pc-slate:     #2B5672;   /* secondary headings, panel chrome         */
+  --pc-navy:      #1A2B6D;   /* display headings only                    */
+
+  /* ---- Colour: neutrals (cool bias toward the blue) ---- */
+  --n-0:   #FFFFFF;   /* surface                                          */
+  --n-50:  #F5F7F9;   /* page ground, table stripe                        */
+  --n-100: #EDF0F3;   /* hover on neutral surfaces                        */
+  --n-200: #D8DEE5;   /* rules, borders                                   */
+  --n-400: #8A96A3;   /* placeholder, disabled text                       */
+  --n-600: #5B6873;   /* muted text, captions (AA on white)               */
+  --n-800: #2A333B;   /* body text                                        */
+  --n-900: #16202A;   /* headings, numerals                               */
+
+  /* ---- Colour: need bands (semantic, cool to warm) ----
+     WHY: distinct from brand green so "moderate" never reads as brand.
+     Each band has a fill (chips, map, dots), an ink (text at AA on
+     white) and a tint (row background). Thresholds stay 75/50/25. */
+  --need-low:      #1E7F74;  --need-low-ink:      #156B61;  --need-low-tint:      #E4F3F1;
+  --need-moderate: #C59A1E;  --need-moderate-ink: #7E6008;  --need-moderate-tint: #FBF3DD;
+  --need-high:     #D96F2A;  --need-high-ink:     #9E4A12;  --need-high-tint:     #FBEADF;
+  --need-severe:   #B5302A;  --need-severe-ink:   #8E2520;  --need-severe-tint:   #F8E3E1;
+
+  /* ---- Colour: data status (indicatorStatus) ---- */
+  --status-scored:     var(--need-low-ink);
+  --status-incomplete: var(--need-moderate-ink);
+  --status-outscope:   var(--n-600);
+
+  /* ---- Colour: chart series, one per pillar, fixed order ----
+     WHY: fixed mapping so the same pillar is the same colour on every
+     chart, every country. */
+  --s-health:   #0079C1;
+  --s-agri:     #7A9A1F;
+  --s-social:   #2B5672;
+  --s-gender:   #8A5BA6;
+  --s-climate:  #1E7F74;
+  --s-context:  #C27C2C;
+  --s-socio:    #6B7A89;
+  --s-overall:  #16202A;   /* overall index line, always on top */
+
+  /* ---- Colour: choropleth (sequential, brand blue ramp) ----
+     Darker = higher need, so attention goes where need is. Confirm with
+     client before shipping (today's map direction is not documented). */
+  --map-0: #E6F3FB; --map-1: #B9DCF1; --map-2: #7FBDE3; --map-3: #3F96CF;
+  --map-4: #0079C1; --map-5: #005D96; --map-6: #0B3D66;
+  --map-null: #ECEFF2;  /* no data: neutral, never a band colour */
+  --map-stroke: #FFFFFF;
+  --map-selected: var(--n-900);
+
+  /* ---- Type ---- */
+  --f-display: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --f-body:    "Inter", "Segoe UI", Arial, sans-serif;
+  --t-display: 700 2rem/1.2 var(--f-display);        /* 32px  page title        */
+  --t-h1:      700 1.5rem/1.25 var(--f-display);     /* 24px  country name      */
+  --t-h2:      600 1.125rem/1.3 var(--f-display);    /* 18px  section           */
+  --t-eyebrow: 600 0.6875rem/1.2 var(--f-body);      /* 11px  UPPER, tracked    */
+  --t-body:    400 0.875rem/1.5 var(--f-body);       /* 14px                    */
+  --t-small:   400 0.75rem/1.45 var(--f-body);       /* 12px  captions          */
+  --t-num-lg:  600 1.75rem/1 var(--f-body);          /* 28px  overall score     */
+  --t-num:     600 1.125rem/1 var(--f-body);         /* 18px  pillar score      */
+  --track-eyebrow: 0.08em;
+
+  /* ---- Space (4px base) ---- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+
+  /* ---- Shape ----
+     WHY: the brand is square. Only dots and avatars are round. */
+  --radius: 0;
+  --radius-full: 50%;
+  --rule: 1px solid var(--n-200);
+  --rule-strong: 1px solid var(--n-400);
+  --shadow-none: none;
+  --shadow-float: 0 2px 8px rgba(22, 32, 42, 0.10);  /* tooltips, menus only */
+  --focus: 0 0 0 2px var(--n-0), 0 0 0 4px var(--pc-blue);
+
+  /* ---- Layers ---- */
+  --z-map: 1; --z-overlay: 10; --z-panel: 20; --z-tooltip: 30; --z-nav: 40;
+
+  /* ---- Breakpoints (reference only; CSS cannot read vars in @media) ----
+     sm 480 / md 768 / lg 1024 / xl 1280. Panel docks right above lg,
+     becomes a bottom sheet at md and below. */
+
+  /* ---- Motion ----
+     WHY: slow, even, settles. No springs, no expo-out, no pop. */
+  --dur-micro:  200ms;   /* hover, press, focus                     */
+  --dur-move:   600ms;   /* layout: panel expand, column resize     */
+  --dur-reveal: 1100ms;  /* entrance: panel content, page sections  */
+  --dur-draw:   1400ms;  /* chart line draw-in, first render only   */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);     /* quint-out: entrances */
+  --ease-move:  cubic-bezier(0.45, 0, 0.55, 1);     /* ease-in-out: layout  */
+  --stagger:    120ms;
+  --travel:     14px;
+}
+
+/* ---- Legacy aliases (DEPRECATED) ----
+
+   Kept so pre-v2 styles keep resolving during Pass B. Each consumer is
+
+   migrated to the token above it in B2 to B5, then this block is deleted. */
+
+:root {
+
+  --bg: var(--n-50);
+
+  --surface: var(--n-0);
+
+  --text: var(--n-800);
+
+  --muted: var(--n-600);
+
+  --border: var(--n-200);
+
+  --brand: var(--pc-blue);
+
+  --blue: var(--pc-blue);
+
+  --blue-dk: var(--pc-blue-ink);
+
+  --blue-lt: var(--pc-blue-tint);
+
+  --green: var(--pc-green);
+
+  --green-dk: var(--pc-green-ink);
+
+  --green-lt: var(--pc-green-tint);
+
+  --slate: var(--pc-slate);
+
+  --slate-lt: var(--n-100);
+
+  --stone: var(--n-600);
+
+  --bd: var(--n-200);
+
+  --txt: var(--n-800);
+
+  --mut: var(--n-600);
+
 }
