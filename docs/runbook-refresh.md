@@ -1,315 +1,164 @@
-# Runbook: Semi-Annual Data Refresh
+# Runbook: data refresh (engineer path)
 
-**Cadence:** twice a year (client-confirmed 2026-08-13).
-**Duration:** 45 to 90 minutes, most of it unattended fetch time.
-**Who can run it:** anyone with the service principal credentials and a Python 3.11+ environment.
+**Routine six-month refresh:** PlanCatalyst staff run it from the Azure portal
+using the playbook in `docs/playbook/`. No terminal. This runbook covers only
+what the playbook does not: provisioning the job, running the pipeline from a
+laptop, rollback by hand, forecast publish, and frontend deploys.
 
-This replaces the containerised scheduled pipeline, which was descoped 2026-09-04. At two runs a
-year, a registry, an image build and a container host cost more than they save. The tradeoff is
-that nothing fires on its own: someone has to remember. Put a recurring calendar reminder on it.
-Forecast / projections publish follows the same rule — **manual only**, no ACR/ACI cron (see
-Forecast publish below).
+The pipeline prints one of these as its last line, and the Container Apps Job
+reports the matching exit code:
+
+```
+PIPELINE RUN COMPLETE: published v1 snapshot <run id>, <n> countries
+PIPELINE RUN COMPLETE: dry run, snapshot <run id> written locally, <n> countries
+PIPELINE RUN FAILED: <stage> <reason>; previous /v1/ snapshot unchanged
+```
 
 ---
 
 ## What updates what
 
-The dashboard and its data deploy on two independent paths. Confusing them is the most likely
-mistake in this runbook.
-
 | You changed | What to run | Does the live site change? |
 |---|---|---|
-| Indicator data | The pipeline, publishing to Blob (below) | Yes, on the next page load. No frontend deploy. |
+| Indicator data | The pipeline (job or local), publishing to Blob | Yes, on the next page load. No frontend deploy. |
 | Frontend code or copy | `npm run build` plus an SWA deploy | Yes, after the deploy completes. |
 | The Blob account or container URL | Both, in that order | Yes, but the frontend rebuild is mandatory. |
 
-The React app fetches `meta.json`, `countries.json` and `timeseries.json` from Blob at runtime, so
-a data refresh needs no redeploy. When `meta.projections.enabled` is true it also fetches
-`projections.json` (see `docs/data-contract.md` §8); when disabled it stays on the historical-only
-path and does not require that file. The Blob URL itself is compiled in at build time from
-`VITE_CONTRACT_BASE_URL`, so changing the *location* does need a rebuild.
+The React app fetches `meta.json`, `countries.json` and `timeseries.json` from
+Blob at runtime. The Blob URL is compiled in from `VITE_CONTRACT_BASE_URL`, so
+changing the location needs a rebuild; refreshing the data does not.
 
 ---
 
-## Prerequisites
+## The Azure job (client-operable refresh)
 
-1. **Credentials.** A `.env` at the repo root, gitignored, never committed:
+`infra/container-apps-job.sh` provisions everything in resource group
+`tsi-data-dashboard`: a private `pipeline-sources` container for ND-GAIN
+uploads, a Container Apps environment, the manual job `tsi-pipeline-refresh`
+with a system-assigned identity, the two role assignments (Storage Blob Data
+Contributor on the storage account, AcrPull on `TSIcontainers`), and an email
+alert on failed executions. Review the variables, export `ALERT_EMAIL`, run it
+once from an `az login` session with rights to assign roles.
 
-   ```
-   AZURE_TENANT_ID=...
-   AZURE_CLIENT_ID=...
-   AZURE_CLIENT_SECRET=...
-   AZURE_STORAGE_ACCOUNT_URL=https://<account>.blob.core.windows.net
-   ```
+The job runs the image built by `scripts/acr_build.sh` with these environment
+variables, which override `settings.yaml` at run time:
 
-   The service principal needs exactly one role: **Storage Blob Data Contributor**, scoped to the
-   `dashboard-public` container. Not the storage account, not the subscription. It must not be able
-   to reach the private `validated-scores` container, which holds intermediate artifacts the
-   dashboard never reads.
+| Variable | Job value | Effect |
+|---|---|---|
+| `AZURE_STORAGE_ACCOUNT_URL` | the account URL | Enables Azure; identity comes from the default credential chain |
+| `NDGAIN_BLOB_CONTAINER` / `NDGAIN_BLOB_PREFIX` | `pipeline-sources` / `sources/ndgain/` | Newest `.zip` under the prefix is used and logged as `ND-GAIN source:` |
+| `PIPELINE_FETCH_RAW` | `true` | Live fetch of UN SDG, World Bank, UNDP, WGI |
+| `PIPELINE_UPLOAD_AZURE` / `PIPELINE_PUBLISH_DASHBOARD` | `true` | Validated CSVs to `validated-scores`, contract JSON to `dashboard-public/v1` |
+| `PIPELINE_RUN_FORECASTS` | `false` | Historical only |
 
-2. **Python environment.**
+No secret is stored anywhere in the job. Locally, the same variables can be
+exported to reproduce a job run; with the `AZURE_*` service principal triple in
+`.env` the pipeline uses it instead of the managed identity.
+
+---
+
+## Running the pipeline from a laptop
+
+1. `.env` at the repo root with `AZURE_STORAGE_ACCOUNT_URL` and, for the
+   service principal path, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
+   `AZURE_CLIENT_SECRET`. The principal `tsidashboard-pipeline` holds Storage
+   Blob Data Contributor on `dashboard-public` only; its secret expires
+   **2027-09-28**. Never commit `.env`.
+2. `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
+3. A clean git tree, so the refreshed fixtures diff is readable.
+4. Run, with the toggles as environment variables rather than edits to
+   `settings.yaml`:
 
    ```zsh
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+   PIPELINE_FETCH_RAW=true PIPELINE_UPLOAD_AZURE=true python3 -m src.pipeline.run_pipeline
    ```
 
-3. **A clean git tree.** Commit or stash first. A refresh rewrites
-   `data/interim/validated/` and `dashboard/public/v1/`, and you want the diff to be readable.
+   Leave `PIPELINE_UPLOAD_AZURE` unset for a dry run into `data/organized/v1/`.
+5. Before a live publish, check nothing has saturated:
 
----
+   ```zsh
+   python3 scripts/clamp_audit.py
+   ```
 
-## Procedure
+   Anything with a high pinned share is the benchmark clamp at work (see
+   `indicators/SCORING_AUDIT.md`), not a bug, but a pillar collapsing to a
+   single value is. Do not publish a pillar you know is meaningless.
+6. Verify the live endpoint and the console:
 
-### 1. Enable a fresh fetch
+   ```zsh
+   curl -s https://tsidashboardblobstorage.blob.core.windows.net/dashboard-public/v1/meta.json | head -c 200
+   ```
 
-`src/config/settings.yaml` ships with `runtime.fetch_raw: false` (and `runtime.run_forecasts:
-false`) so day-to-day work reuses cached payloads and skips the forecast emit. A real refresh
-needs the publish path on; a forecast publish also needs `run_forecasts`:
-
-```yaml
-runtime:
-  fetch_raw: true          # set back to false when finished
-  upload_azure: true
-  publish_dashboard: true
-  run_forecasts: false     # true only for a forecast publish (see Forecast publish below)
-```
-
-These are the only runtime toggles that gate the path — there is **no** `settings.yaml` key for
-`meta.projections.enabled`. That field is written by `publish_dashboard` when §8 rows are present
-(see below). Optional: `runtime.forecast_horizon_years` (default `5`).
-
-UN SDG is slow and rate-limited. Expect the fetch stage to dominate the runtime. Set `fetch_raw`
-(and `run_forecasts`, if you flipped it) back to `false` afterwards so nobody re-fetches or
-re-forecasts by accident.
-
-### 2. Run the pipeline
-
-```zsh
-python3 -m src.pipeline.run_pipeline
-```
-
-Fetch, clean, score, aggregate, upload validated CSVs, optionally emit World Bank forecasts
-(`runtime.run_forecasts`), then publish the contract JSON. Publish order is always payloads first,
-`meta.json` last (see Forecast publish).
-
-### 3. Sanity-check the scores before they go anywhere
-
-```zsh
-ls data/interim/validated/indicatorscores/ | wc -l     # expect 28
-```
-
-Then check that no indicator has collapsed to a single value, which is the failure mode that
-produced issues #3, #4 and #5:
-
-```zsh
-python3 - <<'PY'
-import pandas as pd, pathlib
-for f in sorted(pathlib.Path('data/interim/validated/indicatorscores').glob('*.csv')):
-    d = pd.read_csv(f)
-    col = next((c for c in d.columns if 'score' in c.lower()), None)
-    if not col: continue
-    s = d[col].dropna()
-    flag = '  <-- CHECK' if len(s) and (s.nunique() < 3 or (s == s.max()).mean() > 0.8) else ''
-    print(f'{f.stem:10s} rows={len(d):6d} countries={d.iloc[:,0].nunique():4d} '
-          f'unique={s.nunique():4d} pct_at_max={((s==s.max()).mean()*100 if len(s) else 0):5.1f}{flag}')
-PY
-```
-
-Anything flagged is saturating. Investigate before publishing; do not publish a pillar you know is
-meaningless.
-
-### 4. Dry-run the publish
-
-```zsh
-python3 -m src.upload.publish_dashboard
-```
-
-Writes to `data/organized/v1/` instead of Blob and runs the same `validate_payload` gate. If
-validation raises, stop. Fix the data, do not weaken the validator.
-
-### 5. Publish for real
-
-```zsh
-python3 -m src.upload.publish_dashboard --azure --run-id refresh-$(date +%Y%m%d)
-```
-
-Validation gates the upload. If it fails, nothing is written and the previous `/v1/` snapshot stays
-live. There is no partial publish.
-
-### 6. Verify against the live endpoint
-
-```zsh
-curl -s https://<account>.blob.core.windows.net/dashboard-public/v1/meta.json | head -c 200
-```
-
-Confirm `generatedAt` and `pipelineRunId` match the run you just did. Then load the SWA URL, open
-the browser console, and confirm it logs `Loading contract from Azure` rather than
-`falling back to local /v1`. The fallback is silent by design, so the console is the only place a
-misconfigured build announces itself.
-
-### 7. Reset and record
-
-- Set `runtime.fetch_raw` (and `runtime.run_forecasts`, if used) back to `false`.
-- Commit the refreshed `dashboard/public/v1/` fixtures and any `SCORING_AUDIT.md` changes.
-- Note the run date and `run-id` in `HANDOFF.md`.
+   `generatedAt` and `pipelineRunId` must match the completion line. The site
+   should log `Loading contract from Azure`, not the local `/v1` fallback.
+7. Commit the refreshed `dashboard/public/v1/` fixtures and the regenerated
+   clamp audit section. Note the run id in `HANDOFF.md`.
 
 ---
 
 ## Rollback
 
-Publishing overwrites `/v1/` in place, so there is no automatic previous version. Before step 5,
-keep a copy:
+Publishing overwrites `/v1/` in place. Keep a dated copy before every live
+publish:
 
 ```zsh
 mkdir -p backups/v1-$(date +%Y%m%d)
 for f in meta.json countries.json timeseries.json projections.json; do
-  curl -s "https://<account>.blob.core.windows.net/dashboard-public/v1/$f" \
+  curl -s "https://tsidashboardblobstorage.blob.core.windows.net/dashboard-public/v1/$f" \
     -o "backups/v1-$(date +%Y%m%d)/$f" || true
 done
 ```
 
-To roll back, re-upload the payload files you backed up, then `meta.json` **last** (same atomic
-order as publish). If the previous snapshot had projections disabled, restoring an older
-`meta.json` with `projections.enabled: false` is enough for the frontend to stop fetching
-`projections.json`. If a contract-breaking change is ever needed, bump the path to `/v2/` rather
-than overwriting `/v1/`, update `docs/data-contract.md` first, then the publisher, then the
+To roll back, re-upload the payload files, then `meta.json` **last** (same
+atomic order as publish). The playbook section 6 describes the same steps
+through the portal for staff. A contract-breaking change bumps the path to
+`/v2/` instead: `docs/data-contract.md` first, then the publisher, then the
 frontend.
 
 ---
 
-## Forecast publish (the reviewer — manual only)
+## Scoring rule switch
 
-Projections are **not** on a schedule. Same thesis as the rest of this runbook: no ACR image
-build, no ACI/container cron, no GitHub Actions timer. Someone flips flags, runs the path by
-hand, verifies the live site, and flips flags off. Put a calendar reminder next to the
-semi-annual refresh if PlanCatalyst wants forecasts refreshed on the same cadence.
-
-Contract authority: `docs/data-contract.md` §8. Machine gate codes live in
-`src.projections.quality_gates.GATE_REASONS`. User-facing unavailable copy is the single shared
-string `UX_UNAVAILABLE_COPY` — **do not invent new dashboard strings**:
-
-> Forecast unavailable due to insufficient information.
-
-When projections are still disabled, the meta note stays exactly:
-
-> Projection band coming soon.
-
-### Flags (as implemented)
-
-In `src/config/settings.yaml` → `runtime:`:
-
-| Key | Role |
-|---|---|
-| `run_forecasts` | Orchestrator runs `projections.process_data.ProcessData` before publish (default `false`). |
-| `fetch_raw` | Fresh upstream pull (usually leave `false` if World Bank interim CSV is already current). |
-| `upload_azure` | Live Blob upload for validated CSVs **and** (with creds) for `publish_dashboard`. |
-| `publish_dashboard` | Build/upload contract JSON after scoring (default `true`). |
-
-`meta.projections.enabled` is **not** a settings key. `build_meta` always starts with
-`enabled: false` and note `"Projection band coming soon."`. When
-`data/processed/worldbank/forecasts/world_bank_forecasts.csv` exists, `publish_dashboard` loads
-those §8 rows, validates them with `src.projections.validate_payload`, writes `projections.json`,
-and `apply_projections_meta` flips `meta.projections.enabled` to `true` (note copy is left
-unchanged). Delete or move that CSV (or pass `include_projections=False` in code) if you need a
-historical-only publish.
-
-### Path A — full pipeline (recommended)
-
-```yaml
-runtime:
-  fetch_raw: false          # or true if you also need a data refresh
-  upload_azure: true
-  publish_dashboard: true
-  run_forecasts: true       # ProcessData → data/processed/.../world_bank_forecasts.csv
-```
-
-```zsh
-python3 -m src.pipeline.run_pipeline
-```
-
-Order inside the orchestrator: fetch → clean → score → upload validated → **ProcessData
-(forecasts)** → publish.
-
-### Path B — forecast emit, then publish only
-
-Use when scored/interim World Bank data is already on disk and you only need to re-emit and
-republish projections:
-
-```zsh
-python3 - <<'PY'
-from pathlib import Path
-from projections.process_data import ProcessData
-ProcessData(Path("src/config/settings.yaml")).process()
-PY
-
-python3 -m src.upload.publish_dashboard
-# then, when dry-run looks good:
-python3 -m src.upload.publish_dashboard --azure --run-id forecast-$(date +%Y%m%d)
-```
-
-`ProcessData` writes `data/processed/worldbank/forecasts/world_bank_forecasts.csv` (and actuals).
-Publish picks that file up automatically.
-
-### Atomic publish order
-
-Payload files first; **`meta.json` last** (readiness marker). With forecasts present the order is:
-
-1. `countries.json`
-2. `timeseries.json`
-3. `projections.json`
-4. `meta.json` **LAST**
-
-Implemented by `upload_payloads_then_meta` in `src/upload/publish_dashboard.py`. A mid-payload
-failure never writes meta, so the previous live snapshot stays marked ready. Dry-run mirrors the
-same order under `data/organized/v1/`.
-
-### Verify the dashboard
-
-1. **Live meta:** `curl` `.../v1/meta.json` and confirm `projections.enabled` is `true` and
-   `firstProjectedYear` is set when you intended a forecast publish; when you intended disabled,
-   `enabled` is `false` and `note` is still `Projection band coming soon.`
-2. **Bands when forecast:** open the SWA map detail / indicator trend for a series with
-   `status: "forecast"` rows — interval band (`value_lo` / `value_hi`) should render.
-3. **Unavailable copy:** for `status: "unavailable"` rows the UI must show exactly
-   `Forecast unavailable due to insufficient information.` (from `UX_UNAVAILABLE_COPY` /
-   `GATE_REASONS` — no per-reason user strings).
-4. **Disabled path:** with `meta.projections.enabled === false`, About / detail still surfaces
-   the meta note `Projection band coming soon.` and the app does not fetch `projections.json`.
-5. Console should log `Loading contract from Azure` (not the local `/v1` fallback).
-
-### Afterward
-
-- Set `runtime.run_forecasts` (and `fetch_raw`, if used) back to `false`.
-- Note the `run-id` and whether projections were enabled in `HANDOFF.md`.
+`scoring.below_benchmark` in `settings.yaml` selects `clamp` (v1) or
+`soft_floor` (requirements v2 option B). Changing it changes every score:
+bump `index_version`, record it in `docs/data-contract.md` and
+`indicators/SCORING_AUDIT.md`, run `scripts/clamp_audit.py --write-audit`,
+then publish. Awaiting the client decision.
 
 ---
 
-## Frontend deploy (only when code changes)
+## Forecast publish (manual only)
 
-Every push and pull request to `main` runs backend tests, dependency audits,
-the frontend production build, the pipeline container build, and CodeQL.
-Production deployment remains intentional: dispatch the **Deploy dashboard**
-workflow from `main`. It repeats the backend/frontend gates before uploading
-and requires `AZURE_STATIC_WEB_APPS_API_TOKEN` in the GitHub `production`
-environment.
+Projections are off by default and never scheduled. Set
+`PIPELINE_RUN_FORECASTS=true` for one run; the orchestrator emits section 8
+rows before publish, `publish_dashboard` validates them, writes
+`projections.json`, and flips `meta.projections.enabled`. Contract authority:
+`docs/data-contract.md` section 8. Unavailable copy is the single string
+`UX_UNAVAILABLE_COPY`; do not add dashboard strings. When projections are
+disabled the frontend shows nothing about them (requirements v2, A6).
+
+Atomic order with forecasts: `countries.json`, `timeseries.json`,
+`projections.json`, then `meta.json`.
+
+---
+
+## Frontend deploy (code changes only)
+
+CI runs on every push: backend tests, dependency audits, the design token
+guardrail (`npm run lint:tokens`), the frontend build, the container build and
+CodeQL. Production deploys are intentional: dispatch **Deploy dashboard** from
+`main`.
 
 ```zsh
 gh workflow run deploy-dashboard.yml --ref main
-gh run watch <run-id> --compact --exit-status   # run id is printed by the dispatch
+gh run watch <run-id> --compact --exit-status
 ```
 
-**Where things live (confirmed 2026-09-29).** Static Web App
-`tsi-dashboard-frontend`, resource group `tsi-data-dashboard`, subscription
-"Azure subscription 1" (PlanCatalyst), same place as storage account
-`tsidashboardblobstorage`. Public host
-`jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
-
-**If the deploy step fails with `deployment_token was not provided`,** the
-environment secret is missing or was rotated. Re-set it without the value ever
-touching a terminal or a file (needs `az login` on that subscription and
-`gh auth` with repo admin):
+Static Web App `tsi-dashboard-frontend`, resource group `tsi-data-dashboard`,
+subscription "Azure subscription 1" (PlanCatalyst), public host
+`jolly-pebble-0e2f9300f.7.azurestaticapps.net`. If the deploy fails with
+`deployment_token was not provided`, re-set the environment secret without the
+value touching a terminal or a file:
 
 ```zsh
 az staticwebapp secrets list --name tsi-dashboard-frontend \
@@ -318,36 +167,16 @@ az staticwebapp secrets list --name tsi-dashboard-frontend \
 gh run rerun <run-id> --failed
 ```
 
-**Credential expiry.** The pipeline service principal secret
-(`tsidashboard-pipeline`) expires **2027-09-28**. The first refresh after that
-date needs a rotated secret from PlanCatalyst IT before the `--azure` publish
-will authenticate; ask for it a month ahead.
-
-```zsh
-cd dashboard
-npm ci
-npm audit --audit-level=moderate
-npm run build          # tsc -b && vite build
-```
-
-The deployment workflow supplies `VITE_CONTRACT_BASE_URL` explicitly. For a
-local production build, `dashboard/.env.production` supplies the same value;
-it remains gitignored and must never contain secrets.
-
-The workflow deploys `dashboard/dist/` to the Static Web App. The embed URL
-never changes, so the iframe on the client's Wix page does not need to be
-touched after a deploy.
-
-`dashboard/public/staticwebapp.config.json` controls who may frame the dashboard. `frame-ancestors`
-currently allows `plancatalyst.org`, `*.plancatalyst.org` and the Wix editor and preview origins.
-Adding a new host means editing that file and redeploying.
+`dashboard/public/staticwebapp.config.json` controls who may frame the
+dashboard (`plancatalyst.org`, `*.plancatalyst.org`, Wix editor and preview).
 
 ---
 
 ## Related
 
-- `docs/data-contract.md` — payload schema (§8 = interval forecast rows); authority when anything disagrees
-- `src/projections/quality_gates.py` — `GATE_REASONS` + `UX_UNAVAILABLE_COPY` (no new user-facing strings)
-- `indicators/SCORING_AUDIT.md` — scoring direction, per-indicator status, closed issues
-- `docs/docker.md` — the containerised path, retained in case the cadence ever shortens; **not** used for forecast scheduling
-- `HANDOFF.md` — project context and run history
+- `docs/playbook/` - the staff-facing refresh document and its screenshots
+- `infra/container-apps-job.sh` - job provisioning, roles, alert
+- `docs/requirements-v2.md` - the v2 scope this runbook serves
+- `docs/data-contract.md` - payload schema; authority when anything disagrees
+- `indicators/SCORING_AUDIT.md` - scoring direction, below-benchmark rule, clamp audit
+- `HANDOFF.md` - project context and run history

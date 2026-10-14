@@ -140,11 +140,10 @@ subscription (resource group `tsi-data-dashboard`). Service principal
 
 ## Descoped / deferred
 
-- Scheduled pipeline: deferred as a follow-up on 2026-09-15. The manual
-  runbook remains the interim delivery, but the target is a twice-yearly Azure
-  Container Apps Job with managed identity, source-version discovery, and
-  failure alerts. Until that lands, forecast/projection publish is manual; see
-  `docs/runbook-refresh.md` § Forecast publish.
+- Scheduled pipeline: not planned. The client runs a manual Container Apps
+  Job instead (requirements v2, section 3). Code landed 2026-10-14; the job
+  itself is created by `infra/container-apps-job.sh`, which has not been run
+  yet. Forecast publish stays manual; see `docs/runbook-refresh.md`.
 - CI, dependency audits, container build verification, and CodeQL are active.
   Production dashboard deployment remains manual and environment-gated.
 - Legacy 3-level compatibility CSVs: remove once confirmed unused.

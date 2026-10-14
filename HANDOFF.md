@@ -19,9 +19,11 @@ state:
    PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires 2027-09-28.
    The hosted frontend was redeployed the same evening and renders the status field.
 
-**Operations:** publishing remains a manual run documented in
-`docs/runbook-refresh.md`. A twice-yearly Azure Container Apps Job is tracked as
-a follow-up; the pipeline container is now verified in CI.
+**Operations:** the client-operable refresh is coded as of 2026-10-14
+(completion line, managed-identity credential, Blob-sourced ND-GAIN, env
+overrides) and the Azure job is provisioned by `infra/container-apps-job.sh`,
+not yet run. Staff procedure: `docs/playbook/`. Engineer path:
+`docs/runbook-refresh.md`. Scope and status: `docs/requirements-v2.md`.
 
 ## 1) Project at a glance
 
@@ -167,9 +169,11 @@ See `TASKS.md` for deliverables and milestones.
 
 ### Phase 3 — Ops
 
-7. Automation and alerting — **deferred follow-up.** Target: twice-yearly
-   Azure Container Apps Job with managed identity and failure alerts. The
-   interim rollback and refresh procedure lives in `docs/runbook-refresh.md`.
+7. Client-operable refresh: **code complete 2026-10-14, Azure provisioning
+   pending.** Manual Container Apps Job with managed identity, newest ND-GAIN
+   ZIP from the private `pipeline-sources` container, one completion or
+   failure line, email alert on failure. `infra/container-apps-job.sh`
+   creates it; the playbook in `docs/playbook/` is written against it.
 
 ## 9) References
 
