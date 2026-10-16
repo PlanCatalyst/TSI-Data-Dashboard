@@ -81,7 +81,7 @@ export const AUDIT = {
 export const CHANGELOG: { date: string; text: string }[] = [
   { date: "2026-10-15", text: "Independent audit: every published score rebuilt from the raw source files. 97,038 of 97,038 match." },
   { date: "2026-10-15", text: "Four publishing defects fixed: aid without national income, city-only rows, a retired country code, a dropped survey year." },
-  { date: "2026-10-15", text: "The overall score now appears only when all seven pillars have a score." },
+  { date: "2026-10-15", text: "The overall score now needs the six core pillars to have a score. Socio-economic performance is included when present." },
   { date: "2026-10-14", text: "Pillar, overall and regional lines use a fixed basket of indicators, which removes the early-year zigzag." },
   { date: "2026-10-14", text: "One source row per country and year: adolescent births, health regulation capacity and bank accounts no longer jump up and down." },
 ];

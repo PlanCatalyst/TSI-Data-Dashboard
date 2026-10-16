@@ -31,7 +31,7 @@ export const section: SectionContent = {
       id: "overall-blank",
       heading: "A blank overall score",
       body: [
-        "The overall score is blank unless all seven pillars have a score for that year. Showing an average of fewer pillars would look as solid as a full one and would not be comparable between countries.",
+        "The overall score is blank unless the six core pillars all have a score. Showing an average of fewer pillars would look as solid as a full one and would not be comparable between countries. Socio-economic performance is the exception: it only applies to World Bank borrowers, so it is included when present and not required.",
       ],
     },
     {
@@ -53,6 +53,6 @@ export const section: SectionContent = {
   dashboardLink: { label: "Open Explore", to: "/explore" },
   provenance: {
     updated: "2026-10-15",
-    decisionIds: ["projections-off", "aid-gdp-source", "overall-needs-all-pillars"],
+    decisionIds: ["projections-off", "aid-gdp-source", "overall-core-pillars"],
   },
 };

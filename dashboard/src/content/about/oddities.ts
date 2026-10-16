@@ -13,7 +13,7 @@ export type OddityViz =
   | { type: "pillar"; iso3: string; pillar: string }
   /** How many of a pillar's indicators have a value each year. */
   | { type: "indicator-count"; iso3: string; pillar: string }
-  /** How many of the seven pillars have a score each year. */
+  /** How many of the six core pillars have a score each year. */
   | { type: "pillar-count"; iso3: string }
   /** Share of a region's countries that report an indicator each year. */
   | { type: "region-share"; region: string; indicator: string }
@@ -166,11 +166,11 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "A country shows scores for most pillars but a dash for its overall score.",
     cause:
-      "The overall score appears only when all seven pillars have a score. Brazil has all seven from 2015 to 2023 and five in 2024.",
+      "The overall score appears only when the six core pillars all have a score. Brazil has all six from 2015 to 2023, and fewer in the latest year, when some sources have not published yet.",
     viz: { type: "pillar-count", iso3: "BRA" },
-    decisionId: "overall-needs-all-pillars",
+    decisionId: "overall-core-pillars",
     section: "missing-data",
     link: { to: "/map?country=BRA", label: "Open Brazil on the map" },
-    caption: "Brazil, pillars with a score each year (of 7)",
+    caption: "Brazil, core pillars with a score each year (of 6)",
   },
 ];

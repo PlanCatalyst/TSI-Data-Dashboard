@@ -44,8 +44,12 @@ export function BasketGrid() {
       ),
     );
     const overallNew = Array.from({ length: n }, (_, i) => {
-      const vals = meta.pillars.map((p) => basketPillars[p.key][i]);
-      return vals.every((v) => v != null) ? (vals as number[]).reduce((a, b) => a + b, 0) / vals.length : null;
+      // Overall needs the six core pillars; socio-economic performance (pri) joins the mean when present.
+      const core = meta.pillars.filter((p) => p.key !== "pri").map((p) => basketPillars[p.key][i]);
+      if (!core.every((v) => v != null)) return null;
+      const extra = basketPillars.pri?.[i];
+      const vals = extra != null ? [...(core as number[]), extra] : (core as number[]);
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
     });
     const overallOld = Array.from({ length: n }, (_, i) => {
       const vals = plainPillars.map((s) => s[i]).filter((v): v is number => v != null);
@@ -149,7 +153,7 @@ export function BasketGrid() {
         format={(v) => fmt1(v)}
       />
       <p className="small">
-        Overall score for {country.name}. Under the basket rule the overall score appears only when all seven pillars
+        Overall score for {country.name}. Under the basket rule the overall score appears only when the six core pillars
         have a score. The retired rule averaged whichever pillars reported, so a change in which data was published
         looked like a change in the country.
       </p>

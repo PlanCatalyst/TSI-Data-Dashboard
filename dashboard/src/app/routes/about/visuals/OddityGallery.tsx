@@ -44,8 +44,9 @@ function build(o: Oddity, meta: MetaPayload, countries: CountriesPayload, ts: Ti
       const c = getCountryByIso3(countries, v.iso3);
       if (!c) return null;
       const p = computePillarTimeseries(c, ts, meta);
-      const values = Array.from({ length: n }, (_, i) => meta.pillars.filter((pl) => p[pl.key][i] != null).length);
-      return { values, max: meta.pillars.length, kind: "bars", label: o.caption, decimals: 0 };
+      const core = meta.pillars.filter((pl) => pl.key !== "pri");
+      const values = Array.from({ length: n }, (_, i) => core.filter((pl) => p[pl.key][i] != null).length);
+      return { values, max: core.length, kind: "bars", label: o.caption, decimals: 0 };
     }
     case "region-share": {
       const inRegion = countries.filter((c) => c.region === v.region);

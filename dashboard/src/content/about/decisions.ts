@@ -167,13 +167,13 @@ export const DECISIONS: Decision[] = [
     section: "choosing-the-number",
   },
   {
-    id: "overall-needs-all-pillars",
-    title: "Overall score appears only when all seven pillars have a score",
+    id: "overall-core-pillars",
+    title: "Overall score needs the six core pillars",
     consideration:
-      "Averaging only the pillars that exist gives a country with many gaps an overall score that looks as solid as a complete one.",
+      "Averaging only the pillars that exist gives a country with many gaps an overall score that looks as solid as a complete one. Socio-economic performance is missing for about half the countries, because it only applies to World Bank borrowers.",
     decision:
-      "The overall score is blank unless every pillar has a score for that year. The pillar scores underneath still show.",
-    why: "An overall number should mean the same thing for every country that has one.",
+      "The overall score is blank unless the six core pillars (healthcare, agriculture, social infrastructure, gender equality, climate adaptation and country context) all have a score. Socio-economic performance is included in the average when a country has it. The pillar scores underneath still show.",
+    why: "An overall number should mean the same thing for every country that has one. Treating the borrower-only pillar as required would have blanked the overall score for rich countries that simply do not borrow.",
     date: "2026-10-15",
     status: "locked",
     issues: [],
