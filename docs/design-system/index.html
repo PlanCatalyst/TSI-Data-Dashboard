@@ -565,6 +565,7 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
         <button class="btn btn--ghost btn--icon btn--sm" aria-label="Expand panel">&#x2194;</button>
         <button class="btn" disabled>Loading</button>
       </div>
+      <p class="ds-note"><b>Before you build a control.</b> Search the code for the same behaviour, then use or extend a component on this page. <code>npm run lint:components</code> checks every button in the app against <code>dashboard/scripts/component-registry.json</code>: a new button style fails CI until it has a specimen here and an entry in the registry. The registry also lists controls that exist but are not documented yet (<code>legacy</code>); that list only shrinks.</p>
       <p class="ds-note">Primary is for the one action that moves the user forward on a view. Panel chrome uses ghost icon buttons. Hover darkens, press goes navy, focus shows the ring.</p>
     </div>
 
