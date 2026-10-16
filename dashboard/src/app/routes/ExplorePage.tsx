@@ -13,6 +13,7 @@ import { regionColor, seriesColor } from "../../components/scores/series-color";
 import { TrendsPanel } from "./TrendsPanel";
 import { useReveal } from "../../hooks/useReveal";
 import { EXPLORE_TABLE_FOOTNOTE, SCORE_INTERPRETATION_NOTE } from "../../content/data-notes";
+import { WhyLink } from "../../components/scores/WhyLink";
 
 function trendDelta(trend: Array<number | null>): number | null {
   const vals = trend.filter((v): v is number => v != null);
@@ -255,7 +256,7 @@ export function ExplorePage() {
                   {emptyPillars.length > 0 && (
                     <> {emptyPillars.map(p => p.label).join(", ")} {emptyPillars.length === 1 ? "has" : "have"} no data in this snapshot.</>
                   )}
-                  {" "}{SCORE_INTERPRETATION_NOTE} Hover any pillar score for its coverage and confidence.
+                  {" "}{SCORE_INTERPRETATION_NOTE} Hover any pillar score for its coverage and confidence. <WhyLink to="flat-at-100" />
                 </p>
               );
             })()}
