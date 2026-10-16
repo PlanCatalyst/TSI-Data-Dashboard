@@ -1,11 +1,14 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { AppShell } from "./layout/AppShell";
-import { AboutPage } from "./routes/AboutPage";
 import { ComparePage } from "./routes/ComparePage";
 import { ExplorePage } from "./routes/ExplorePage";
 import { MapPage } from "./routes/MapPage";
+import { LoadingState } from "../components/states/LoadingState";
+
+// The About wiki is a lazy chunk (REQ9.8): the map and tables do not pay for it.
+const AboutPage = lazy(() => import("./routes/about/AboutPage").then((m) => ({ default: m.AboutPage })));
 
 const TRUSTED_PARENT_SUFFIXES = [
   ".plancatalyst.org",
@@ -15,6 +18,11 @@ const TRUSTED_PARENT_SUFFIXES = [
   ".filesusr.com",
 ] as const;
 const TRUSTED_ROUTES = new Set(["/map", "/explore", "/compare", "/about"]);
+
+// A Wix restore may carry a deep link such as /about/scoring.
+function isTrustedRoute(route: string): boolean {
+  return TRUSTED_ROUTES.has(route) || /^\/about\/[a-z0-9-]+$/.test(route);
+}
 
 function trustedParentOrigin(): string | null {
   if (window.parent === window || !document.referrer) return null;
@@ -69,7 +77,7 @@ function useIframeSync() {
       if (e.data?.type === "navigate" && typeof e.data.hash === "string") {
         const path = e.data.hash.startsWith("#") ? e.data.hash.slice(1) : e.data.hash;
         const route = path.split(/[?#]/, 1)[0];
-        if (TRUSTED_ROUTES.has(route)) navigate(route, { replace: true });
+        if (isTrustedRoute(route)) navigate(route, { replace: true });
       }
     }
     window.addEventListener("message", handleMessage);
@@ -87,7 +95,14 @@ export function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/map" element={<MapPage />} />
-        <Route path="/about" element={<AboutPage />} />
+        <Route
+          path="/about/:section?"
+          element={
+            <Suspense fallback={<LoadingState />}>
+              <AboutPage />
+            </Suspense>
+          }
+        />
       </Routes>
     </AppShell>
   );

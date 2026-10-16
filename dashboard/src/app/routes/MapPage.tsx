@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 
 import { useDashboardData } from "../../state/dashboard-context";
@@ -6,10 +7,18 @@ import { MapDetailPanel } from "../../components/map/MapDetailPanel";
 import { MAP_COLOR_STOPS, WorldChoropleth } from "../../components/map/WorldChoropleth";
 import { displayOverall, getCountryByIso3 } from "../../data/contract/selectors";
 import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
+import { WhyLink } from "../../components/scores/WhyLink";
 
 export function MapPage() {
   const { meta, countries, timeseries, projections } = useDashboardData();
-  const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
+  // #/map?country=BRA opens that country's panel. The About page links here.
+  const [params] = useSearchParams();
+  const requested = params.get("country")?.toUpperCase() ?? null;
+  const requestedValid = requested !== null && countries.some((c) => c.iso3 === requested);
+  const [selectedIso3, setSelectedIso3] = useState<string | null>(requestedValid ? requested : null);
+  useEffect(() => {
+    if (requestedValid) setSelectedIso3(requested);
+  }, [requested, requestedValid]);
   // Expand widens the detail panel to 75%; collapse restores the default
   // width (the panel stays visible, this is not dismiss). The expanded
   // state only has meaning while a country is selected, so it is derived
@@ -67,7 +76,9 @@ export function MapPage() {
               </div>
             </div>
             <p className="small legend-help">Click a country to explore. Double-click to reset.</p>
-            <p className="small legend-note">{SCORE_INTERPRETATION_NOTE_SHORT}</p>
+            <p className="small legend-note">
+              {SCORE_INTERPRETATION_NOTE_SHORT} <WhyLink to="flat-at-100" />
+            </p>
           </div>
         </div>
 
