@@ -3,35 +3,35 @@ import type { SectionContent } from "./types";
 export const section: SectionContent = {
   id: "pillars",
   number: 7,
-  title: "Combining indicators into pillars",
+  title: "How we build each pillar",
   keywords: ["basket", "pillar", "subdomain", "average", "overall", "75%", "five years", "n of m", "early years", "zigzag", "coverage"],
   answer: [
-    "A pillar score averages its indicators, but only the ones that reported in the last five years count, and a year is scored only when at least 75% of them are present. That fixed [[basket]] is why some pillars have no early years.",
-    "The \"n of m\" badge says how many of a pillar's indicators back a score.",
+    "A pillar score averages its indicators. Only the indicators that reported in the last five years count, and we score a year only when at least 75% of them have a value. We call this fixed set the [[basket]]. It is why some pillars have no early years.",
+    "The \"n of m\" badge tells you how many of a pillar's indicators back a score.",
   ],
   detail: [
     {
       id: "basket",
       heading: "The basket rule",
       body: [
-        "The basket is the set of indicators with a value in the last five years of the series. A year gets a pillar score only if at least 75% of the basket has a value that year. Indicators outside the basket are ignored, and a year that falls short is left blank, never filled in.",
-        "The same rule builds the overall line and the regional lines, in the pipeline and in the dashboard, with the same numbers.",
+        "The basket is the set of indicators with a value in the last five years of the series. A year gets a pillar score only if at least 75% of the basket has a value that year. We ignore indicators outside the basket, and a year that falls short stays blank. We never fill it in.",
+        "We use the same rule for the overall line and the regional lines, in our calculations and on the dashboard, with the same numbers.",
       ],
     },
     {
       id: "why-it-exists",
       heading: "What it fixes",
       body: [
-        "Averaging whatever reported that year changes which indicators are in the average from one year to the next. Governance data was published only every other year before 2002, so a plain average alternated between two different baskets and drew a zigzag through almost every country. No single value was wrong.",
-        "The cost is honest: countries whose early years rested on one or two indicators lose those years. Use the toggle in the chart to see the old rule.",
+        "If we averaged whatever reported each year, the set of indicators in the average would change from year to year. Governance data was published only every other year before 2002, so a plain average swung between two different sets and drew a zigzag through almost every country. No single value was wrong.",
+        "The cost is that some countries lose early years, because too few indicators reported then. Use the toggle in the chart to see the old way.",
       ],
     },
     {
       id: "n-of-m",
       heading: "The \"n of m\" badge",
       body: [
-        "In the country panel, a pillar row shows how many of its indicators have a value in the year the score comes from. A score resting on one indicator out of three can swing a lot when that one source changes, so the badge lets you judge its weight yourself.",
-        "Hiding thin scores entirely would remove whole pillars for many countries. That would be a client decision, and it has not been made.",
+        "In the country panel, a pillar row shows how many of its indicators have a value in the year the score comes from. A score resting on one indicator out of three can swing a lot when that one source changes, so the badge lets you judge how much weight it deserves.",
+        "We could hide thin scores entirely, but that would remove whole pillars for many countries. We have not decided to do that.",
       ],
     },
     {
@@ -39,7 +39,7 @@ export const section: SectionContent = {
       heading: "Subdomains and the overall score",
       body: [
         "In the country panel, a subdomain score is the average of the latest value of each of its indicators. The overall score is the average of the pillars a country has.",
-        "The overall score is blank unless the six core pillars all have a score. Socio-economic performance is added to the average when a country has it, and left out when it does not apply.",
+        "The overall score is blank unless the six core pillars all have a score. We add socio-economic performance to the average when a country has it, and leave it out when it does not apply.",
       ],
     },
   ],

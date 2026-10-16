@@ -6,14 +6,14 @@ export const section: SectionContent = {
   title: "Glossary",
   keywords: ["terms", "definitions", "need", "benchmark", "clamp", "basket", "pillar", "subdomain", "indicator", "iso3", "sdg"],
   answer: [
-    "The terms used across this page, in plain language. Dotted words anywhere on the page show their definition on hover or keyboard focus.",
+    "These are the terms used across this page, in plain language. Words with a dotted underline show their meaning when you hover or focus them.",
   ],
   detail: [
     {
       id: "use",
       heading: "Using the glossary",
       body: [
-        "Press a term to jump to the section that explains it in full. The filter at the top of the contents rail also searches these terms.",
+        "Press a term to jump to the section that explains it in full. The filter at the top of the contents also searches these terms.",
       ],
     },
   ],

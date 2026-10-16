@@ -18,8 +18,8 @@ export function SourceGrid() {
         <span className="eyebrow">About this dashboard</span>
         <h2 id="wiki-sources-h">Where the numbers come from</h2>
         <p>
-          Every score is built from one of these {SOURCES.length} public sources. Nothing is estimated for a country
-          that has no data. The sections below explain how the numbers are made.
+          Every score is built from one of these {SOURCES.length} public sources. We never estimate a number for a country
+          that has no data. The sections below explain how we make the numbers.
         </p>
       </div>
       <ul className="wiki-source-grid">

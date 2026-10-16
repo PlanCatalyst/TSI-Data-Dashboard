@@ -741,6 +741,11 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   a domain reader, active voice, no em dashes, no repository paths or code
   names in public copy (series codes may appear in the detail as a
   reference). Follows the writing rules used for the rest of the UI.
+  Added 2026-10-15 (Thomas): the voice follows PlanCatalyst's own site, with
+  "we" for PlanCatalyst and "you" for the reader, short plain sentences, and
+  the meaning before the arithmetic. `check:about` rejects "client" and process
+  vocabulary in public copy. The status label "Pending client decision" is now
+  "Decision pending".
 - REQ9.11 The per-indicator methodology table (section 4) is hand-kept in
   `dashboard/src/content/about/methodology.ts` and checked by
   `npm run check:about` against `public/v1/meta.json` (all 28 indicators

@@ -105,6 +105,10 @@ try {
     if (/—/.test(text)) fail(`${path}: em dash`);
     if (/#[0-9a-fA-F]{3,8}\b/.test(text)) fail(`${path}: hex literal`);
     if (text.startsWith("https://")) continue;
+    // PlanCatalyst's voice: "we", never "the client", and no process vocabulary in public copy.
+    if (/\bclients?\b/i.test(text)) fail(`${path}: says "client", write "we" or name the decision`);
+    // Search keywords are not shown, so readers may find a section by words we avoid in copy.
+    if (!path.includes(".keywords[") && /\b(pipeline|blocking|reconcil\w*)\b/i.test(text)) fail(`${path}: process vocabulary in public copy`);
     if (/\b(?:src|docs|indicators|dashboard|audit)\/[\w./-]+/.test(text) || /\b[\w-]+\.(?:py|yaml|yml|md|csv|tsx?)\b/.test(text)) fail(`${path}: repository path or file name in public copy`);
   }
 
