@@ -53,7 +53,7 @@ export function FrameworkTree() {
                 <span className="small">
                   {subs.length} subdomains, {total} indicators
                 </span>
-                <span className="wdisc-icon" aria-hidden="true" data-open={open} />
+                <span className="disc-icon" aria-hidden="true" data-open={open} />
               </button>
               {open ? (
                 <ul role="group" className="wiki-tree-sub">
@@ -70,7 +70,7 @@ export function FrameworkTree() {
                         >
                           <span className="wiki-tree-name">{s.label}</span>
                           <span className="small">{inds.length} indicator{inds.length === 1 ? "" : "s"}</span>
-                          <span className="wdisc-icon" aria-hidden="true" data-open={subOpen} />
+                          <span className="disc-icon" aria-hidden="true" data-open={subOpen} />
                         </button>
                         {subOpen ? (
                           <ul role="group" className="wiki-tree-ind">

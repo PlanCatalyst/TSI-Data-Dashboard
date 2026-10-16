@@ -327,7 +327,7 @@
 .score-rows { display: grid; }
 .score-row {
   all: unset; box-sizing: border-box; width: 100%;
-  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: var(--sp-3); align-items: center;
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto 1.25rem; gap: var(--sp-3); align-items: center;
   padding: var(--sp-3) var(--sp-2) var(--sp-3) 0; border-bottom: var(--rule); cursor: pointer;
   font: var(--t-body); color: var(--n-800);
   transition: background-color var(--dur-micro) var(--ease-out);
@@ -371,16 +371,31 @@
 .seg-btn[aria-checked="true"] { background: var(--pc-blue); color: var(--n-0); }
 .seg-btn:focus-visible { outline: none; box-shadow: var(--focus); position: relative; z-index: 1; }
 
-/* Disclosure */
+/* Disclosure (design system: "Disclosure").
+   Header button + a panel that eases open downward over --dur-move. The panel is measured
+   and its height animated, so nothing beside it moves. disc-icon is the plus/minus. */
 .disc { border-top: var(--rule); }
-.disc > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; font-weight: 500; color: var(--n-900); }
-.disc > summary::-webkit-details-marker { display: none; }
-.disc > summary::after { content: "+"; color: var(--n-600); font-weight: 400; flex: 0 0 auto; }
-.disc[open] > summary::after { content: "\2212"; }
-.disc > summary:focus-visible { outline: none; box-shadow: var(--focus); }
-.disc .body { padding-bottom: var(--sp-4); color: var(--n-800); }
-.disc .summary-left { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
-.disc .summary-left .stripe { width: 10px; height: 18px; display: block; flex: 0 0 auto; }
+.disc-title { margin: 0; font: inherit; }
+.disc-btn {
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) 0; font: var(--t-body); font-weight: 500; color: var(--n-900);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.disc-btn:hover { color: var(--pc-blue-ink); }
+.disc-btn:focus-visible { box-shadow: var(--focus); }
+.disc-label { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); }
+.disc-label .stripe { width: 10px; height: 18px; display: block; flex: 0 0 auto; }
+.disc-meta { flex: 0 0 auto; color: var(--n-600); font: var(--t-small); }
+.disc-icon { flex: 0 0 auto; width: 1.25rem; text-align: center; color: var(--n-600); }
+.disc-icon::after { content: "+"; font-weight: 400; }
+.disc[data-open="true"] > .disc-title .disc-icon::after,
+.disc-icon[data-open="true"]::after { content: "\2212"; }
+.disc-panel { overflow: hidden; transition: height var(--dur-move) var(--ease-move); }
+.disc-panel[data-open="false"] { visibility: hidden; transition: height var(--dur-move) var(--ease-move), visibility 0s linear var(--dur-move); }
+.disc-inner { padding: 2px; }
+.disc--lg { border-bottom: var(--rule); }
+.disc--lg > .disc-title .disc-btn { font: var(--t-h2); }
 
 /* Tooltip */
 .tip { background: var(--n-900); color: var(--n-0); padding: var(--sp-2) var(--sp-3); font: var(--t-small); box-shadow: var(--shadow-float); display: inline-grid; gap: 2px; max-width: 240px; }
@@ -410,7 +425,7 @@
 .dp-section-actions { display: flex; gap: var(--sp-1); align-items: center; }
 .dp-breakdown { display: grid; }
 .dp-breakdown .disc:first-child { border-top: 0; }
-.sd-list { display: grid; gap: var(--sp-2); }
+.sd-list { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-4); }
 
 .trend-periods { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
 .trend-period { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; font: var(--t-small); color: var(--n-800); }
@@ -430,19 +445,14 @@
 
 /* ── COLLAPSIBLE SUBDOMAINS ── */
 .sd-block { border: var(--rule); }
-.sd-head { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); cursor: pointer; background: var(--n-0); font: var(--t-body); color: var(--n-800); }
-.sd-head:hover { background: var(--n-50); }
-.sd-head:focus-visible { box-shadow: inset var(--focus); }
-.sd-head[aria-disabled="true"] { cursor: default; }
+.sd-head { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--n-0); font: var(--t-body); color: var(--n-800); }
 .sd-head-left { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
-.sd-dot { width: 8px; height: 8px; border-radius: var(--radius); flex-shrink: 0; }
+.sd-dot { display: block; width: 8px; height: 8px; border-radius: var(--radius); flex-shrink: 0; }
 .sd-label { font-weight: 500; color: var(--n-900); }
 .sd-head-right { display: flex; align-items: center; gap: var(--sp-2); flex: 0 0 auto; }
-.sd-mini { width: 48px; height: 4px; background: var(--n-100); overflow: hidden; }
-.sd-mini-fill { height: 100%; }
+.sd-mini { display: block; width: 48px; height: 4px; background: var(--n-100); overflow: hidden; }
+.sd-mini-fill { display: block; height: 100%; }
 .sd-val { font: var(--t-small); font-weight: 600; color: var(--n-900); min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
-.sd-chev { font-size: 11px; color: var(--n-600); transition: transform var(--dur-micro) var(--ease-out); display: inline-block; }
-.sd-chev.open { transform: rotate(180deg); }
 .sd-body { border-top: var(--rule); background: var(--n-50); }
 .ind-row-dp { padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-6); border-bottom: var(--rule); }
 .ind-row-dp:last-child { border-bottom: none; }
@@ -493,3 +503,10 @@
 
 /* "Why?" link from a dashboard note to its About explanation (REQ9.9) */
 .why-link { font: var(--t-small); font-weight: 500; color: var(--pc-blue-ink); white-space: nowrap; text-underline-offset: 2px; }
+
+/* Subdomain: a bordered disclosure with a score bar in the header */
+.disc.sd-block { border: var(--rule); }
+.disc.sd-block .disc-btn { padding: var(--sp-2) var(--sp-3); background: var(--n-0); }
+.disc.sd-block .disc-btn:hover { background: var(--n-50); color: inherit; }
+.disc.sd-block .disc-btn:focus-visible { box-shadow: inset var(--focus); }
+.disc.sd-block .disc-inner { padding: 0; }
