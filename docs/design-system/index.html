@@ -322,13 +322,31 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
 .seg-btn:focus-visible { outline: none; box-shadow: var(--focus); position: relative; z-index: 1; }
 
 /* ---- Disclosure ---- */
+/* Disclosure (design system: "Disclosure").
+   Header button + a panel that eases open downward over --dur-move. The panel is measured
+   and its height animated, so nothing beside it moves. disc-icon is the plus/minus. */
 .disc { border-top: var(--rule); }
-.disc > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: var(--sp-3) 0; font-weight: 500; color: var(--n-900); }
-.disc > summary::-webkit-details-marker { display: none; }
-.disc > summary::after { content: "+"; color: var(--n-600); font-weight: 400; transition: transform var(--dur-micro) var(--ease-out); }
-.disc[open] > summary::after { content: "\2212"; }
-.disc > summary:focus-visible { outline: none; box-shadow: var(--focus); }
-.disc .body { padding-bottom: var(--sp-4); color: var(--n-800); }
+.disc-title { margin: 0; font: inherit; }
+.disc-btn {
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) 0; font: var(--t-body); font-weight: 500; color: var(--n-900);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.disc-btn:hover { color: var(--pc-blue-ink); }
+.disc-btn:focus-visible { box-shadow: var(--focus); }
+.disc-label { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); }
+.disc-label .stripe { width: 10px; height: 18px; display: block; flex: 0 0 auto; }
+.disc-meta { flex: 0 0 auto; color: var(--n-600); font: var(--t-small); }
+.disc-icon { flex: 0 0 auto; width: 1.25rem; text-align: center; color: var(--n-600); }
+.disc-icon::after { content: "+"; font-weight: 400; }
+.disc[data-open="true"] > .disc-title .disc-icon::after,
+.disc-icon[data-open="true"]::after { content: "\2212"; }
+.disc-panel { overflow: hidden; transition: height var(--dur-move) var(--ease-move); }
+.disc-panel[data-open="false"] { visibility: hidden; transition: height var(--dur-move) var(--ease-move), visibility 0s linear var(--dur-move); }
+.disc-inner { padding: 2px; }
+.disc--lg { border-bottom: var(--rule); }
+.disc--lg > .disc-title .disc-btn { font: var(--t-h2); }
 
 /* ---- Table ---- */
 .tbl { width: 100%; border-collapse: collapse; font: var(--t-body); }
@@ -646,9 +664,20 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
       <div class="spec"><span class="label">Tooltip</span>
         <div class="tip"><b>Brazil</b><span class="v">Overall 64.2 · Moderate need</span><span class="v" style="color:var(--n-400)">5 of 7 pillars scored · 2024</span></div>
       </div>
-      <div class="spec"><span class="label">Disclosure</span>
-        <details class="disc" open><summary>Healthcare · 5 of 11 indicators</summary><div class="body small">Maternal mortality, under-5 mortality, TB incidence, malaria incidence, stunting.</div></details>
-        <details class="disc"><summary>Agriculture · 1 of 3 indicators</summary><div class="body small">Food insecurity (moderate or severe).</div></details>
+      <div class="spec"><span class="label">Disclosure · one drop-down motion everywhere</span>
+        <div class="disc disc--lg" data-open="true" data-demo>
+          <div class="disc-title"><button class="disc-btn" aria-expanded="true"><span class="disc-label">The detail</span><span class="disc-icon" aria-hidden="true"></span></button></div>
+          <div class="disc-panel" data-open="true" style="height:auto"><div class="disc-inner"><p class="small" style="margin:0 0 var(--sp-3)">Section-level drop-down (disc--lg). The panel eases open downward over the layout-move token. Nothing beside it moves.</p></div></div>
+        </div>
+        <div class="disc" data-open="false" data-demo>
+          <div class="disc-title"><button class="disc-btn" aria-expanded="false"><span class="disc-label"><i class="stripe" style="background:var(--s-agri)"></i>Agriculture <span class="small">3 sub-domains</span></span><span class="disc-icon" aria-hidden="true"></span></button></div>
+          <div class="disc-panel" data-open="false" style="height:0"><div class="disc-inner"><p class="small" style="margin:0 0 var(--sp-3)">Default size, used for a group inside a side panel. A header can carry a stripe, a count or a status on the right (disc-meta).</p></div></div>
+        </div>
+        <div class="disc sd-block" data-open="false" data-demo>
+          <div class="disc-title"><button class="disc-btn" aria-expanded="false"><span class="disc-label"><span class="sd-head-left"><span class="sd-dot" style="background:var(--s-health)"></span><span class="sd-label">Resilient primary healthcare</span></span></span><span class="disc-meta"><span class="sd-head-right"><span class="sd-mini"><span class="sd-mini-fill" style="width:72%;background:var(--s-health)"></span></span><span class="sd-val">72</span></span></span><span class="disc-icon" aria-hidden="true"></span></button></div>
+          <div class="disc-panel" data-open="false" style="height:0"><div class="disc-inner"><div class="sd-body open"><p class="small" style="margin:0;padding:var(--sp-3)">Boxed variant with a score bar. Its panel holds indicator charts.</p></div></div></div>
+        </div>
+        <p class="ds-note">Three sizes of the same control: section (disc--lg), default, and boxed (sd-block). They share the header, the plus and minus mark and the motion; they differ in scale and weight. A header that needs its own layout, like the pillar score row, keeps its button and wraps only the panel in DisclosurePanel, so the motion stays the same. Press a header to try it. Reduced motion makes it instant.</p>
       </div>
     </div>
 
@@ -850,4 +879,17 @@ if grep -rnE 'border-radius:\s*(?!0;|50%)' dashboard/src --include='*.css' -P; t
     if (e.propertyName === 'width') { map.textContent = state.expanded ? 'map · re-projected, narrow' : 'map · re-projected, wide'; }
   });
 })();
+
+  // Disclosure demo: same height-measuring approach as components/controls/Disclosure.
+  document.querySelectorAll('[data-demo]').forEach(function (d) {
+    var btn = d.querySelector('.disc-btn'), panel = d.querySelector('.disc-panel');
+    btn.addEventListener('click', function () {
+      var open = d.getAttribute('data-open') !== 'true';
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      d.setAttribute('data-open', open); panel.setAttribute('data-open', open); btn.setAttribute('aria-expanded', open);
+      if (reduce) { panel.style.height = open ? 'auto' : '0'; return; }
+      if (open) { panel.style.height = panel.firstElementChild.scrollHeight + 'px'; panel.addEventListener('transitionend', function f(e) { if (e.target === panel) { panel.style.height = 'auto'; panel.removeEventListener('transitionend', f); } }); }
+      else { panel.style.height = panel.firstElementChild.scrollHeight + 'px'; requestAnimationFrame(function () { requestAnimationFrame(function () { panel.style.height = '0'; }); }); }
+    });
+  });
 </script>

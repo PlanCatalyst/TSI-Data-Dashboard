@@ -9,6 +9,7 @@ import {
 import { NeedBadge } from "../scores/ScoreWithContext";
 import { seriesColor } from "../scores/series-color";
 import { WhyLink } from "../scores/WhyLink";
+import { DisclosurePanel } from "../controls/Disclosure";
 
 type Props = {
   pillar: Pillar;
@@ -54,9 +55,10 @@ export function ScoreRow({ pillar, ctx, delta, firstYear, expanded, onToggle }: 
         </span>
         <span className="num">{ctx.value != null ? `${ctx.estimated ? "~" : ""}${ctx.value}` : "—"}</span>
         {ctx.band ? <NeedBadge band={ctx.band} /> : <span className="small">No data</span>}
+        <span className="disc-icon" aria-hidden="true" data-open={expanded} />
       </button>
-      {expanded && (
-        <div className="score-detail" id={detailId}>
+      <DisclosurePanel open={expanded} id={detailId}>
+        <div className="score-detail">
           <dl>
             <dt>Coverage</dt>
             <dd>
@@ -83,7 +85,7 @@ export function ScoreRow({ pillar, ctx, delta, firstYear, expanded, onToggle }: 
             )}
           </dl>
         </div>
-      )}
+      </DisclosurePanel>
     </>
   );
 }

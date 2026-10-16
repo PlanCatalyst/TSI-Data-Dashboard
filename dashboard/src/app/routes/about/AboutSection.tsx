@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { sectionStatus, type SectionContent } from "../../../content/about";
 import { useSectionReveal } from "../../../hooks/useSectionReveal";
-import { Disclosure } from "./Disclosure";
+import { Disclosure } from "../../../components/controls/Disclosure";
 import { StatusChip } from "./StatusChip";
 import { Rich } from "./rich";
 import { useWiki } from "./WikiContext";
@@ -97,7 +97,7 @@ export function AboutSection({ s }: { s: SectionContent }) {
       ) : null}
 
       <div data-sec-reveal="3">
-        <Disclosure title="The detail" open={isExpanded(s.id)} onToggle={(o) => setExpanded(s.id, o)}>
+        <Disclosure className="disc--lg" title="The detail" open={isExpanded(s.id)} onToggle={(o) => setExpanded(s.id, o)}>
           <div className="wiki-detail">
             {s.detail.map((b) => (
               <div key={b.id} id={b.id} className="wiki-block" tabIndex={-1}>

@@ -1,8 +1,7 @@
-import { useState } from "react";
-
 import type { Indicator, IndicatorStatus, Pillar, Subdomain, TimeseriesPayload } from "../../data/contract/types";
 import type { IndicatorProjectionView } from "../../data/contract/projections";
 import { IndicatorTrendMini } from "./IndicatorTrendMini";
+import { Disclosure } from "../controls/Disclosure";
 
 type Props = {
   subdomain: Subdomain;
@@ -34,51 +33,51 @@ export function SubdomainBlock({
   projectionViews,
   indicatorStatus,
 }: Props) {
-  const [open, setOpen] = useState(defaultOpen);
   const sdIndicators = indicators.filter((ind) => ind.subdomain === subdomain.key);
   const hasIndicators = sdIndicators.length > 0;
 
-  return (
-    <div className="sd-block">
-      <button
-        type="button"
-        className="sd-head"
-        onClick={() => hasIndicators && setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-disabled={!hasIndicators}
-      >
-        <div className="sd-head-left">
-          <div className="sd-dot" style={{ background: pillar.color }} />
-          <span className="sd-label">{subdomain.label}</span>
-        </div>
-        <div className="sd-head-right">
-          <div className="sd-mini">
-            {score != null && (
-              <div className="sd-mini-fill" style={{ width: `${score}%`, background: pillar.color }} />
-            )}
-          </div>
-          <span className="sd-val">{score != null ? score : "—"}</span>
-          {hasIndicators && (
-            <span className={`sd-chev${open ? " open" : ""}`}>▾</span>
-          )}
-        </div>
-      </button>
+  const left = (
+    <span className="sd-head-left">
+      <span className="sd-dot" style={{ background: pillar.color }} />
+      <span className="sd-label">{subdomain.label}</span>
+    </span>
+  );
+  const right = (
+    <span className="sd-head-right">
+      <span className="sd-mini">
+        {score != null && <span className="sd-mini-fill" style={{ width: `${score}%`, background: pillar.color }} />}
+      </span>
+      <span className="sd-val">{score != null ? score : "\u2014"}</span>
+    </span>
+  );
 
-      {open && hasIndicators && (
-        <div className="sd-body open">
-          {sdIndicators.map((ind) => (
-            <IndicatorTrendMini
-              key={ind.key}
-              indicator={ind}
-              series={timeseries[iso3]?.[ind.key] ?? years.map(() => null)}
-              years={years}
-              color={pillar.color}
-              projectionView={projectionViews?.[ind.key] ?? null}
-              status={indicatorStatus?.[ind.key] ?? null}
-            />
-          ))}
+  // No indicators: a plain header, nothing to open.
+  if (!hasIndicators) {
+    return (
+      <div className="sd-block">
+        <div className="sd-head sd-head--static">
+          {left}
+          {right}
         </div>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <Disclosure as="div" className="sd-block" defaultOpen={defaultOpen} title={left} meta={right}>
+      <div className="sd-body open">
+        {sdIndicators.map((ind) => (
+          <IndicatorTrendMini
+            key={ind.key}
+            indicator={ind}
+            series={timeseries[iso3]?.[ind.key] ?? years.map(() => null)}
+            years={years}
+            color={pillar.color}
+            projectionView={projectionViews?.[ind.key] ?? null}
+            status={indicatorStatus?.[ind.key] ?? null}
+          />
+        ))}
+      </div>
+    </Disclosure>
   );
 }
