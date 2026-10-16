@@ -1,0 +1,56 @@
+{
+  "designSystemPage": "docs/design-system/index.html",
+  "allowed": {
+    "Button": {
+      "specimen": "Button · primary",
+      "classes": [
+        "btn",
+        "btn--secondary",
+        "btn--ghost",
+        "btn--icon",
+        "btn--sm"
+      ]
+    },
+    "Segmented control": {
+      "specimen": "Segmented control",
+      "classes": [
+        "seg",
+        "seg-btn"
+      ]
+    },
+    "Score row": {
+      "specimen": "class=\"score-row",
+      "classes": [
+        "score-row"
+      ]
+    }
+  },
+  "legacy": {
+    "sd-head": "Map panel subdomain header. Should become the Disclosure component.",
+    "wdisc-btn": "Animated disclosure used on About. Duplicates the Disclosure in the design system (details.disc); merge them into one and document it.",
+    "gloss-term": "About glossary term with hover definition. Not yet in the design system.",
+    "wiki-rail-toggle": "About contents rail toggle. Not yet in the design system.",
+    "wiki-contents-btn": "About per-section Contents button. Should be btn--ghost btn--sm.",
+    "wiki-backlink": "About Back to contents link-style button. Not yet in the design system.",
+    "wiki-rowbtn": "About decisions log row button. Not yet in the design system.",
+    "wiki-sortbtn": "About sortable table header button. The design system has a sortable table header; reuse it.",
+    "wiki-stage": "About pipeline stage button. Not yet in the design system.",
+    "wiki-tree-btn": "About framework tree row. Not yet in the design system.",
+    "wiki-tree-btn--sub": "About framework tree sub row. Not yet in the design system."
+  },
+  "banned": [
+    "fbtn",
+    "chart-ind-btn",
+    "chart-ind-sel",
+    "wiki-seg",
+    "wiki-seg-btn"
+  ],
+  "bannedUse": {
+    "fbtn": "the Segmented control (components/controls/Segmented)",
+    "chart-ind-btn": "the Segmented control (components/controls/Segmented)",
+    "chart-ind-sel": "the Segmented control (components/controls/Segmented)",
+    "wiki-seg": "the Segmented control (components/controls/Segmented)",
+    "wiki-seg-btn": "the Segmented control (components/controls/Segmented)"
+  },
+  "bareButtonsMax": 2
+}
