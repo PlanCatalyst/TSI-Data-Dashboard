@@ -8,6 +8,7 @@ import {
 } from "../../data/contract/score-context";
 import { NeedBadge } from "../scores/ScoreWithContext";
 import { seriesColor } from "../scores/series-color";
+import { WhyLink } from "../scores/WhyLink";
 
 type Props = {
   pillar: Pillar;
@@ -58,7 +59,9 @@ export function ScoreRow({ pillar, ctx, delta, firstYear, expanded, onToggle }: 
         <div className="score-detail" id={detailId}>
           <dl>
             <dt>Coverage</dt>
-            <dd>{ctx.coverage ? coverageText(ctx.coverage) : "No indicators with data"}</dd>
+            <dd>
+              {ctx.coverage ? coverageText(ctx.coverage) : "No indicators with data"} <WhyLink to="n-of-m" />
+            </dd>
             <dt>Latest</dt>
             <dd>{ctx.coverage?.year != null ? ctx.coverage.year : ctx.coverage ? "All years" : "—"}</dd>
             <dt>Trend</dt>
