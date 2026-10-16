@@ -23,11 +23,15 @@
       "classes": [
         "score-row"
       ]
+    },
+    "Disclosure": {
+      "specimen": "Disclosure · one drop-down motion everywhere",
+      "classes": [
+        "disc-btn"
+      ]
     }
   },
   "legacy": {
-    "sd-head": "Map panel subdomain header. Should become the Disclosure component.",
-    "wdisc-btn": "Animated disclosure used on About. Duplicates the Disclosure in the design system (details.disc); merge them into one and document it.",
     "gloss-term": "About glossary term with hover definition. Not yet in the design system.",
     "wiki-rail-toggle": "About contents rail toggle. Not yet in the design system.",
     "wiki-contents-btn": "About per-section Contents button. Should be btn--ghost btn--sm.",
