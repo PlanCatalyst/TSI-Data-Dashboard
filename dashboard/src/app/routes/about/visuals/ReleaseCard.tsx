@@ -25,7 +25,7 @@ export function ReleaseCard() {
           </div>
         ))}
       </dl>
-      <h4>What changed since the last release</h4>
+      <h4>What changed since the last update</h4>
       <ul className="wiki-changelog">
         {CHANGELOG.map((c) => (
           <li key={c.text}>

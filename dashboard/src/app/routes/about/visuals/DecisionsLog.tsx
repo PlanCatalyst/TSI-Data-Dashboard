@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { CANDOUR, visibleDecisions, visibleIssues, type DecisionStatus } from "../../../../content/about";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { StatusChip } from "../StatusChip";
 
 type Filter = "all" | DecisionStatus;

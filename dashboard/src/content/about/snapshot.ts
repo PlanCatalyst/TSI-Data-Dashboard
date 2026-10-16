@@ -79,9 +79,9 @@ export const AUDIT = {
 // ── What changed since the last release (section 14) ────────────────────────
 
 export const CHANGELOG: { date: string; text: string }[] = [
-  { date: "2026-10-15", text: "Independent audit: every published score rebuilt from the raw source files. 97,038 of 97,038 match." },
-  { date: "2026-10-15", text: "Four publishing defects fixed: aid without national income, city-only rows, a retired country code, a dropped survey year." },
-  { date: "2026-10-15", text: "The overall score now needs the six core pillars to have a score. Socio-economic performance is included when present." },
-  { date: "2026-10-14", text: "Pillar, overall and regional lines use a fixed basket of indicators, which removes the early-year zigzag." },
-  { date: "2026-10-14", text: "One source row per country and year: adolescent births, health regulation capacity and bank accounts no longer jump up and down." },
+  { date: "2026-10-15", text: "Independent check: we rebuilt every published score from the raw source files. 97,038 of 97,038 match." },
+  { date: "2026-10-15", text: "We fixed four publishing problems: aid without national income, city-only rows, a retired country code and a dropped survey year." },
+  { date: "2026-10-15", text: "The overall score now needs a score on all six core pillars. Socio-economic performance is included when present." },
+  { date: "2026-10-14", text: "Pillar, overall and regional lines now use a fixed set of indicators, which removes the early-year zigzag." },
+  { date: "2026-10-14", text: "We now use one source row per country and year, so adolescent births, health emergency preparedness and bank accounts no longer jump up and down." },
 ];

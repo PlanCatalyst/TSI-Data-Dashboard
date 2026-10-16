@@ -10,7 +10,7 @@ import {
 } from "../../../../content/about/methodology";
 import { needBand } from "../../../../data/contract/score-context";
 import { useDashboardData } from "../../../../state/dashboard-context";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { indicatorLabel, shortLabel } from "./data";
 import { ShowAsTable } from "../ShowAsTable";
 
@@ -148,7 +148,7 @@ export function ScoringCurves() {
           Score <b className="num wiki-bignum">{Math.round(score * 10) / 10}</b>
         </span>
         <span>
-          Need on the pipeline scale <b className="num">{needScore(row, value)}</b>
+          Need on our working scale <b className="num">{needScore(row, value)}</b>
         </span>
         {band ? (
           <span className={`chip chip--${band.key}`}>{band.label}</span>

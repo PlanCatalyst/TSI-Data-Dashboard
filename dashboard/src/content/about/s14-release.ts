@@ -3,24 +3,24 @@ import type { SectionContent } from "./types";
 export const section: SectionContent = {
   id: "release",
   number: 14,
-  title: "This release",
-  keywords: ["release", "snapshot", "version", "changelog", "run id", "generated", "date", "what changed"],
+  title: "What changed in this update",
+  keywords: ["release", "update", "snapshot", "version", "changelog", "run id", "generated", "date", "what changed"],
   answer: [
-    "This page describes the data release below. The numbers on the dashboard all come from this one [[snapshot]], never a mix of runs.",
+    "This page describes the update below. Every number on the dashboard comes from this one [[snapshot]], never a mix of updates.",
   ],
   detail: [
     {
       id: "changes",
-      heading: "What changed since the last release",
+      heading: "What changed since the last update",
       body: [
-        "The list in the card above is the short version. Each change is also in the ((decisions|decisions log)), with the reason.",
+        "The list in the card above is the short version. Each change is also in ((decisions|our choices)), with the reason.",
       ],
     },
     {
       id: "next",
-      heading: "What happens at the next refresh",
+      heading: "What happens at the next update",
       body: [
-        "Everything is rebuilt from fresh source files and checked again before it goes live. If the client decides any pending item, the affected scores change in that release and the ((decisions|log)) records it.",
+        "We rebuild everything from fresh source files and check it again before it goes live. If we settle any pending item, the affected scores change in that update, and we record it in ((decisions|our choices)).",
       ],
     },
   ],

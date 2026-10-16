@@ -13,20 +13,9 @@
 }
 
 /* ── FILTER BAR ──
-   Toggle buttons follow .btn--ghost with aria-pressed, square. */
+   A label and a segmented control (.seg, see the design system). */
 .fbar { background: var(--n-0); border-bottom: var(--rule); padding: var(--sp-2) var(--sp-6); display: flex; align-items: center; gap: var(--sp-1); flex-wrap: wrap; max-width: 100vw; }
 .fbar-lbl { font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; color: var(--n-600); white-space: nowrap; margin-right: var(--sp-2); }
-.fbtn, .chart-ind-btn {
-  min-height: 28px; padding: 0 var(--sp-3);
-  border: 1px solid transparent; border-radius: var(--radius);
-  background: transparent; color: var(--n-800);
-  font: 500 0.75rem/1 var(--f-body); cursor: pointer; white-space: nowrap;
-  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
-  -webkit-tap-highlight-color: transparent;
-}
-.fbtn:hover, .chart-ind-btn:hover { background: var(--n-100); }
-.fbtn.active, .chart-ind-btn.active { background: var(--pc-blue-tint); color: var(--pc-blue-ink); border-color: var(--pc-blue); }
-.fbtn:focus-visible, .chart-ind-btn:focus-visible { outline: none; box-shadow: var(--focus); }
 .fbar-sep { width: 1px; height: 18px; background: var(--n-200); margin: 0 var(--sp-1); flex-shrink: 0; }
 .fsearch { height: 32px; border: 1px solid var(--n-200); padding: 0 var(--sp-3); font: var(--t-small); color: var(--n-900); background: var(--n-0); border-radius: var(--radius); width: 100%; max-width: 320px; margin-left: auto; }
 .fsearch::placeholder { color: var(--n-400); }
@@ -119,25 +108,6 @@
 .region-bar-bg { flex: 1; height: 6px; background: var(--n-100); border-radius: var(--radius); }
 .region-bar-fill { height: 100%; border-radius: var(--radius); }
 .region-count { font-size: 11px; color: var(--n-600); width: 60px; text-align: right; }
-
-/* ── DOMAIN FILTER BUTTONS ── */
-.chart-ind-sel { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; max-width: 100%; }
-.chart-ind-btn {
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--n-200);
-  background: var(--n-0);
-  font-size: 11px;
-  cursor: pointer;
-  color: var(--n-600);
-  transition: all .15s;
-  font-family: inherit;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-}
-.chart-ind-btn.active { background: var(--pc-blue); color: var(--n-0); border-color: var(--pc-blue); }
-.chart-ind-btn:hover:not(.active) { border-color: var(--pc-blue); color: var(--pc-blue); }
-@media (max-width: 480px) { .chart-ind-btn { padding: 4px 8px; font-size: 10.5px; } }
 
 /* ── COMPARE ── */
 .cmp-body { padding: 14px 16px 40px; }
@@ -380,6 +350,26 @@
 .trend--down { color: var(--need-severe-ink); }
 .trend--flat { color: var(--n-600); }
 .trend--unknown { color: var(--n-400); }
+
+/* ---- Segmented control ----
+   One choice from a few, always visible (scoring family, before/after, filter).
+   WHY: the bar is exactly as wide as its buttons added together and sits at the
+   start of its row. It must never stretch to fill a grid or column parent, so
+   width is fit-content and justify-self is start. Each button is as wide as its
+   own label. Labels do not wrap; the bar wraps to a second row on a narrow screen.
+   No outline and no dividers. Each unselected button is a light grey cell (n-100) so it
+   reads as a button, hover darkens it to n-200, and the filled blue button is the
+   selection. A 2px gap lets the page ground separate the cells. */
+.seg { display: inline-flex; flex-wrap: wrap; width: fit-content; max-width: 100%; justify-self: start; gap: 2px; }
+.seg-btn {
+  flex: 0 0 auto; min-height: 36px; padding: 0 var(--sp-4);
+  background: var(--n-100); color: var(--n-800); border: 0; cursor: pointer; white-space: nowrap;
+  font: 500 0.8125rem/1 var(--f-body);
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.seg-btn:hover { background: var(--n-200); }
+.seg-btn[aria-checked="true"] { background: var(--pc-blue); color: var(--n-0); }
+.seg-btn:focus-visible { outline: none; box-shadow: var(--focus); position: relative; z-index: 1; }
 
 /* Disclosure */
 .disc { border-top: var(--rule); }

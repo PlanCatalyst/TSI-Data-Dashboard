@@ -520,6 +520,13 @@ rules separate content. Generous whitespace, photography-led, no shadows.
   and approved 2026-10-14.
 - REQ7.6 CI guardrail: a grep step fails the build if a hex literal appears
   in `dashboard/src` outside the token file.
+- REQ7.6a CI guardrail for controls: `npm run lint:components` fails when a
+  `<button>` carries a class that is not a registered design system component
+  (`dashboard/scripts/component-registry.json`), when a retired class
+  (`fbtn`, `chart-ind-btn`) returns, or when a registered component has no
+  specimen on the design system page. Controls that exist but are not yet in
+  the design system are listed as `legacy`; that list may only shrink.
+  Added 2026-10-15 after the About page shipped a third selector style.
 - REQ7.7 Responsive behaviour is part of the system: breakpoints, panel
   behaviour under 1024 px, and iframe height handling are defined once.
 
@@ -741,6 +748,11 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   a domain reader, active voice, no em dashes, no repository paths or code
   names in public copy (series codes may appear in the detail as a
   reference). Follows the writing rules used for the rest of the UI.
+  Added 2026-10-15 (Thomas): the voice follows PlanCatalyst's own site, with
+  "we" for PlanCatalyst and "you" for the reader, short plain sentences, and
+  the meaning before the arithmetic. `check:about` rejects "client" and process
+  vocabulary in public copy. The status label "Pending client decision" is now
+  "Decision pending".
 - REQ9.11 The per-indicator methodology table (section 4) is hand-kept in
   `dashboard/src/content/about/methodology.ts` and checked by
   `npm run check:about` against `public/v1/meta.json` (all 28 indicators
