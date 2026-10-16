@@ -35,6 +35,7 @@ non-engineer every six months**.
 | R6 | (Thomas) Make the UI modern, intuitive and smooth; the original spec was a single clogged HTML mock | UX / design system | Confirmed drift in the codebase. See §7. |
 | R7 | (Thomas) Fix the side panel bugs, e.g. close leaves the map shrunk | Bug | Reproduced in code. See §7.2. |
 | R8 | (Thomas) Design system and motion system from PlanCatalyst's brand: square corners, white, blue and green, fade reveals, restrained motion | Design system | Brand extracted from plancatalyst.org. See §7.3 to §7.5. |
+| R9 | (Thomas) A comprehensive, interactive About page that explains the methodology, every material decision and every visible oddity | Content / UX | Current page is thin and partly wrong. See §9. |
 
 ---
 
@@ -390,6 +391,7 @@ B5. Remaining routes: Explore, Compare, About, Trends (§7) ..... done, d476f5c
 B6. Reveal hook and motion tokens wired (§7.5) ................. done, ad25976
 B7. CI hex and radius guardrail (REQ7.6) ....................... done, 31a4d65
 B8. Before/after screenshots and Reyna review (AC2.3, AC7.7) ... open
+B9. About page rebuild: wiki layout, 14 sections, live visuals (§9) ... open
 ```
 
 Notes from the build (2026-10-14):
@@ -572,3 +574,234 @@ rules separate content. Generous whitespace, photography-led, no shadows.
 - Projection bands. Remove the placeholder or ship separately.
 - Changes to the pillar taxonomy or indicator list.
 - Scheduled or automatic refreshes.
+
+---
+
+## 9. About page: methodology, decisions and known oddities
+
+**Added 2026-10-15 (Thomas).** Direction from Thomas, expanded here. Visual
+reference: the audit explainer at https://claude.ai/artifact/CMLqZaakkKJAXoDJpdLLZ5
+(same tokens, same motion, the treatment the About page should reach).
+
+### 9.1 Problem
+
+The About page today is three short methodology paragraphs, a source list and
+the framework grid. It does not explain most of what we decided while
+building the dashboard, and parts of it are now wrong:
+
+- It says pillar and subdomain scores are "simple arithmetic means for the
+  selected year". Since DQ-03 they are basket means (§1.7).
+- It says the population density direction is pending. It was confirmed on
+  2026-09-17 (`SCORING_AUDIT.md` row 27).
+- It gives ND-GAIN as 1995 to 2023. The 2026 release runs to 2024.
+- It still carries a deferred note for `conces`, which `mspi` replaced.
+- It points readers at repository files (`indicators.yaml`,
+  `SCORING_AUDIT.md`) that a public reader cannot open.
+- Indicator text that reaches the page through `meta.json` has errors at the
+  source: `sanit` is labelled "not using" safely managed sanitation, `susag`
+  says "Score from 1-5" for a percentage, and the `u5mr` unit is malformed.
+- The copy uses em dashes and repository jargon.
+
+Meanwhile readers see things that look like bugs and are not: lines pinned at
+100, single-country sawtooth, series that start late or stop early, pillars
+with no early years, and a projections slot that is always empty. Nothing on
+the page tells them why. Reyna asked the same questions in the 2026-10-14
+review (§1.1).
+
+### 9.2 Goal
+
+The About page is where the dashboard explains itself. A domain reader
+(Reyna, a funder, a member of the public) should be able to answer three
+questions there without contacting us:
+
+1. **How was this number made?** From the source file to the score on screen.
+2. **Why does this chart look like that?** Every visible oddity has an
+   entry with its cause and whether it is a property of the data, a
+   deliberate rule, or an open issue.
+3. **What did you decide, and what is still open?** Every material
+   methodology decision, who made it, when, and its status.
+
+It does this by showing as well as telling: each concept gets an
+interactive visual built on real data from the current snapshot, with the
+plain-language answer first and the detail one click away.
+
+### 9.3 Page structure
+
+- REQ9.1 **Wiki layout, built for the worst-case embed.** A left rail lists
+  every section and its subsections; the reading column sits to the right at
+  about 65 characters. The rail highlights the section in view (scroll spy)
+  and collapses its subsection lists to the current section. The Wix embed
+  mode is unknown, so the layout assumes the worst case (auto-height iframe,
+  §9.7), where nothing inside the iframe can follow the reader's scroll:
+  - The rail is collapsible. A "Contents" toggle at its top hides it to a
+    slim strip and gives the reading column the full width; the choice is a
+    per-viewer convenience and the page works without it.
+  - Navigation never depends on the rail staying in view. Every section ends
+    with a "Back to contents" link, and every section heading carries a
+    small "Contents" button that reopens the rail at the top of the page.
+  - `position: sticky` is a progressive enhancement only. If the iframe has
+    its own scroll (fixed height), the rail sticks; if not, it scrolls away
+    and the links above carry navigation. No layout or test may assume it
+    sticks.
+  - Below 1024 px the rail becomes an "On this page" disclosure at the top
+    of the column, closed by default.
+- REQ9.2 **Deep links.** Every section and subsection has a stable id and a
+  route of the form `#/about/<section>` (the app uses `HashRouter`, so plain
+  `#anchor` links do not work). Opening such a link scrolls to the section
+  and expands it. Other pages link into About this way (see REQ9.9).
+- REQ9.3 **Progressive disclosure.** Each section opens with a short answer
+  of two or three sentences that is always visible, then its visual, then
+  "The detail" as a collapsible Disclosure (REQ7.4). An "Expand all" and
+  "Collapse all" control sits at the top of the rail. Expanded state is a
+  per-viewer convenience only; nothing breaks without it.
+- REQ9.4 **Section anatomy.** Every section carries the same parts in the
+  same order: short answer, visual, detail, "See it on the dashboard" link
+  where one applies, and a provenance line (decided by, date, status chip:
+  Locked, Pending client decision, Open issue). The status chips come from
+  one decisions module (REQ9.12) so a decision changes in one place.
+- REQ9.5 **Filter.** A text box at the top of the rail filters sections and
+  glossary terms by title and keywords. Client-side only; no search engine.
+
+### 9.4 Sections and their visuals
+
+Order is the reading order. Visuals marked *live* compute from the `/v1`
+contract the dashboard already loads; *static* ones use values stored in the
+content module with the snapshot id they belong to.
+
+| # | Section | Short answer covers | Visual |
+|---|---------|---------------------|--------|
+| 1 | What this dashboard is | Decision support for country-level need, not impact attribution. 216 countries, 28 indicators, 7 pillars, 17 subdomains, 1990 to 2024. | Framework tree: pillars to subdomains to indicators, click to expand (replaces the current card grid). *live* |
+| 2 | Reading a score | 0 to 100, higher is better (less need). Need bands at 75, 50, 25. A dash means no data, never zero. | Score scale with the four need bands; hover a band to see example countries from the current year. *live* |
+| 3 | From source to screen | The pipeline in seven stages: fetch, raw store, clean, choose the right row, score, check, combine and publish. | Animated stage diagram. Click a stage to see what it does, and follow one real record (Brazil tuberculosis, latest year) through every stage with its value at each step. *static, stamped with run id* |
+| 4 | How each indicator is scored | Five scoring families: ratio to a threshold, gap to a coverage benchmark, share of a goal, index already 0 to 100, density bands. | One interactive curve per family: drag the raw value, watch need and the displayed score move, benchmark marked. Below it, a sortable table of all 28 indicators: source, unit, family, benchmark. *static (generated, REQ9.11)* |
+| 5 | Why some lines sit flat at 100 | The benchmark rule: any country better than the client benchmark scores 100, so better-performing countries tie and show no trend (DQ-01). | Brazil climate vulnerability as a line, with a toggle between the current rule and the proposed soft floor (values from `SCORING_AUDIT.md`). Status: Pending client decision until Reyna rules, then Locked. *static* |
+| 6 | Choosing the right number from the source | Sources publish several rows per country-year (by sex, age, area). We keep national totals; adolescent births use ages 15 to 19; IHR is the mean of 13 capacities; bank accounts use adults 15+; women-only measures use the women's figure; city-only rows are never used as national. | Before and after toggle on the Brazil reproductive health sawtooth (DQ-02): 100, 31, 100, 31 becomes one honest line. *static* |
+| 7 | Combining indicators into pillars | Basket rule: an indicator counts toward a pillar if it reported in the last five years; a year is scored only when 75% of the basket is present (DQ-03). Explains why early years disappear and what the "n of m" badge means (DQ-05). | Basket grid: indicators as rows, years as columns, filled cells where data exists, with the scored years marked underneath. Toggle "old rule" to see the 1996 to 1998 zigzag (70.5, 80.2, 69.7) return. Country picker. *live* |
+| 8 | Why a chart might look odd | A gallery of every known oddity, each with symptom, cause, and whether it is data, rule or open issue. | Small-multiple sparklines from real series, one per oddity, each linking to the country and indicator on the dashboard. *live* |
+| 9 | Missing data and projections | Why a value is blank (`out_of_scope` vs `incomplete_data`), and why projections are not shown: forecasts are off in this release, and when on, a series must pass five quality gates; we never carry the last value forward. | Gate funnel diagram (insufficient observations, insufficient span, stale, too sparse, no signal), labelled illustrative while `meta.projections.enabled` is false. Coverage heatmap: indicators by year, shaded by share of countries reporting. *live* |
+| 10 | Sources and refresh | Six sources, what each provides, years covered, licence, and the six-month refresh. | Source cards with coverage bars by year. *live coverage, static text* |
+| 11 | How we check the data | Nine validation rules run before every publish and block bad data; an independent audit rebuilds every score from raw files. | The audit proportion bar from the explainer artifact (matches, gaps by verdict), and the issue log as status chips. *static, stamped with run id* |
+| 12 | Decisions log | Every material decision with date, decider and status. | Filterable table (All, Locked, Pending). *static* |
+| 13 | Glossary | Need, benchmark, clamp, basket, pillar, subdomain, indicator status, SDG series, ISO3. | Terms with hover definitions linked from the rest of the page. *static* |
+| 14 | This release | Snapshot id, generated date, index version, what changed since the last release. | Release card. *live (meta), static changelog* |
+
+Section 8 starts with at least these entries, each tied to its issue ID:
+
+| Oddity | Cause | Kind |
+|--------|-------|------|
+| Line flat at 100 for years | Benchmark clamp (DQ-01) | Rule, pending decision |
+| Sawtooth in one small country (Niue tuberculosis) | A few cases move the rate in a population near 1,600 (DQ-09) | Data |
+| Jagged agriculture aid | Aid disbursements are lumpy by nature (DQ-08) | Data |
+| Series starts late or stops early | Source coverage: IHR 2010 to 2017 only, WASH mortality 2019 only, WGI every other year before 2002, MPI only in survey years | Data |
+| Pillar has no early years | Basket rule needs 75% of the pillar's indicators (DQ-03) | Rule |
+| Regional line has gaps | Years where fewer than half the region's countries report are not drawn (DQ-04) | Rule |
+| Pillar score marked "1 of 3" | Only one indicator reported that year (DQ-05) | Rule |
+| Dense countries score 0 on population density | Banded scale, denser means more need, confirmed 2026-09-17 | Rule |
+| Sustainable agriculture shows only a handful of countries | The source reports for about 10 countries | Data |
+| Overall score shown while one pillar is blank | Overall averages the pillars that have data; contract wording under review | Open issue |
+
+### 9.5 Interaction and motion
+
+- REQ9.6 Every visual uses the §7 tokens and motion system: reveals at
+  1.1 s quint-out with 0.12 s stagger in visual-hierarchy order, chart lines
+  draw in on first render only, Disclosure height animates over 0.6 s
+  ease-in-out. One orchestrated moment per section at most; no ambient
+  motion. `prefers-reduced-motion` makes everything instant (REQ7.12).
+- REQ9.7 Every interactive visual works by keyboard, has a visible focus
+  state, and has a text equivalent: the short answer states its point, and
+  a "Show as table" toggle gives the numbers behind it.
+- REQ9.8 Visuals inside a collapsed Disclosure do not mount until opened, so
+  the page loads fast inside the Wix iframe. The About route is a lazy
+  chunk.
+- REQ9.9 **Explain-in-place links.** Wherever the dashboard shows an oddity,
+  a small "Why?" link opens the matching About section: the flat-at-100 tile
+  in the side panel, the "n of m" badge, a blank projection slot, the
+  regional gap note, a deferred or out-of-scope indicator. These replace the
+  scattered one-off notes in `content/data-notes.ts` as the long-form
+  explanation; the short notes stay as tooltips.
+
+### 9.6 Content and data rules
+
+- REQ9.10 Copy lives in `dashboard/src/content/about/`, one module per
+  section, so text changes never touch components. Voice: plain language for
+  a domain reader, active voice, no em dashes, no repository paths or code
+  names in public copy (series codes may appear in the detail as a
+  reference). Follows the writing rules used for the rest of the UI.
+- REQ9.11 The per-indicator methodology table (section 4) is generated, not
+  hand-written: a script reads `indicators/indicators.yaml` and the scorer
+  constants and writes `dashboard/src/content/about/methodology.generated.json`.
+  CI fails if the generated file is stale. This keeps one source of truth
+  and makes yaml versus code drift (found by the 2026-10-14 audit) visible.
+- REQ9.12 One decisions module (`content/about/decisions.ts`) holds every
+  decision: id, title, decided by, date, status, linked issue IDs. Status
+  chips in every section and the log in section 12 read from it.
+- REQ9.13 Runtime data comes only from the `/v1` contract the app already
+  loads (hard invariant 1). Static figures (audit totals, example values)
+  carry the snapshot id they belong to; if it differs from
+  `meta.pipelineRunId`, the visual shows "from snapshot <id>" instead of
+  presenting old numbers as current.
+- REQ9.14 Fix the stale and wrong content listed in §9.1 at its source:
+  page copy in `content/about/`, indicator labels and units in
+  `indicators/indicators.yaml` (which flows into `meta.json`).
+- REQ9.15 Sections that describe a pending client decision (section 5, the
+  overall-score rule, the debt-risk input rule) are written so they stay
+  true either way, and are updated in the same change that applies the
+  decision.
+
+### 9.7 Risks and checks
+
+- The dashboard is embedded in Wix. If the embed grows to the content height,
+  a sticky rail inside the iframe never sticks, because the iframe itself
+  scrolls with the parent page, and `position: fixed` fails the same way.
+  The embed mode is unknown, so REQ9.1 designs for auto-height: collapsible
+  rail, "Back to contents" and per-heading "Contents" links, sticky as an
+  enhancement only. Following the parent's scroll would need Wix custom code
+  posting scroll offsets into the iframe; out of scope.
+- The page is public. Section 8, section 11 and the decisions log explain our
+  own open issues. Reyna approves the level of candour before release (open
+  question below).
+- Live visuals add work to the About route. Keep each under one pass over
+  the timeseries for one country or indicator; no whole-dataset scans on
+  load.
+
+### 9.8 Acceptance criteria
+
+- AC9.1 Every item in §9.1 is fixed; the page no longer contradicts
+  `docs/data-quality-issues.md`, `SCORING_AUDIT.md` or the contract.
+- AC9.2 Each of the 14 sections has a short answer, a visual, a detail
+  disclosure and a provenance line. Every entry in section 8 links to a
+  real country and indicator on the dashboard and shows the effect.
+- AC9.3 Every `#/about/<section>` link opens the right section expanded,
+  from a cold load and from another route.
+- AC9.4 Keyboard only: the rail, every Disclosure, every toggle and slider
+  can be reached and operated; focus is always visible.
+- AC9.5 Reduced motion verified with the OS setting on; every visual still
+  makes its point at rest.
+- AC9.6 Works at 400 px and inside the Wix iframe with no horizontal page
+  scroll. Every section is reachable from every other in two clicks with
+  `position: sticky` disabled in dev tools (simulates the auto-height
+  embed), and the rail collapses and reopens by keyboard.
+- AC9.7 `methodology.generated.json` regenerates identically in CI; the
+  methodology table matches `indicators.yaml` for all 28 indicators.
+- AC9.8 Lighthouse accessibility 95 or higher on the About route; zero hex
+  literals outside the token file (AC7.1).
+- AC9.9 Reyna reads the page and can answer, without help, why Brazil's
+  climate line is flat, why a pillar has no early years, and why there are
+  no projections.
+
+### 9.9 Non-requirements
+
+- No CMS or remote content store; copy ships with the build.
+- No full-text search engine; the rail filter is enough.
+- No analytics on section views (client decision, §8).
+- No new contract fields; the page reads what `/v1` already carries.
+
+### 9.10 Open questions
+
+- Q9.1 (Reyna) How candid should the public page be about open issues?
+  Options: full (issue IDs and status), summarised (cause and status, no
+  IDs), or internal-only sections behind a query flag.
+- Q9.2 (Reyna) Should the decisions log name individuals or only roles?
+- Q9.3 (Thomas) Embed mode in Wix: fixed height with internal scroll, or
+  auto-height. No longer blocking: REQ9.1 assumes auto-height (decided
+  2026-10-15). Confirming fixed height only turns the sticky enhancement on.
