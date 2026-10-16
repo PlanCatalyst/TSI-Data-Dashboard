@@ -76,6 +76,13 @@
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
 
+  /* ---- Reading layout (About wiki) ----
+     WHY: a 65ch measure keeps prose readable; the rail is a fixed width so
+     the reading column does not jump when it collapses to a strip. */
+  --measure:   65ch;
+  --rail-w:    240px;
+  --rail-slim: 40px;
+
   /* ---- Shape ----
      WHY: the brand is square. Only dots and avatars are round. */
   --radius: 0;
