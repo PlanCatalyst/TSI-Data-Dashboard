@@ -472,28 +472,6 @@
 .hist-badge { background: var(--pc-blue-tint); color: var(--pc-blue-ink); }
 .pred-badge { background: var(--need-moderate-tint); color: var(--need-moderate-ink); }
 
-/* ── ABOUT ── */
-.about-body { max-width: 780px; margin: 0 auto; padding: 24px 16px 40px; width: 100%; }
-.about-body h2 { font-size: 18px; font-weight: 700; color: var(--pc-blue); margin: 24px 0 10px; }
-.about-body h2:first-of-type { margin-top: 0; }
-.about-body h3 { font-size: 14px; font-weight: 700; color: var(--n-800); margin: 0 0 6px; }
-.about-body p { font-size: 13.5px; line-height: 1.7; color: var(--n-800); margin-bottom: 14px; }
-.about-section { margin-bottom: 18px; }
-.source-list { list-style: none; padding: 0; margin: 0 0 20px; }
-.source-list li { font-size: 13px; line-height: 1.65; color: var(--n-800); padding: 12px 0; border-bottom: 1px solid var(--n-200); }
-.source-list li:last-child { border-bottom: none; }
-.source-indicators { display: block; font-size: 11.5px; color: var(--n-600); margin-top: 4px; }
-.fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
-@media (max-width: 480px) { .fw-grid { grid-template-columns: 1fr; } .about-body { padding: 18px 12px 32px; } .about-body h2 { font-size: 16px; } }
-.fw-card { border: 1px solid var(--n-200); border-radius: var(--radius); padding: 14px; }
-.fw-head { font-size: 12.5px; font-weight: 700; color: var(--n-0); padding: 7px 11px; margin: -14px -14px 10px; border-radius: var(--radius); }
-.fw-head.blue { background: var(--pc-blue); }
-.fw-head.green { background: var(--pc-green-ink); }
-.fw-head.slate { background: var(--pc-slate); }
-.fw-head.stone { background: var(--s-context); }
-.fw-item { font-size: 12px; color: var(--n-800); padding: 4px 0; border-bottom: 1px solid var(--n-100); line-height: 1.4; }
-.fw-item:last-child { border-bottom: none; }
-.fw-item span { display: block; font-size: 10.5px; color: var(--n-600); }
 
 /* ── SORTABLE TABLE HEADERS ── */
 .th-sort { position: relative; cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -522,3 +500,6 @@
   .reveal.is-armed { opacity: 1; transform: none; }
   .draw polyline { animation: none; stroke-dashoffset: 0; }
 }
+
+/* "Why?" link from a dashboard note to its About explanation (REQ9.9) */
+.why-link { font: var(--t-small); font-weight: 500; color: var(--pc-blue-ink); white-space: nowrap; text-underline-offset: 2px; }

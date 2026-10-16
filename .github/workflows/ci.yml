@@ -65,6 +65,9 @@ jobs:
       - name: Design token guardrail
         run: npm run lint:tokens
 
+      - name: About page content guardrail
+        run: npm run check:about
+
       - name: Audit frontend dependencies
         run: npm audit --audit-level=moderate
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { regionColor, seriesColor } from "../../components/scores/series-color";
+import { WhyLink } from "../../components/scores/WhyLink";
 import { basketSeries } from "../../data/contract/selectors";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
@@ -217,7 +218,8 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
         </span>
       </div>
       <p className="small" style={{ margin: "var(--sp-2) 0 0" }}>
-        Years where fewer than half of a region's countries report a value are not drawn.
+        Years where fewer than half of a region's countries report a value are not drawn.{" "}
+        <WhyLink to="odd-charts" />
       </p>
 
       {/* Sparklines grid */}

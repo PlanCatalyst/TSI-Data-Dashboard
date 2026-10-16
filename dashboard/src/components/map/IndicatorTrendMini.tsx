@@ -1,5 +1,6 @@
 import type { Indicator, IndicatorStatus } from "../../data/contract/types";
 import { describeIndicatorStatus } from "../../content/data-notes";
+import { WhyLink } from "../scores/WhyLink";
 import { trendBucket, trendDelta } from "../../data/contract/selectors";
 import {
   UX_UNAVAILABLE_COPY,
@@ -186,7 +187,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                 textAlign: statusNote ? "left" : "center",
               }}
             >
-              {statusNote ?? "No data available for this indicator."}
+              {statusNote ?? "No data available for this indicator."} <WhyLink to="blank-kinds" />
             </div>
           ) : (
             <>
@@ -331,7 +332,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                     lineHeight: 1.35,
                   }}
                 >
-                  {UX_UNAVAILABLE_COPY}
+                  {UX_UNAVAILABLE_COPY} <WhyLink to="projections" />
                 </div>
               )}
             </>

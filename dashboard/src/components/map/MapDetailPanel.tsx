@@ -28,6 +28,7 @@ import {
   type PillarScoreContext,
 } from "../../data/contract/score-context";
 import { SCORE_INTERPRETATION_NOTE_SHORT } from "../../content/data-notes";
+import { WhyLink } from "../scores/WhyLink";
 import { OVERALL_SERIES_KEY, seriesColor } from "../scores/series-color";
 import { useReveal } from "../../hooks/useReveal";
 import { DomainTrendsChart } from "./DomainTrendsChart";
@@ -263,7 +264,8 @@ export function MapDetailPanel({
           {projectionsEnabled && (
             <p className="projection-explainer">
               Solid lines are observed data. Dashed lines and shaded bands are model projections
-              with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.
+              with 95% uncertainty. Forecasts currently cover eligible World Bank indicators.{" "}
+              <WhyLink to="projections" label="How forecasts work" />
             </p>
           )}
           <div className="draw" key={country.iso3}>
@@ -278,7 +280,9 @@ export function MapDetailPanel({
             <p className="chart-note">Open a pillar row to add it to the chart.</p>
           )}
           {projectionsEnabled && anyUnavailable && (
-            <p className="chart-note">{UX_UNAVAILABLE_COPY}</p>
+            <p className="chart-note">
+              {UX_UNAVAILABLE_COPY} <WhyLink to="projections" />
+            </p>
           )}
         </section>
 
@@ -324,7 +328,7 @@ export function MapDetailPanel({
 
       <div className="src-note" data-reveal="4">
         Sources: {Array.from(new Set(meta.indicators.map((i) => i.source))).join(", ")}.
-        {" "}{SCORE_INTERPRETATION_NOTE_SHORT} Generated{" "}
+        {" "}{SCORE_INTERPRETATION_NOTE_SHORT} <WhyLink to="flat-at-100" /> Generated{" "}
         {new Date(meta.generatedAt).toLocaleDateString()}.
       </div>
     </aside>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { WhyLink } from "../../components/scores/WhyLink";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload, Pillar } from "../../data/contract/types";
 import {
@@ -38,7 +39,7 @@ function PillarTrendChart({
       <div style={{ background: "var(--n-0)", border: "1px solid var(--n-200)", padding: "10px 12px", minHeight: 130, display: "flex", flexDirection: "column" }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: seriesColor(pillar.key), marginBottom: 6 }}>{pillar.label}</div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--n-600)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45, padding: "4px 6px" }}>
-          {note ?? NO_DATA_FOR_SELECTION}
+          {note ?? NO_DATA_FOR_SELECTION} <WhyLink to="blank-kinds" />
         </div>
       </div>
     );
@@ -384,7 +385,7 @@ export function ComparePage() {
             sufficient indicator coverage. The trends and sub-domain breakdown below include
             every available indicator, so some detail may appear for pillars that do not yet
             have a published summary score. Blank values are missing data, never zero.
-            {" "}{SCORE_INTERPRETATION_NOTE_SHORT}
+            {" "}{SCORE_INTERPRETATION_NOTE_SHORT} <WhyLink to="flat-at-100" />
           </p>
 
           {/* Trend charts */}
