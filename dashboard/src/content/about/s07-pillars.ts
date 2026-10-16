@@ -38,14 +38,14 @@ export const section: SectionContent = {
       id: "subdomains",
       heading: "Subdomains and the overall score",
       body: [
-        "In the country panel, a subdomain score is the average of the latest value of each of its indicators. The overall score is the average of the seven pillars.",
-        "The overall score is blank unless all seven pillars have a score. A country with six pillars shows those six and a dash for overall.",
+        "In the country panel, a subdomain score is the average of the latest value of each of its indicators. The overall score is the average of the pillars a country has.",
+        "The overall score is blank unless the six core pillars all have a score. Socio-economic performance is added to the average when a country has it, and left out when it does not apply.",
       ],
     },
   ],
   dashboardLink: { label: "See Brazil on the map", to: "/map?country=BRA" },
   provenance: {
     updated: "2026-10-15",
-    decisionIds: ["basket-rule", "indicator-count-badge", "overall-needs-all-pillars"],
+    decisionIds: ["basket-rule", "indicator-count-badge", "overall-core-pillars"],
   },
 };

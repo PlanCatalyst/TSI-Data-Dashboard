@@ -698,7 +698,7 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 | Pillar score marked "1 of 3" | Only one indicator reported that year (DQ-05) | Rule |
 | Dense countries score 0 on population density | Banded scale, denser means more need, confirmed 2026-09-17 | Rule |
 | Sustainable agriculture shows only a handful of countries | The source reports for about 10 countries | Data |
-| No overall score while one pillar is blank | Overall is null unless all seven pillars have a score (decided 2026-10-15) | Rule, locked |
+| No overall score while a core pillar is blank | Overall is null unless the six core pillars have a score; socio-economic performance is optional (decided 2026-10-15) | Rule, locked |
 
 - REQ9.16 **Sources first.** The page opens with every data source as a
   large cell in a grid, above the wiki: source name, provider, what the

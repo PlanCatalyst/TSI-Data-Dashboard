@@ -15,7 +15,7 @@ export const section: SectionContent = {
       heading: "What a score is",
       body: [
         "Each indicator is measured in its own unit: cases per 100,000 people, a percentage of the population, an index. To compare them, each one is converted to a 0 to 100 score against a [[benchmark]]. A country at or better than the benchmark scores 100. The further it falls short, the lower the score. ((scoring|How each indicator is scored)) shows the five formulas.",
-        "A pillar score averages its indicators. The overall score averages the seven pillars. See ((pillars|combining indicators into pillars)).",
+        "A pillar score averages its indicators. The overall score averages the pillars a country has, and needs all six core ones. See ((pillars|combining indicators into pillars)).",
       ],
     },
     {

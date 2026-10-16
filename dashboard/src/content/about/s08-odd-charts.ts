@@ -42,7 +42,7 @@ export const section: SectionContent = {
       "regional-gaps",
       "indicator-count-badge",
       "population-density",
-      "overall-needs-all-pillars",
+      "overall-core-pillars",
     ],
   },
 };
