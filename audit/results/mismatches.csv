@@ -1,0 +1,16 @@
+source,indicator_key,iso3,year,raw_value,expected,published,class,note
+dashboard,mspi,BTN,2024,,,46.7,extra_in_dashboard,no expected row
+dashboard,mspi,ERI,1996,,,57.7,extra_in_dashboard,no expected row
+dashboard,mspi,ETH,2023,,,25.3,extra_in_dashboard,no expected row
+dashboard,mspi,ETH,2024,,,25.1,extra_in_dashboard,no expected row
+dashboard,mspi,LBN,2024,,,18.8,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,1996,,,14.7,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,1998,,,15.3,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2000,,,23.0,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2002,,,23.0,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2003,,,36.3,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2004,,,37.8,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2005,,,14.3,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2006,,,17.2,extra_in_dashboard,no expected row
+dashboard,mspi,NGA,2007,,,43.3,extra_in_dashboard,no expected row
+dashboard,mspi,TON,2024,,,35.8,extra_in_dashboard,no expected row

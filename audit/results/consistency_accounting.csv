@@ -1,0 +1,208 @@
+indicator_key,series,stage,rows,dropped_from_previous,reason
+uhc,SH_ACS_UNHC_25,raw_store,4680,,
+uhc,SH_ACS_UNHC_25,cleaned,4680,0,
+uhc,SH_ACS_UNHC_25,iso3_harmonized,4680,0,
+uhc,SH_ACS_UNHC_25,dimension_selected,4680,0,
+uhc,SH_ACS_UNHC_25,scored_nonnull,4680,0,
+uhc,SH_ACS_UNHC_25,published_nonnull,4632,48,aggregate / region / territory code not in country_codes.csv: 48
+tb,SH_TBS_INCD,raw_store,5347,,
+tb,SH_TBS_INCD,cleaned,5332,15,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 15
+tb,SH_TBS_INCD,iso3_harmonized,5332,0,
+tb,SH_TBS_INCD,dimension_selected,5332,0,
+tb,SH_TBS_INCD,scored_nonnull,5307,25,null observation value (score stays null): 25
+tb,SH_TBS_INCD,published_nonnull,5157,150,aggregate / region / territory code not in country_codes.csv: 150
+mal,SH_STA_MALR,raw_store,2725,,
+mal,SH_STA_MALR,cleaned,2725,0,
+mal,SH_STA_MALR,iso3_harmonized,2725,0,
+mal,SH_STA_MALR,dimension_selected,2725,0,
+mal,SH_STA_MALR,scored_nonnull,2725,0,
+mal,SH_STA_MALR,published_nonnull,2675,50,aggregate / region / territory code not in country_codes.csv: 50
+mmr,SH_STA_MORT,raw_store,4680,,
+mmr,SH_STA_MORT,cleaned,4680,0,
+mmr,SH_STA_MORT,iso3_harmonized,4680,0,
+mmr,SH_STA_MORT,dimension_selected,4680,0,
+mmr,SH_STA_MORT,scored_nonnull,4680,0,
+mmr,SH_STA_MORT,published_nonnull,4656,24,aggregate / region / territory code not in country_codes.csv: 24
+u5mr,SH_DYN_MORT,raw_store,15000,,
+u5mr,SH_DYN_MORT,cleaned,14925,75,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 75
+u5mr,SH_DYN_MORT,iso3_harmonized,14925,0,
+u5mr,SH_DYN_MORT,dimension_selected,4975,9950,generic total sex=BOTHSEX (non-total dimension rows removed): 9950
+u5mr,SH_DYN_MORT,scored_nonnull,4975,0,
+u5mr,SH_DYN_MORT,published_nonnull,4875,100,aggregate / region / territory code not in country_codes.csv: 100
+stunt,SH_STA_STNT,raw_store,12150,,
+stunt,SH_STA_STNT,cleaned,12150,0,
+stunt,SH_STA_STNT,iso3_harmonized,12150,0,
+stunt,SH_STA_STNT,dimension_selected,4050,8100,generic total sex=BOTHSEX (non-total dimension rows removed): 8100
+stunt,SH_STA_STNT,scored_nonnull,4050,0,
+stunt,SH_STA_STNT,published_nonnull,4050,0,
+maln,SN_STA_OVWGT,raw_store,12225,,
+maln,SN_STA_OVWGT,cleaned,12225,0,
+maln,SN_STA_OVWGT,iso3_harmonized,12225,0,
+maln,SN_STA_OVWGT,dimension_selected,4075,8150,generic total sex=BOTHSEX (non-total dimension rows removed): 8150
+maln,SN_STA_OVWGT,scored_nonnull,4075,0,
+maln,SN_STA_OVWGT,published_nonnull,4075,0,
+anaem,SH_STA_ANEM,raw_store,4656,,
+anaem,SH_STA_ANEM,cleaned,4656,0,
+anaem,SH_STA_ANEM,iso3_harmonized,4656,0,
+anaem,SH_STA_ANEM,dimension_selected,4656,0,
+anaem,SH_STA_ANEM,scored_nonnull,4656,0,
+anaem,SH_STA_ANEM,published_nonnull,4608,48,aggregate / region / territory code not in country_codes.csv: 48
+contra,SH_FPL_MTMM,raw_store,482,,
+contra,SH_FPL_MTMM,cleaned,480,2,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 2
+contra,SH_FPL_MTMM,iso3_harmonized,480,0,
+contra,SH_FPL_MTMM,dimension_selected,480,0,
+contra,SH_FPL_MTMM,scored_nonnull,480,0,
+contra,SH_FPL_MTMM,published_nonnull,480,0,
+abr,SP_DYN_ADKL,raw_store,7289,,
+abr,SP_DYN_ADKL,cleaned,7206,83,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 83
+abr,SP_DYN_ADKL,iso3_harmonized,7206,0,
+abr,SP_DYN_ADKL,dimension_selected,3741,3465,series rule keep age=15-19 (other bands removed): 3465
+abr,SP_DYN_ADKL,scored_nonnull,3741,0,
+abr,SP_DYN_ADKL,published_nonnull,3541,200,aggregate / region / territory code not in country_codes.csv: 200
+ihr,SH_IHR_CAPS,raw_store,15041,,
+ihr,SH_IHR_CAPS,cleaned,15041,0,
+ihr,SH_IHR_CAPS,iso3_harmonized,15041,0,
+ihr,SH_IHR_CAPS,dimension_selected,1157,13884,mean over class_code (rows collapsed to one per country-year): 13884
+ihr,SH_IHR_CAPS,scored_nonnull,1157,0,
+ihr,SH_IHR_CAPS,published_nonnull,1148,9,aggregate / region / territory code not in country_codes.csv: 9
+food,AG_PRD_FIESMS,raw_store,5380,,
+food,AG_PRD_FIESMS,cleaned,5350,30,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 30
+food,AG_PRD_FIESMS,iso3_harmonized,5350,0,
+food,AG_PRD_FIESMS,dimension_selected,1790,3560,generic total sex=BOTHSEX (non-total dimension rows removed): 3560
+food,AG_PRD_FIESMS,scored_nonnull,1280,510,null observation value (score stays null): 510
+food,AG_PRD_FIESMS,published_nonnull,1280,0,
+susag,AG_LND_SUST,raw_store,50,,
+susag,AG_LND_SUST,cleaned,50,0,
+susag,AG_LND_SUST,iso3_harmonized,50,0,
+susag,AG_LND_SUST,dimension_selected,50,0,
+susag,AG_LND_SUST,scored_nonnull,20,30,null observation value (score stays null): 30
+susag,AG_LND_SUST,published_nonnull,20,0,
+agoda,DC_TOF_AGRL,raw_store,3618,,
+agoda,DC_TOF_AGRL,cleaned,3602,16,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 16
+agoda,DC_TOF_AGRL,iso3_harmonized,3602,0,
+agoda,DC_TOF_AGRL,gdp_normalised (check),3602,0,"no rows dropped; 189 non-null rows have no GDP>0 for the same country-year and are left in raw USD millions, then scored against a 0.02 ratio goal"
+agoda,DC_TOF_AGRL,dimension_selected,3602,0,
+agoda,DC_TOF_AGRL,scored_nonnull,3413,189,null observation value (score stays null): 189
+agoda,DC_TOF_AGRL,published_nonnull,3413,0,
+water,SH_H2O_SAFE,raw_store,8726,,
+water,SH_H2O_SAFE,cleaned,8726,0,
+water,SH_H2O_SAFE,iso3_harmonized,8726,0,
+water,SH_H2O_SAFE,dimension_selected,3991,4735,generic total location=ALLAREA (non-total dimension rows removed): 4735
+water,SH_H2O_SAFE,scored_nonnull,3991,0,
+water,SH_H2O_SAFE,published_nonnull,3716,275,aggregate / region / territory code not in country_codes.csv: 275
+sanit,SH_SAN_SAFE,raw_store,9198,,
+sanit,SH_SAN_SAFE,cleaned,9198,0,
+sanit,SH_SAN_SAFE,iso3_harmonized,9198,0,
+sanit,SH_SAN_SAFE,dimension_selected,3667,5531,generic total location=ALLAREA (non-total dimension rows removed): 5531
+sanit,SH_SAN_SAFE,scored_nonnull,3667,0,
+sanit,SH_SAN_SAFE,published_nonnull,3569,98,aggregate / region / territory code not in country_codes.csv: 98
+washmort,SH_STA_WASHARI,raw_store,183,,
+washmort,SH_STA_WASHARI,cleaned,183,0,
+washmort,SH_STA_WASHARI,iso3_harmonized,183,0,
+washmort,SH_STA_WASHARI,dimension_selected,183,0,
+washmort,SH_STA_WASHARI,scored_nonnull,183,0,
+washmort,SH_STA_WASHARI,published_nonnull,183,0,
+elec,EG_ACS_ELEC,raw_store,16350,,
+elec,EG_ACS_ELEC,cleaned,16350,0,
+elec,EG_ACS_ELEC,iso3_harmonized,16350,0,
+elec,EG_ACS_ELEC,dimension_selected,5450,10900,generic total location=ALLAREA (non-total dimension rows removed): 10900
+elec,EG_ACS_ELEC,scored_nonnull,5400,50,null observation value (score stays null): 50
+elec,EG_ACS_ELEC,published_nonnull,5325,75,aggregate / region / territory code not in country_codes.csv: 75
+clean,EG_EGY_CLEAN,raw_store,14550,,
+clean,EG_EGY_CLEAN,cleaned,14550,0,
+clean,EG_EGY_CLEAN,iso3_harmonized,14550,0,
+clean,EG_EGY_CLEAN,dimension_selected,4850,9700,generic total location=ALLAREA (non-total dimension rows removed): 9700
+clean,EG_EGY_CLEAN,scored_nonnull,4850,0,
+clean,EG_EGY_CLEAN,published_nonnull,4800,50,aggregate / region / territory code not in country_codes.csv: 50
+renew,EG_FEC_RNEW,raw_store,7943,,
+renew,EG_FEC_RNEW,cleaned,7909,34,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 34
+renew,EG_FEC_RNEW,iso3_harmonized,7909,0,
+renew,EG_FEC_RNEW,dimension_selected,7909,0,
+renew,EG_FEC_RNEW,scored_nonnull,7673,236,null observation value (score stays null): 236
+renew,EG_FEC_RNEW,published_nonnull,7191,482,aggregate / region / territory code not in country_codes.csv: 482
+finc,FB_BNK_ACCSS,raw_store,6648,,
+finc,FB_BNK_ACCSS,cleaned,6554,94,geoAreaCode not mapped to ISO3 (world/region/aggregate M49 codes): 94
+finc,FB_BNK_ACCSS,iso3_harmonized,6554,0,
+finc,FB_BNK_ACCSS,dimension_selected,701,5853,series rule keep age=15+ (other bands removed): 1402; generic total sex=BOTHSEX (non-total dimension rows removed): 1402; generic total location=ALLAREA (non-total dimension rows removed): 273; generic total quantile=_T (non-total dimension rows removed): 1376; generic total education_level=_T (non-total dimension rows removed): 1400
+finc,FB_BNK_ACCSS,scored_nonnull,701,0,
+finc,FB_BNK_ACCSS,published_nonnull,701,0,
+gii,GII_INDEX,raw_store,7004,,
+gii,GII_INDEX,cleaned,4600,2404,null/non-numeric cell: 2091; aggregate/region row (iso3 not 3 letters): 313
+gii,GII_INDEX,iso3_harmonized,4600,0,
+gii,GII_INDEX,dimension_selected,4600,0,
+gii,GII_INDEX,scored_nonnull,4600,0,
+gii,GII_INDEX,published_nonnull,4600,0,
+ndgain,ND_GAIN_VULN,raw_store,5760,,
+ndgain,ND_GAIN_VULN,cleaned,5700,60,null/non-numeric year cell (melt then dropna): 60
+ndgain,ND_GAIN_VULN,iso3_harmonized,5700,0,
+ndgain,ND_GAIN_VULN,dimension_selected,5700,0,
+ndgain,ND_GAIN_VULN,scored_nonnull,5700,0,
+ndgain,ND_GAIN_VULN,published_nonnull,5700,0,
+state,WGI_GOVEFF,raw_store,5340,,
+state,WGI_GOVEFF,cleaned,5340,0,
+state,WGI_GOVEFF,iso3_harmonized,5340,0,
+state,WGI_GOVEFF,dimension_selected,5340,0,
+state,WGI_GOVEFF,scored_nonnull,5340,0,
+state,WGI_GOVEFF,published_nonnull,5168,172,aggregate / region / territory code not in country_codes.csv: 172
+pov,SI_POV_NAHC,raw_store,1156,,
+pov,SI_POV_NAHC,cleaned,1156,0,
+pov,SI_POV_NAHC,iso3_harmonized,1156,0,
+pov,SI_POV_NAHC,dimension_selected,1147,9,generic total location=ALLAREA (non-total dimension rows removed): 9
+pov,SI_POV_NAHC,scored_nonnull,1147,0,
+pov,SI_POV_NAHC,published_nonnull,1147,0,
+mpi,MPI_INDEX,raw_store,267,,
+mpi,MPI_INDEX,cleaned,244,23,"row is not a survey-wave row (header, footnote, blank): 23"
+mpi,MPI_INDEX,iso3_harmonized,244,0,
+mpi,MPI_INDEX,dimension_selected,244,0,
+mpi,MPI_INDEX,scored_nonnull,244,0,
+mpi,MPI_INDEX,published_nonnull,244,0,
+popdens,EN.POP.DNST,raw_store,9310,,
+popdens,EN.POP.DNST,cleaned,9310,0,
+popdens,EN.POP.DNST,iso3_harmonized,9135,175,country_code empty: 175
+popdens,EN.POP.DNST,dimension_selected,9135,0,
+popdens,EN.POP.DNST,scored_nonnull,8839,296,null observation value (score stays null): 296
+popdens,EN.POP.DNST,published_nonnull,7311,1528,aggregate / region / territory code not in country_codes.csv: 1496; WB economy not in the 216-row country_codes.csv: 32
+mspi,NY.GDP.PCAP.CD,raw_store,9310,,
+mspi,NY.GDP.PCAP.CD,cleaned,9310,0,
+mspi,NY.GDP.PCAP.CD,iso3_harmonized,9135,175,country_code empty: 175
+mspi,VA.EST,raw_store,5444,,
+mspi,VA.EST,cleaned,5444,0,
+mspi,VA.EST,iso3_harmonized,5444,0,
+mspi,PV.EST,raw_store,5429,,
+mspi,PV.EST,cleaned,5429,0,
+mspi,PV.EST,iso3_harmonized,5429,0,
+mspi,GE.EST,raw_store,5340,,
+mspi,GE.EST,cleaned,5340,0,
+mspi,GE.EST,iso3_harmonized,5340,0,
+mspi,RQ.EST,raw_store,5341,,
+mspi,RQ.EST,cleaned,5341,0,
+mspi,RQ.EST,iso3_harmonized,5341,0,
+mspi,RL.EST,raw_store,5476,,
+mspi,RL.EST,cleaned,5476,0,
+mspi,RL.EST,iso3_harmonized,5476,0,
+mspi,CC.EST,raw_store,5373,,
+mspi,CC.EST,cleaned,5373,0,
+mspi,CC.EST,iso3_harmonized,5373,0,
+mspi,DT.DOD.PVLX.GN.ZS,raw_store,9310,,
+mspi,DT.DOD.PVLX.GN.ZS,cleaned,9310,0,
+mspi,DT.DOD.PVLX.GN.ZS,iso3_harmonized,9135,175,country_code empty: 175
+mspi,DT.DOD.PVLX.EX.ZS,raw_store,9310,,
+mspi,DT.DOD.PVLX.EX.ZS,cleaned,9310,0,
+mspi,DT.DOD.PVLX.EX.ZS,iso3_harmonized,9135,175,country_code empty: 175
+mspi,DT.DOD.DECT.GN.ZS,raw_store,9310,,
+mspi,DT.DOD.DECT.GN.ZS,cleaned,9310,0,
+mspi,DT.DOD.DECT.GN.ZS,iso3_harmonized,9135,175,country_code empty: 175
+mspi,DT.DOD.DECT.EX.ZS,raw_store,4690,,
+mspi,DT.DOD.DECT.EX.ZS,cleaned,4690,0,
+mspi,DT.DOD.DECT.EX.ZS,iso3_harmonized,4690,0,
+mspi,DT.TDS.DECT.EX.ZS,raw_store,9310,,
+mspi,DT.TDS.DECT.EX.ZS,cleaned,9310,0,
+mspi,DT.TDS.DECT.EX.ZS,iso3_harmonized,9135,175,country_code empty: 175
+mspi,DT.DOD.ALLC.ZS,raw_store,4690,,
+mspi,DT.DOD.ALLC.ZS,cleaned,4690,0,
+mspi,DT.DOD.ALLC.ZS,iso3_harmonized,4690,0,
+mspi,MSPI_INDEX,composed (component panel country-years),9420,,
+mspi,MSPI_INDEX,composed_complete,2788,6632,one or more of income/fragility/debt_risk/concessionality missing (null if any component null): 6632
+mspi,MSPI_INDEX,dimension_selected,2788,0,
+mspi,MSPI_INDEX,scored_nonnull,2788,0,
+mspi,MSPI_INDEX,published_nonnull,2788,0,
