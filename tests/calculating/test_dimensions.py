@@ -62,3 +62,22 @@ def test_bank_account_ownership_keeps_adults_15_plus_total():
     )
     out = select_dimensions(df)
     assert len(out) == 1 and out["value"].iloc[0] == 79.2
+
+
+def test_lone_urban_row_is_dropped_when_series_has_allarea_elsewhere():
+    df = _rows(
+        ("KEN", 2015, "SH_H2O_SAFE", 60.0, None, None, "ALLAREA", None, None, None),
+        ("ARG", 2017, "SH_H2O_SAFE", 48.4, None, None, "URBAN", None, None, None),
+    )
+    out = select_dimensions(df)
+    assert out["country_code"].tolist() == ["KEN"]
+
+
+def test_female_only_series_survives_and_blank_dimensions_are_kept():
+    df = _rows(
+        ("KEN", 2015, "SH_STA_MORT", 300.0, None, "FEMALE", "ALLAREA", None, None, None),
+        ("BRA", 2015, "SH_STA_MORT", 60.0, None, "FEMALE", None, None, None, None),
+        ("KEN", 2015, "NO_DIM", 5.0, None, None, None, None, None, None),
+    )
+    out = select_dimensions(df)
+    assert len(out) == 3

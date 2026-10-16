@@ -8,6 +8,7 @@ import pandas as pd
 from src.clean.base_clean import DataCleaner
 from src.pipeline.utils import ensure_dir, project_root
 from src.pipeline.terminal_output import TerminalOutput
+from src.utils.country_identity import resolve
 from src.utils.country_names import get_canonical_name
 
 
@@ -138,6 +139,9 @@ class WBWGICleaner(DataCleaner):
         tidy = tidy.dropna(subset=["year", "value"])
         # Drop WGI region/aggregate rows (sometimes share the same sheet).
         tidy = tidy[tidy["country_code"].str.match(r"^[A-Z]{3}$", na=False)]
+        # Canonicalise legacy codes (ADO -> AND, ...). Valid and out-of-scope
+        # codes pass through resolve() unchanged.
+        tidy["country_code"] = tidy["country_code"].map(lambda c: resolve(c) or c)
 
         tidy["indicator"] = alias or sheet
         tidy["series_code"] = series_code

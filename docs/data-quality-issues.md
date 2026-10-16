@@ -20,6 +20,11 @@ Status values: open, fixed (date, commit), decision (waits on the client).
 | DQ-07 | Row with a non-ISO3 country code or an impossible year | R8, R9 block | guarded |
 | DQ-08 | Agriculture aid flows sawtooth in 6 countries | R3 warn | open, likely real |
 | DQ-09 | Sawtooth in one country only (Niue TB incidence) | R3 warn | open, likely real |
+| DQ-10 | Agriculture aid scored 100 where GDP is missing (60 country-years, North Korea, Eritrea, South Sudan, Yemen, Cuba, Syria, Turks and Caicos) | R10 block | fixed 2026-10-15 |
+| DQ-11 | Water, sanitation and poverty scored from urban-only rows (482 country-years in 22 countries, among them China, Australia, Saudi Arabia and Argentina) | R11 block | fixed 2026-10-15 |
+| DQ-12 | Andorra has no state capacity series (WGI legacy code ADO) | none (R8 checks shape only) | fixed 2026-10-15 |
+| DQ-13 | One MPI survey wave never published (Senegal 2010-11) | none (row never enters the pipeline); cleaner logs rejected labels | fixed 2026-10-15 |
+| DQ-14 | Macro security index scored from a partial debt-risk input (15 country-years) | none yet; R12 once decided | decision |
 
 ---
 
@@ -138,3 +143,85 @@ hundreds per 100,000. Real data, not processing.
 countries of one series; a lone country warns under this entry.
 **Status:** open. Candidate treatment: a minimum-population rule for
 rate-based indicators, to be decided with the client.
+
+## DQ-10 Agriculture aid scored as a ratio while still in USD millions
+
+**Seen:** agriculture aid flows show 100 (best) for 60 country-years: North
+Korea 2000 to 2024, Eritrea 2012 to 2024, South Sudan 2016 to 2024, Yemen 2019
+to 2024, Cuba 2021 to 2024, Syria 2023 to 2024, Turks and Caicos 2000.
+**Evidence:** `indicatorscores/agoda.csv` for Cuba holds 0.000351 in 2020 (a
+ratio) and 27.1 in 2021 (raw USD millions). World Bank GDP ends in 2020 for
+Cuba and is null for every North Korea year.
+**Cause:** `_apply_agoda_gdp_normalization` in `src/calculating/pipeline.py`
+converted only rows where the GDP join succeeded and wrote the rest back
+unconverted. 27.1 against a 0.02 goal floors need to 0, published as 100. R2
+could not see it: the score is in range and a source value exists.
+**Rule:** R10 blocks any DC_TOF_AGRL value above 1 after normalisation (aid
+above 100% of GDP is a unit error).
+**Fix:** a country-year without GDP gets a null value, including the case
+where GDP is absent altogether. Tests in
+`tests/calculating/test_agoda_normalization.py`. Whether to fall back to
+another GDP source for these countries is a separate client question.
+
+## DQ-11 Urban-only rows published as national values
+
+**Seen:** safe water and sanitation scores for China, Australia, Saudi
+Arabia, Argentina, the USA and others that are really urban figures; Saudi
+Arabia and the USA showed 100.
+**Evidence:** for these country-years the UN SDG API returns only
+`Location = URBAN` for `SH_SAN_SAFE` and `SH_H2O_SAFE`; no ALLAREA row exists.
+`indicatorscores/sanit.csv` carried `location = URBAN` rows. Counts: sanitation
+302, water 171, poverty (Argentina) 9.
+**Cause:** `select_dimensions` preferred totals only inside groups duplicated
+on (country, year, series); a lone URBAN row passed through as the national
+value. R1 could not see it because there was no duplicate.
+**Rule:** R11 blocks a scored row whose dimension holds a non-total value when
+that series reports the total in that dimension anywhere.
+**Fix:** the total preference is now series-level in
+`src/calculating/dimensions.py`: if a series has the total in a dimension
+anywhere, only total or blank rows are kept. Series that never carry the total
+(female-only series such as maternal mortality, anaemia, contraception and
+adolescent births) are untouched. Tests in `tests/calculating/test_dimensions.py`.
+
+## DQ-12 Legacy country code drops a series at publish
+
+**Seen:** Andorra published with no state capacity values 1996 to 2024.
+**Evidence:** the WGI workbook codes Andorra as ADO; `wb_wgi_clean.csv` carried
+182 ADO rows, scored under ADO, then dropped at publish because the canonical
+list has AND.
+**Cause:** `resolve()` accepted any three-letter code as ISO3. R8 checks the
+shape only, so a retired code travelled silently to the publisher.
+**Fix:** `_LEGACY_ISO3` in `src/utils/country_identity.py` (ADO to AND, ROM to
+ROU, TMP to TLS, ZAR to COD, KSV to XKX), applied in `resolve()` and in the WGI
+cleaner. Tests in `tests/clean/test_country_identity_aliases.py`.
+
+## DQ-13 Survey-year pattern silently dropped an MPI wave
+
+**Seen:** Senegal MPI shows 2017, 2019 and 2023; the source has a fourth wave
+labelled `2010-11 D`.
+**Evidence:** `mpi__gMPI_Table2.csv` has 244 year labels; the cleaner kept 243.
+**Cause:** `_SURVEY_YEAR_RE` in `src/clean/undp_hdr_clean.py` accepted only
+`YYYY` and `YYYY/YYYY`, and rejected labels were dropped without a log line.
+The end-year helper would also have returned 2010 instead of 2011.
+**Rule:** none in data, since the row never enters the pipeline. The cleaner
+now logs every rejected label, so a new format is visible in the run log.
+**Fix:** hyphenated windows accepted, two-digit end years expanded (2010-11 to
+2011, 1999-00 to 2000). Tests in `tests/clean/test_undp_hdr_survey_year.py`.
+
+## DQ-14 Macro security index scored from a partial debt-risk input
+
+**Seen:** mspi published for 15 country-years where a debt input is missing:
+Nigeria 1996 to 2007 (9), Ethiopia 2023 to 2024, Eritrea 1996, Lebanon, Bhutan
+and Tonga 2024.
+**Evidence:** 14 rows have neither GNI-based debt stock series, so
+`debt_basis` is null; Eritrea 1996 lacks debt service.
+**Cause:** `norm_debt_risk` in `src/calculating/mspi.py` takes the maximum over
+whichever ratios exist. Dropping a term from a maximum can only lower it, so
+missing data biases debt risk toward Low. `docs/spec-macrosec-index.md` does
+not say what to do with a missing ratio.
+**Rule:** R12 once decided: block an mspi row with null `debt_basis` or an
+incomplete ratio set.
+**Status:** decision for Reyna. Recommended: require all three ratios and
+publish null otherwise, matching the spec's own `partial_scores: false`
+principle. Write the choice into the spec first.
+

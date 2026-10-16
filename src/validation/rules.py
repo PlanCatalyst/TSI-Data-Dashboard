@@ -14,7 +14,7 @@ from typing import Callable, Iterable
 import numpy as np
 import pandas as pd
 
-from src.calculating.dimensions import conflicting_duplicates
+from src.calculating.dimensions import conflicting_duplicates, series_total_columns
 from src.calculating.pillar_aggregate import BASKET_MIN_PRESENCE
 
 
@@ -158,6 +158,27 @@ def r9_year_sanity(x: Inputs):
         yield Finding("R9", "block", "DQ-07", None, None, f"{len(bad)} rows with an impossible year", count=len(bad))
 
 
+AGODA_SERIES = "DC_TOF_AGRL"
+
+
+def r10_agoda_unit_sanity(x: Inputs):
+    s = x.scored
+    a = s[(s["series_code"] == AGODA_SERIES) & (pd.to_numeric(s["value"], errors="coerce") > 1)]
+    for iso, g in a.groupby("country_code"):
+        yield Finding("R10", "block", "DQ-10", AGODA_SERIES, str(iso),
+                      f"{len(g)} ag-flow values above 1 (over 100% of GDP); raw USD millions were scored as a ratio", count=len(g))
+
+
+def r11_location_totals(x: Inputs):
+    for series, sdf in x.scored.groupby("series_code"):
+        for col, total in series_total_columns(sdf):
+            bad = sdf[sdf[col].notna() & (sdf[col] != total)]
+            for iso, g in bad.groupby("country_code"):
+                yield Finding("R11", "block", "DQ-11", str(series), str(iso),
+                              f"{len(g)} rows with {col} not {total} although the series has {total} elsewhere; a disaggregate is scored as the national value",
+                              count=len(g))
+
+
 RULES: list[Rule] = [
     r1_unique_country_year_series,
     r2_score_shape,
@@ -168,4 +189,6 @@ RULES: list[Rule] = [
     r7_single_member_pillar,
     r8_country_identity,
     r9_year_sanity,
+    r10_agoda_unit_sanity,
+    r11_location_totals,
 ]
