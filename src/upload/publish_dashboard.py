@@ -124,6 +124,23 @@ _RAW_DIRECTIONS: dict[str, str] = {
 
 _PILLAR_KEYS = ["health", "ag", "si", "women", "climate", "ctx", "pri"]
 
+# Pillars whose absence does not blank a country's overall. pri (socio-economic
+# performance) is null for roughly half of countries; requiring it would grey
+# out countries that have every core pillar. Decided 2026-10-15.
+_OPTIONAL_PILLARS = frozenset({"pri"})
+
+
+def _overall_of(values: dict, gapped: frozenset | set = frozenset()) -> Optional[float]:
+    """Mean of the present pillars, or None when a required pillar is missing.
+
+    Required pillars are every pillar except optional and fully-gapped ones.
+    """
+    exempt = _OPTIONAL_PILLARS | set(gapped)
+    if any(pd.isna(values[pk]) for pk in _PILLAR_KEYS if pk not in exempt):
+        return None
+    present = [values[pk] for pk in _PILLAR_KEYS if pd.notna(values[pk])]
+    return round(sum(present) / len(present), 1) if present else None
+
 
 
 
@@ -318,10 +335,8 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
     _GAPPED_PILLARS = {pk for pk in _PILLAR_KEYS if wide[pk].isna().all()}
 
     def _overall(row):
-        if any(pd.isna(row[pk]) for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS):
-            return float("nan")
-        available = [row[pk] for pk in _PILLAR_KEYS if pd.notna(row[pk])]
-        return round(sum(available) / len(available), 1) if available else float("nan")
+        v = _overall_of(row, _GAPPED_PILLARS)
+        return float("nan") if v is None else v
 
       
     
@@ -358,16 +373,9 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
 
         snapshot = {pk: _latest_valid(pk) for pk in _PILLAR_KEYS}
 
-        # Overall is null when any pillar is null (data contract), consistent
-        # with the per-row _overall above. Decided 2026-10-15: no overall from
-        # a subset of pillars.
-        required = [snapshot[pk] for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS]
-        present = [v for v in snapshot.values() if v is not None]
-        overall = (
-            round(sum(present) / len(present), 1)
-            if present and all(v is not None for v in required)
-            else None
-        )
+        # Same rule as the per-row _overall above (data contract): null when a
+        # required pillar is null, optional pillars (pri) never block.
+        overall = _overall_of(snapshot, _GAPPED_PILLARS)
 
         year_to_overall = {
             int(row["year"]): (None if pd.isna(row["overall"]) else float(row["overall"]))

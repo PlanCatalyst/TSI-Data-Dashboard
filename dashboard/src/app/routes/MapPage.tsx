@@ -29,7 +29,7 @@ export function MapPage() {
   );
 
   // Fixed colouring scheme: the mock's default "Overall index". A country
-  // missing any pillar has a null overall and stays in the no-data colour.
+  // missing a core pillar has a null overall and stays in the no-data colour.
   const getScore = displayOverall;
 
   if (!meta) return null;

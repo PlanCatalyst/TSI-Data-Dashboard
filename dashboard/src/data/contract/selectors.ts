@@ -151,8 +151,8 @@ export function trendDelta(series: Array<number | null>): number | null {
 }
 
 // Overall score for display. Per the data contract, `country.overall` is null
-// whenever any pillar is null; the dashboard shows that as no data rather than
-// averaging the pillars that exist (decided 2026-10-15).
+// whenever a core pillar is null (`pri` is optional); the dashboard shows that
+// as no data rather than averaging the pillars that exist (decided 2026-10-15).
 export function displayOverall(country: CountryPayload): number | null {
   return country.overall;
 }
