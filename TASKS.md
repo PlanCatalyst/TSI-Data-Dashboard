@@ -37,6 +37,12 @@ subscription (resource group `tsi-data-dashboard`). Service principal
 
 ## Remaining
 
+- About wiki follow-ups (deferred from the 2026-10-15 frontend-only release,
+  `docs/requirements-v2.md` §9): fix the `sanit`, `susag` and `u5mr` labels
+  and units in `indicators/indicators.yaml` so they reach `meta.json`; write
+  the REQ9.11 generator (yaml plus scorer constants to a generated
+  methodology file) with a CI staleness check; then drop the label overrides
+  in `dashboard/src/content/about/methodology.ts`.
 - Macrosec composite from the 2026-09-17 spec (`docs/spec-macrosec-index.md`):
   **scored 2026-09-19** (`MSPI_INDEX`, 117 countries vs HDI 193 in 2010–2024),
   **coverage confirmed 2026-09-24**. Still to do: About-page / tooltip /
