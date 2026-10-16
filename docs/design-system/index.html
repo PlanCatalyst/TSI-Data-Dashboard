@@ -108,6 +108,13 @@
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
 
+  /* ---- Reading layout (About wiki) ----
+     WHY: a 65ch measure keeps prose readable; the rail is a fixed width so
+     the reading column does not jump when it collapses to a strip. */
+  --measure:   65ch;
+  --rail-w:    240px;
+  --rail-slim: 40px;
+
   /* ---- Shape ----
      WHY: the brand is square. Only dots and avatars are round. */
   --radius: 0;
@@ -515,6 +522,7 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
       <div style="width:48px;height:48px">12</div>
       <div style="width:64px;height:64px">16</div>
     </div>
+    <p class="ds-note"><b>Reading layout.</b> <code>--measure</code> 65ch is the prose width on the About page. <code>--rail-w</code> 240px is the contents rail; <code>--rail-slim</code> 40px is the collapsed strip.</p>
     <p class="ds-note"><b>Usage.</b> sp-2 inside chips and table cells, sp-3 inside rows, sp-4 panel padding, sp-6 between panel sections, sp-8 between page sections. The site pads sections at 30px and 60px; sp-8 and sp-16 are the dashboard's equivalents.</p>
     <div class="ds-grid">
       <div class="ds-cmp"><span class="cap">Shape: radius 0, 1px rule, no shadow</span><div class="frame"><span class="small">Card, panel, chip, button, input</span></div></div>

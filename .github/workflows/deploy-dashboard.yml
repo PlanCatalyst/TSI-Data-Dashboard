@@ -66,6 +66,10 @@ jobs:
         working-directory: dashboard
         run: npm run lint:tokens
 
+      - name: About page content guardrail
+        working-directory: dashboard
+        run: npm run check:about
+
       - name: Audit frontend dependencies
         working-directory: dashboard
         run: npm audit --audit-level=moderate
