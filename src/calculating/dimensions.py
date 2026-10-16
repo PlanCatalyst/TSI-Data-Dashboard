@@ -12,8 +12,11 @@ zigzags on the dashboard.
 Rules, applied in order:
   1. Per-series overrides in SERIES_RULES (explicit band, or mean over a
      dimension).
-  2. Generic totals: BOTHSEX, ALLAREA, quantile _T, education _T, ALLAGE,
-     each only when that total exists for the group.
+  2. Generic totals: BOTHSEX, ALLAREA, quantile _T, education _T, ALLAGE.
+     Per series and per column: if the series has the total in that column
+     anywhere (any country, any year), keep only rows holding the total or a
+     blank, so a lone URBAN row cannot pass as the national value. A series
+     that never has the total in a column (female-only series) is left alone.
   3. Whatever is still duplicated with IDENTICAL values collapses to one row.
      Duplicates with DIFFERENT values are left in place for validation rule
      R1 to block, so a new disaggregation can never silently pick a row.
@@ -50,11 +53,10 @@ _GENERIC_TOTALS = (
 KEY = ["country_code", "year", "series_code"]
 
 
-def _prefer_total(g: pd.DataFrame, col: str, total: str) -> pd.DataFrame:
-    if col not in g.columns:
-        return g
-    mask = g[col] == total
-    return g[mask] if mask.any() else g
+def series_total_columns(sdf: pd.DataFrame) -> list[tuple[str, str]]:
+    """The (column, total) pairs for which this one series carries the total
+    value somewhere. Shared with validation rule R11."""
+    return [(col, total) for col, total in _GENERIC_TOTALS if col in sdf.columns and (sdf[col] == total).any()]
 
 
 def select_dimensions(df: pd.DataFrame) -> pd.DataFrame:
@@ -78,12 +80,12 @@ def select_dimensions(df: pd.DataFrame) -> pd.DataFrame:
                 first["value"] = sdf.groupby(["country_code", "year"], dropna=False, sort=False)["value"].mean()
                 first[col] = "MEAN"
                 sdf = first.reset_index()
+        for col, total in series_total_columns(sdf):
+            sdf = sdf[(sdf[col] == total) | sdf[col].isna()]
         dup = sdf.duplicated(KEY, keep=False)
         if dup.any():
             pieces = [sdf[~dup]]
             for _, g in sdf[dup].groupby(["country_code", "year"], dropna=False, sort=False):
-                for col, total in _GENERIC_TOTALS:
-                    g = _prefer_total(g, col, total)
                 if len(g) > 1 and g["value"].nunique(dropna=False) == 1:
                     g = g.iloc[[0]]
                 pieces.append(g)

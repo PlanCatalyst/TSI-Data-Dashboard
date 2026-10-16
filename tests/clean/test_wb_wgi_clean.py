@@ -69,3 +69,41 @@ def test_wgi_cleaner_reads_yaml_specs_not_stale_manifest(tmp_path, monkeypatch):
     gest = out.loc[out["series_code"] == "GE.EST", "value"].iloc[0]
     assert goveff == 42.0
     assert gest == -0.4
+
+
+def test_wgi_cleaner_canonicalises_legacy_andorra_code(tmp_path, monkeypatch):
+    xlsx = tmp_path / "wgi_dataset.xlsx"
+    df = pd.DataFrame(
+        {
+            "Economy (name)": ["Andorra", "Kenya", "Taiwan"],
+            "Economy (code)": ["ADO", "KEN", "TWN"],
+            "Year": [1996, 1996, 1996],
+            "Governance score (0-100)": [66.1, 42.0, 80.0],
+        }
+    )
+    with pd.ExcelWriter(xlsx, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="ge", index=False)
+    cfg = {
+        "wb_wgi": {
+            "files": [
+                {
+                    "alias": "wgi_dataset",
+                    "indicators": [{"series_code": "WGI_GOVEFF", "sheet": "ge"}],
+                }
+            ]
+        }
+    }
+    monkeypatch.setattr("src.clean.wb_wgi_clean.project_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "src.clean.wb_wgi_clean.get_canonical_name",
+        lambda iso3, name: name or iso3,
+    )
+    manifest = [
+        {
+            "alias": "wgi_dataset",
+            "local_path": xlsx.name,
+            "indicators": [{"series_code": "WGI_GOVEFF", "sheet": "ge"}],
+        }
+    ]
+    out = WBWGICleaner(cfg).clean_data(manifest)
+    assert set(out["country_code"]) == {"AND", "KEN", "TWN"}

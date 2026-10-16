@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, Optional
 
+import numpy as np
 import pandas as pd
 
 from src.calculating.dimensions import select_dimensions
@@ -49,6 +50,7 @@ def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
 
     GoalRatioScorer(goal=0.02) expects the 2%-of-GDP target on a unitless ratio.
     Raw USD millions saturated every country to score 0 (issue #3).
+    Rows with no usable GDP for the country-year become NaN, never raw USD.
     """
     if "series_code" not in df.columns or _AGODA_SERIES_CODE not in df["series_code"].values:
         return df
@@ -59,11 +61,11 @@ def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
         .drop_duplicates(["country_code", "year"])
         .rename(columns={"value": "_gdp"})
     )
-    if gdp.empty:
-        return df
-
     work = df.copy()
     agoda_mask = work["series_code"] == _AGODA_SERIES_CODE
+    if gdp.empty:
+        work.loc[agoda_mask, "value"] = np.nan
+        return work
     agoda = work.loc[agoda_mask, ["country_code", "year", "value"]].merge(
         gdp, on=["country_code", "year"], how="left"
     )
@@ -72,11 +74,12 @@ def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
         & agoda["_gdp"].notna()
         & (agoda["_gdp"].astype(float) > 0)
     )
-    if valid.any():
-        agoda.loc[valid, "value"] = (
-            agoda.loc[valid, "value"].astype(float) * 1_000_000.0
-        ) / agoda.loc[valid, "_gdp"].astype(float)
-        work.loc[agoda_mask, "value"] = agoda["value"].values
+    agoda["value"] = agoda["value"].astype(float)
+    agoda.loc[valid, "value"] = (
+        agoda.loc[valid, "value"] * 1_000_000.0
+    ) / agoda.loc[valid, "_gdp"].astype(float)
+    agoda.loc[~valid, "value"] = np.nan
+    work.loc[agoda_mask, "value"] = agoda["value"].values
     return work
 
 

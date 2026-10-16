@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.validation.rules import Inputs, r1_unique_country_year_series, r3_alternating_series, r4_flat_runs, r6_basket_presence
+from src.validation.rules import Inputs, r1_unique_country_year_series, r3_alternating_series, r10_agoda_unit_sanity, r11_location_totals, r4_flat_runs, r6_basket_presence
 from src.validation.run import DataQualityError, evaluate, run_validation, write_report
 
 
@@ -62,3 +62,33 @@ def test_run_validation_blocks_and_writes_report(tmp_path):
         run_validation(tmp_path, log=lambda s: None)
     assert (tmp_path / "data_quality_report.md").exists()
     assert (tmp_path / "data_quality_report.json").exists()
+
+
+def test_r10_blocks_agoda_value_above_one():
+    df = _scored([("CUB", "Cuba", 2020, "DC_TOF_AGRL", 0.0004, 98.0, False), ("CUB", "Cuba", 2021, "DC_TOF_AGRL", 27.1, 0.0, False)])
+    x = Inputs(scored=df, pillars=pd.DataFrame(), subdomains=pd.DataFrame())
+    f = list(r10_agoda_unit_sanity(x))
+    assert len(f) == 1 and f[0].severity == "block" and f[0].issue == "DQ-10"
+
+
+def test_r10_clean_when_ratios_or_nan():
+    df = _scored([("CUB", "Cuba", 2020, "DC_TOF_AGRL", 0.0004, 98.0, False), ("CUB", "Cuba", 2021, "DC_TOF_AGRL", float("nan"), float("nan"), False)])
+    x = Inputs(scored=df, pillars=pd.DataFrame(), subdomains=pd.DataFrame())
+    assert list(r10_agoda_unit_sanity(x)) == []
+
+
+def test_r11_blocks_urban_row_when_series_has_allarea_elsewhere():
+    df = _scored([("KEN", "Kenya", 2015, "SH_H2O_SAFE", 60.0, 50.0, False), ("ARG", "Argentina", 2017, "SH_H2O_SAFE", 48.4, 20.0, False)])
+    df["location"] = ["ALLAREA", "URBAN"]
+    x = Inputs(scored=df, pillars=pd.DataFrame(), subdomains=pd.DataFrame())
+    f = list(r11_location_totals(x))
+    assert len(f) == 1 and f[0].country == "ARG" and f[0].severity == "block" and f[0].issue == "DQ-11"
+
+
+def test_r11_allows_blank_and_series_without_the_total():
+    df = _scored([("KEN", "Kenya", 2015, "A", 1.0, 1.0, False), ("BRA", "Brazil", 2015, "A", 2.0, 2.0, False),
+                  ("KEN", "Kenya", 2015, "MMR", 1.0, 1.0, False)])
+    df["location"] = ["ALLAREA", None, "URBAN"]
+    df["sex"] = [None, None, "FEMALE"]
+    x = Inputs(scored=df, pillars=pd.DataFrame(), subdomains=pd.DataFrame())
+    assert list(r11_location_totals(x)) == []

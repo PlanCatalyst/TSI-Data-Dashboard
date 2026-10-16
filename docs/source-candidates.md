@@ -29,7 +29,7 @@ These candidates align with the client frontend blueprint:
 - URL: `https://hdr.undp.org/sites/default/files/publications/additional-files/2025-10/2025_gMPI_Table1and2.xlsx`
 - Version: "2025 Global MPI (October 2025)".
 - Raw landing: `data/raw/undp-hdr/mpi_table1and2.xlsx` (140 KB XLSX). Requires `openpyxl` (now in `requirements.txt`).
-- Clean output: `data/clean/undp-hdr/undp_hdr_clean.csv` (MPI contributes 243 rows, 88 countries, 1–3 survey waves each, survey-end years 2001–2024).
+- Clean output: `data/clean/undp-hdr/undp_hdr_clean.csv` (MPI contributes 244 rows, 88 countries, 1–3 survey waves each, survey-end years 2001–2024).
 - Sample check (Afghanistan): 2016 wave = 0.234, 2023 wave = 0.268 (worsening, matches recent country conditions).
 - Scoring: wired via `MPI_INDEX` series_code → `RatioThresholdScorer(threshold=0.089)` in `src/calculating/factory.py`. Niger 2012 (MPI 0.594) → score 85 (highest need), which inverts to ~15 on the dashboard — correct directionality.
 - Pillar wiring: `ctx → poverty → mpi → MPI_INDEX` (already in `pillar_taxonomy.py`).

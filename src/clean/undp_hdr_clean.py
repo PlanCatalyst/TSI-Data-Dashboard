@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -12,6 +13,8 @@ from src.pipeline.terminal_output import TerminalOutput
 from src.utils.country_identity import name_to_iso3 as _resolve_iso3
 from src.utils.country_names import get_canonical_name
 
+logger = logging.getLogger(__name__)
+
 
 # HDR composite-indices CSV ships as latin-1 (special chars in country names).
 _HDR_ENCODING = "latin-1"
@@ -21,9 +24,11 @@ _HDR_ENCODING = "latin-1"
 _YEAR_SUFFIX_RE = re.compile(r"^(?P<prefix>.+_)(?P<year>(19|20)\d{2})$")
 
 # Survey-year pattern used by OPHI MPI tables, e.g. "2022/2023 M", "2010 D",
-# "2019/2020 M". We take the second (later) year as the canonical year.
+# "2019/2020 M", "2010-11 D". The window end may be 4 digits or 2 digits
+# (hyphen form). We take the later year as the canonical year.
 _SURVEY_YEAR_RE = re.compile(
-    r"^\s*(?:(?:19|20)\d{2})(?:\s*/\s*((?:19|20)\d{2}))?\s*[A-Za-z]?\s*$"
+    r"^\s*(?P<start>(?:19|20)\d{2})"
+    r"(?:\s*[/-]\s*(?P<end>(?:(?:19|20)\d{2})|\d{2}))?\s*[A-Za-z]?\s*$"
 )
 _ANY_YEAR_RE = re.compile(r"(?:19|20)\d{2}")
 
@@ -252,10 +257,26 @@ class UNDPHDRCleaner(DataCleaner):
     def _is_survey_year_string(s: str) -> bool:
         if not isinstance(s, str):
             return False
-        return bool(_SURVEY_YEAR_RE.match(s.strip()))
+        if _SURVEY_YEAR_RE.match(s.strip()):
+            return True
+        if s.strip() and s.strip().lower() != "nan":
+            logger.warning("UNDP HDR MPI: rejected year label %r (unrecognised format)", s)
+        return False
 
     @staticmethod
     def _survey_end_year(s: str) -> Optional[int]:
+        m = _SURVEY_YEAR_RE.match(s.strip()) if isinstance(s, str) else None
+        if m:
+            start = int(m.group("start"))
+            end = m.group("end")
+            if end is None:
+                return start
+            if len(end) == 4:
+                return int(end)
+            # Two-digit end year: expand within the start's century, rolling
+            # over when it would fall before the start (1999-00 -> 2000).
+            year = start - start % 100 + int(end)
+            return year if year >= start else year + 100
         matches = _ANY_YEAR_RE.findall(s)
         if not matches:
             return None

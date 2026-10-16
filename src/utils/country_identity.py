@@ -21,6 +21,8 @@ of carrying their own dict.
 Public surface
 --------------
 * :func:`resolve` — accept ISO3 / M49 / name in any form, return ISO3 or None.
+  Legacy ISO3 codes (ADO, ROM, TMP, ZAR, KSV) are mapped to their canonical
+  code first (see :data:`_LEGACY_ISO3`).
 * :func:`m49_to_iso3` — narrow helper kept for the UN SDG cleaner's hot path.
 * :func:`name_to_iso3` — narrow helper kept for the UNDP HDR cleaner.
 * :func:`normalize_name` — lowercase + strip diacritics + collapse whitespace.
@@ -33,7 +35,10 @@ Sources of truth (in priority order)
    the canonical list intentionally omits (Antarctica, Bouvet Island, BIOT,
    Christmas Island, Cocos Is, Cook Islands, Falklands, ...). UN SDG data
    rarely references these but the un_sdg cleaner historically tolerated them.
-3. :data:`_NAME_ALIASES`  — HDR/UN long-form name variants ("Bolivia
+3. :data:`_LEGACY_ISO3`  - retired or non-standard three-letter codes that
+   some sources (notably the World Bank WGI workbook) still emit, mapped to
+   the canonical ISO3 in the list above.
+4. :data:`_NAME_ALIASES`  - HDR/UN long-form name variants ("Bolivia
    (Plurinational State of)", "Türkiye", ...) that the canonical list's
    short-form names do not match. Manually curated; add an alias when a new
    source surfaces a name that fails to resolve.
@@ -155,6 +160,21 @@ _NAME_ALIASES: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Legacy ISO3 aliases: retired or non-standard three-letter codes that still
+# appear in source files. Every target MUST exist in country_codes.csv.
+# Applied in resolve() before the ISO3 shape passthrough, otherwise the legacy
+# code is scored and then dropped at publish.
+# ---------------------------------------------------------------------------
+_LEGACY_ISO3: dict[str, str] = {
+    "ADO": "AND",  # Andorra
+    "ROM": "ROU",  # Romania
+    "TMP": "TLS",  # Timor-Leste
+    "ZAR": "COD",  # Congo (Kinshasa)
+    "KSV": "XKX",  # Kosovo
+}
+
+
 _ISO3_RE = re.compile(r"^[A-Z]{3}$")
 
 
@@ -257,7 +277,7 @@ def resolve(raw: Any) -> Optional[str]:
     if isinstance(raw, str):
         upper = raw.strip().upper()
         if _ISO3_RE.match(upper):
-            return upper
+            return _LEGACY_ISO3.get(upper, upper)
     # Try M49 numeric (works for "4", "004", 4, 4.0).
     iso3 = m49_to_iso3(raw)
     if iso3 is not None:
