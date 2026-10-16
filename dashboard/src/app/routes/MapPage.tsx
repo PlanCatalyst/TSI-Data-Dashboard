@@ -28,11 +28,8 @@ export function MapPage() {
     [meta],
   );
 
-  // Fixed colouring scheme: the mock's default "Overall index". `displayOverall`
-  // prefers the contract's `country.overall` and falls back to the mean of
-  // available pillar scores when that's null (the contract publishes null
-  // whenever any pillar is null, which would leave the map mostly grey on
-  // sparse data). Truly empty countries still come back as null → grey.
+  // Fixed colouring scheme: the mock's default "Overall index". A country
+  // missing any pillar has a null overall and stays in the no-data colour.
   const getScore = displayOverall;
 
   if (!meta) return null;

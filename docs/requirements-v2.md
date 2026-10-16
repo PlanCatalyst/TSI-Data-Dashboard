@@ -656,7 +656,7 @@ plain-language answer first and the detail one click away.
   per-viewer convenience only; nothing breaks without it.
 - REQ9.4 **Section anatomy.** Every section carries the same parts in the
   same order: short answer, visual, detail, "See it on the dashboard" link
-  where one applies, and a provenance line (decided by, date, status chip:
+  where one applies, and a provenance line (date, status chip:
   Locked, Pending client decision, Open issue). The status chips come from
   one decisions module (REQ9.12) so a decision changes in one place.
 - REQ9.5 **Filter.** A text box at the top of the rail filters sections and
@@ -733,7 +733,9 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   CI fails if the generated file is stale. This keeps one source of truth
   and makes yaml versus code drift (found by the 2026-10-14 audit) visible.
 - REQ9.12 One decisions module (`content/about/decisions.ts`) holds every
-  decision: id, title, decided by, date, status, linked issue IDs. Status
+  pipeline data decision: id, title, the consideration, what the dashboard
+  decided, why, date, status, linked issue IDs. Entries name no people or
+  roles (Q9.2, decided 2026-10-15). Status
   chips in every section and the log in section 12 read from it.
 - REQ9.13 Runtime data comes only from the `/v1` contract the app already
   loads (hard invariant 1). Static figures (audit totals, example values)
@@ -801,7 +803,8 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 - Q9.1 (Reyna) How candid should the public page be about open issues?
   Options: full (issue IDs and status), summarised (cause and status, no
   IDs), or internal-only sections behind a query flag.
-- Q9.2 (Reyna) Should the decisions log name individuals or only roles?
+- Q9.2 Should the decisions log name individuals or only roles? Decided
+  2026-10-15: neither. See REQ9.12.
 - Q9.3 (Thomas) Embed mode in Wix: fixed height with internal scroll, or
   auto-height. No longer blocking: REQ9.1 assumes auto-height (decided
   2026-10-15). Confirming fixed height only turns the sticky enhancement on.

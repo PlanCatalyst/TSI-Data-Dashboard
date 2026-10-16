@@ -150,18 +150,11 @@ export function trendDelta(series: Array<number | null>): number | null {
   return vals.length >= 2 ? vals[vals.length - 1] - vals[0] : null;
 }
 
-// Best-effort overall score for choropleth display. Per the data contract,
-// `country.overall` is null whenever ANY pillar is null. With sparse real data
-// that leaves most countries grey on the map, which doesn't match the
-// reference's "every country always coloured" UI pattern. Fall back to the
-// mean of whatever pillar scores ARE present so a country shows up as soon as
-// it has any signal. Returns null only when there is genuinely no data at
-// all — those countries stay in the no-data colour, no fake zeros.
+// Overall score for display. Per the data contract, `country.overall` is null
+// whenever any pillar is null; the dashboard shows that as no data rather than
+// averaging the pillars that exist (decided 2026-10-15).
 export function displayOverall(country: CountryPayload): number | null {
-  if (country.overall != null) return country.overall;
-  const vals = Object.values(country.scores).filter((v): v is number => v != null);
-  if (vals.length === 0) return null;
-  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+  return country.overall;
 }
 
 export type TrendBucket = "up" | "down" | "flat" | "unknown";

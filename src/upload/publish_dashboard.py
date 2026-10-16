@@ -358,11 +358,16 @@ def build_countries(inputs: PublishInputs) -> CountriesPayload:
 
         snapshot = {pk: _latest_valid(pk) for pk in _PILLAR_KEYS}
 
-        # Overall from the snapshot's available pillars (mean of present),
-        # consistent with the per-row _overall above. See
-        # docs/spec-empty-pri-and-overall.md for the pending coverage-floor decision.
+        # Overall is null when any pillar is null (data contract), consistent
+        # with the per-row _overall above. Decided 2026-10-15: no overall from
+        # a subset of pillars.
+        required = [snapshot[pk] for pk in _PILLAR_KEYS if pk not in _GAPPED_PILLARS]
         present = [v for v in snapshot.values() if v is not None]
-        overall = round(sum(present) / len(present), 1) if present else None
+        overall = (
+            round(sum(present) / len(present), 1)
+            if present and all(v is not None for v in required)
+            else None
+        )
 
         year_to_overall = {
             int(row["year"]): (None if pd.isna(row["overall"]) else float(row["overall"]))
