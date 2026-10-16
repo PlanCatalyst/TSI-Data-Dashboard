@@ -50,7 +50,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "Brazil's climate score is 100 in every year, even though the source value keeps moving.",
     cause:
-      "Brazil is better than the client's benchmark for climate vulnerability every year, and every country past the benchmark gets the same top score.",
+      "Brazil is better than our benchmark for climate vulnerability every year, and every country past the benchmark gets the same top score.",
     viz: { type: "series", iso3: "BRA", indicator: "ndgain" },
     decisionId: "benchmark-rule",
     section: "flat-at-100",
@@ -59,7 +59,7 @@ export const ODDITIES: Oddity[] = [
   },
   {
     id: "small-country",
-    title: "One small country saws up and down",
+    title: "One small country's line jumps around",
     kind: "data",
     symptom: "Palau's tuberculosis score jumps between low and 100 from one year to the next.",
     cause:
@@ -94,7 +94,7 @@ export const ODDITIES: Oddity[] = [
     decisionId: "refresh-cycle",
     section: "sources",
     link: { to: "/map?country=BRA", label: "Open Brazil on the map, then Healthcare" },
-    caption: "Brazil, health regulation capacity score",
+    caption: "Brazil, health emergency preparedness score",
   },
   {
     id: "no-early-years",
@@ -102,7 +102,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "Brazil's agriculture pillar has no score before 2015.",
     cause:
-      "A pillar is scored only when 75% of its indicators are present. Brazil's agriculture indicators did not all report before 2015.",
+      "We score a pillar only when 75% of its indicators have a value. Brazil's agriculture indicators did not all report before 2015.",
     viz: { type: "pillar", iso3: "BRA", pillar: "ag" },
     decisionId: "basket-rule",
     section: "pillars",
@@ -115,7 +115,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "The regional line for Western and Central Africa starts years later than the data does.",
     cause:
-      "Years when fewer than half of a region's countries report are not drawn, because a handful of early reporters would stand in for the whole region.",
+      "We skip years when fewer than half of a region's countries report, because a handful of early reporters would stand in for the whole region.",
     viz: { type: "region-share", region: "afw", indicator: "gii" },
     decisionId: "regional-gaps",
     section: "odd-charts",
@@ -128,7 +128,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "A pillar score carries a badge saying how many of its indicators back it.",
     cause:
-      "The badge counts indicators with a value. Brazil's agriculture pillar has three indicators and only started to have all of them recently.",
+      "The badge counts indicators with a value. Brazil's agriculture pillar has three indicators, and it only recently began to have all of them.",
     viz: { type: "indicator-count", iso3: "BRA", pillar: "ag" },
     decisionId: "indicator-count-badge",
     section: "pillars",
@@ -141,7 +141,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "Bangladesh scores 0 on population density.",
     cause:
-      "Density is banded and denser means more need. Above 250 people per square km the score is 0. The client confirmed this direction.",
+      "We score density in bands, and denser means more need. Above 250 people per square km the score is 0. We confirmed this direction.",
     viz: { type: "series", iso3: "BGD", indicator: "popdens" },
     decisionId: "population-density",
     section: "scoring",
@@ -166,7 +166,7 @@ export const ODDITIES: Oddity[] = [
     kind: "rule",
     symptom: "A country shows scores for most pillars but a dash for its overall score.",
     cause:
-      "The overall score appears only when the six core pillars all have a score. Brazil has all six from 2015 to 2023, and fewer in the latest year, when some sources have not published yet.",
+      "We show an overall score only when the six core pillars all have a score. Brazil has all six from 2015 to 2023, and fewer in the latest year, when some sources have not published yet.",
     viz: { type: "pillar-count", iso3: "BRA" },
     decisionId: "overall-core-pillars",
     section: "missing-data",
