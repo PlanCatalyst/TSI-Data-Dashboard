@@ -32,7 +32,6 @@
     "wiki-rail-toggle": "About contents rail toggle. Not yet in the design system.",
     "wiki-contents-btn": "About per-section Contents button. Should be btn--ghost btn--sm.",
     "wiki-backlink": "About Back to contents link-style button. Not yet in the design system.",
-    "wiki-rowbtn": "About decisions log row button. Not yet in the design system.",
     "wiki-sortbtn": "About sortable table header button. The design system has a sortable table header; reuse it.",
     "wiki-stage": "About pipeline stage button. Not yet in the design system.",
     "wiki-tree-btn": "About framework tree row. Not yet in the design system.",
