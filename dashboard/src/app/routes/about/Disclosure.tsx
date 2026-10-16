@@ -3,7 +3,9 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { prefersReducedMotion } from "../../../hooks/useMediaQuery";
 
 type Props = {
-  title: string;
+  title: ReactNode;
+  /** Extra class on the root, e.g. wdisc--row for a compact row in a list. */
+  className?: string;
   open: boolean;
   onToggle: (open: boolean) => void;
   children: ReactNode;
@@ -17,7 +19,7 @@ type Props = {
  * them reliably, REQ7.11b). Children are not mounted until first opened
  * (REQ9.8) and stay mounted afterwards so their state survives a close.
  */
-export function Disclosure({ title, open, onToggle, children, meta }: Props) {
+export function Disclosure({ title, open, onToggle, children, meta, className }: Props) {
   const uid = useId();
   const panelId = `${uid}-panel`;
   const headId = `${uid}-head`;
@@ -58,7 +60,7 @@ export function Disclosure({ title, open, onToggle, children, meta }: Props) {
   }, [mounted, open]);
 
   return (
-    <div className="wdisc" data-open={open}>
+    <div className={className ? `wdisc ${className}` : "wdisc"} data-open={open}>
       <h3 className="wdisc-title" id={headId}>
         <button
           type="button"

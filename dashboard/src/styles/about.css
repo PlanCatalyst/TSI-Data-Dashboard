@@ -192,15 +192,11 @@
 .wiki-table tbody th { font-weight: 500; color: var(--n-900); }
 .wiki-table .num { text-align: right; }
 .wiki-table--wide { min-width: 760px; }
-.wiki-table--log { min-width: 520px; }
-.wiki-sortbtn, .wiki-rowbtn {
-  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; text-align: left;
+.wiki-sortbtn {
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; text-align: left; font-weight: 600;
 }
-.wiki-sortbtn { font-weight: 600; }
 .wiki-sortbtn:hover { color: var(--pc-blue-ink); }
-.wiki-rowbtn { display: inline-flex; gap: var(--sp-2); align-items: baseline; font-weight: 500; color: var(--n-900); }
-.wiki-rowbtn:hover { color: var(--pc-blue-ink); }
-.wiki-decision { margin: var(--sp-3) 0 0; display: grid; gap: var(--sp-1); max-width: var(--measure); }
+.wiki-decision { margin: 0 0 var(--sp-3); display: grid; gap: var(--sp-1); max-width: var(--measure); }
 .wiki-decision dt { font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; color: var(--n-600); margin-top: var(--sp-2); }
 .wiki-decision dd { margin: 0; color: var(--n-800); }
 .wiki-astable { display: grid; gap: var(--sp-2); }
@@ -365,3 +361,24 @@
 }
 
 .wiki-visual-loading { display: grid; place-items: center; min-height: 120px; color: var(--n-600); background: var(--n-50); }
+
+/* Decisions log: a list of compact disclosures. Same drop-down as "The detail", so a row
+   opens downward and nothing beside it moves. Date and status have fixed widths. */
+.wiki-log > .wdisc:last-child { border-bottom: var(--rule); }
+.wdisc--row { border-bottom: 0; }
+.wdisc--row .wdisc-btn { font: var(--t-body); font-weight: 500; padding: var(--sp-3) var(--sp-2); gap: var(--sp-3); }
+.wdisc--row .wdisc-btn:hover { color: var(--pc-blue-ink); }
+.wdisc--row .wdisc-meta { flex: 0 0 12rem; }
+.wdisc--row .wdisc-inner { padding: 0 var(--sp-2) var(--sp-2); }
+.wiki-log-row { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--sp-3); align-items: baseline; }
+.wiki-log-cols { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); color: var(--n-600); font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; border-top: var(--rule); }
+.wiki-log-cols > :first-child { flex: 1 1 auto; }
+.wiki-log-cols .wiki-log-row { align-items: baseline; }
+.wiki-log-cols > :nth-child(2) { flex: 0 0 12rem; }
+.wiki-log-cols > :last-child { flex: 0 0 1.25rem; }
+@media (max-width: 640px) {
+  .wiki-log-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .wiki-log-cols { display: none; }
+  .wdisc--row .wdisc-btn { flex-wrap: wrap; }
+  .wdisc--row .wdisc-meta { flex: 1 0 100%; order: 3; }
+}
