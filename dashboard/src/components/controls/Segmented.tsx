@@ -3,7 +3,7 @@ import { useId } from "react";
 type Option<T extends string> = { value: T; label: string };
 
 /**
- * A row of mutually exclusive toggle buttons. Arrow keys move between them
+ * Segmented control (design system: "Segmented control"). A row of mutually exclusive toggle buttons. Arrow keys move between them
  * (radio group semantics) and every state has a visible focus ring.
  */
 export function Segmented<T extends string>({
@@ -27,7 +27,7 @@ export function Segmented<T extends string>({
     btn?.focus();
   }
   return (
-    <div className="wiki-seg" role="radiogroup" aria-label={label}>
+    <div className="seg" role="radiogroup" aria-label={label}>
       {options.map((o, i) => (
         <button
           key={o.value}
@@ -36,7 +36,7 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={o.value === value}
           tabIndex={o.value === value ? 0 : -1}
-          className="wiki-seg-btn"
+          className="seg-btn"
           onClick={() => onChange(o.value)}
           onKeyDown={(e) => onKey(e, i)}
         >

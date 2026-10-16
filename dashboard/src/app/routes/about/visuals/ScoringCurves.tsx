@@ -10,7 +10,7 @@ import {
 } from "../../../../content/about/methodology";
 import { needBand } from "../../../../data/contract/score-context";
 import { useDashboardData } from "../../../../state/dashboard-context";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { indicatorLabel, shortLabel } from "./data";
 import { ShowAsTable } from "../ShowAsTable";
 
