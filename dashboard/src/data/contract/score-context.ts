@@ -3,7 +3,7 @@ import type {
   MetaPayload,
   TimeseriesPayload,
 } from "./types";
-import { displayOverall, latestValue } from "./selectors";
+import { latestValue } from "./selectors";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Score interpretability helpers (Phase 1 — frontend only).
@@ -52,8 +52,7 @@ export function needBand(score: number | null): NeedBand | null {
 // How a displayed score was derived.
 //  - "latest"    : published contract value (publish uses per-pillar latest non-null year)
 //  - "all-years" : client-side fallback — latest non-null value per indicator, averaged
-//  - "partial"   : overall computed as the mean of whatever pillar scores are present
-export type ScoreSource = "latest" | "all-years" | "partial";
+export type ScoreSource = "latest" | "all-years";
 
 export function derivationLabel(source: ScoreSource): string {
   switch (source) {
@@ -61,8 +60,6 @@ export function derivationLabel(source: ScoreSource): string {
       return "Latest";
     case "all-years":
       return "All years";
-    case "partial":
-      return "Partial";
   }
 }
 
@@ -249,20 +246,15 @@ export function pillarScoreContext(
 
 export type OverallScoreContext = {
   value: number | null;
-  // "latest"  : published country.overall
-  // "partial" : client-side mean of whatever pillar scores are present
-  source: Extract<ScoreSource, "latest" | "partial"> | null;
+  // "latest"  : published country.overall; null when any pillar is null
+  source: Extract<ScoreSource, "latest"> | null;
   band: NeedBand | null;
   estimated: boolean;
 };
 
 export function overallContext(country: CountryPayload): OverallScoreContext {
-  if (country.overall != null) {
-    return { value: country.overall, source: "latest", band: needBand(country.overall), estimated: false };
-  }
-  const v = displayOverall(country);
-  if (v == null) return { value: null, source: null, band: null, estimated: false };
-  return { value: v, source: "partial", band: needBand(v), estimated: true };
+  if (country.overall == null) return { value: null, source: null, band: null, estimated: false };
+  return { value: country.overall, source: "latest", band: needBand(country.overall), estimated: false };
 }
 
 // ── Tooltip helper ───────────────────────────────────────────────────────────
