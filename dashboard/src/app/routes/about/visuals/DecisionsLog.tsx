@@ -33,10 +33,15 @@ export function DecisionsLog() {
         ]}
       />
       <div className="wiki-tablewrap">
-        <table className="wiki-table wiki-table--log">
+        <table className="wiki-table wiki-table--log wiki-table--fixed">
           <caption>
             {rows.length} decision{rows.length === 1 ? "" : "s"}
           </caption>
+          <colgroup>
+            <col className="wiki-col-date" />
+            <col />
+            <col className="wiki-col-status" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">Date</th>

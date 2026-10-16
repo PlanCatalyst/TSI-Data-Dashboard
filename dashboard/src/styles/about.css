@@ -192,7 +192,13 @@
 .wiki-table tbody th { font-weight: 500; color: var(--n-900); }
 .wiki-table .num { text-align: right; }
 .wiki-table--wide { min-width: 760px; }
-.wiki-table--log { min-width: 520px; }
+.wiki-table--log { min-width: 560px; }
+/* Fixed layout: column widths come from the colgroup, not from the content, so opening a
+   row only makes it taller and never moves the columns (design system: Table). */
+.wiki-table--fixed { table-layout: fixed; }
+.wiki-table--fixed td { overflow-wrap: anywhere; }
+.wiki-col-date { width: 7rem; }
+.wiki-col-status { width: 12rem; }
 .wiki-sortbtn, .wiki-rowbtn {
   background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; text-align: left;
 }

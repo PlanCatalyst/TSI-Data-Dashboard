@@ -332,6 +332,10 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
 
 /* ---- Table ---- */
 .tbl { width: 100%; border-collapse: collapse; font: var(--t-body); }
+/* A table whose rows open and close uses fixed layout, with widths set on <col>. Column widths then
+   come from the columns, not from the open row's text, so opening a row only grows it downward. */
+.tbl--fixed { table-layout: fixed; }
+.tbl--fixed td { overflow-wrap: anywhere; }
 .tbl th { text-align: left; font: var(--t-eyebrow); letter-spacing: var(--track-eyebrow); text-transform: uppercase; color: var(--n-600); padding: var(--sp-2) var(--sp-3); border-bottom: var(--rule-strong); white-space: nowrap; }
 .tbl th button { all: unset; cursor: pointer; display: inline-flex; gap: var(--sp-1); align-items: center; }
 .tbl th button:focus-visible { box-shadow: var(--focus); }
@@ -629,6 +633,7 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
           </tbody>
         </table>
       </div>
+      <p class="ds-note"><b>Rows that open.</b> A table with expandable rows adds <code>tbl--fixed</code> and sets column widths on <code>&lt;col&gt;</code>. Without it the browser sizes columns from the text, so an opened row's longer text pushes the other columns sideways. With it, opening a row only makes that row taller.</p>
     </div>
 
     <div class="ds-grid">
