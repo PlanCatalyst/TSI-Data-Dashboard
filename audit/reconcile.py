@@ -60,14 +60,19 @@ def main() -> int:
         else:
             cls = "mismatch"
         records.append((r.source, r.indicator_key, r.iso3, r.year, r.raw_value, e, pub, cls, getattr(r, "note", "")))
-    # dashboard values with no expectation at all for that (iso3, indicator)
+    # dashboard values with no expectation for that year, for every audited
+    # indicator. Checking only (iso3, indicator) pairs with some expected row
+    # hid countries the audit dropped entirely (PRK agoda, 25 years at 100).
+    audited_keys = set(exp["indicator_key"])
     covered = {(i, k) for (i, k, _) in seen}
     for iso3, series in ts.items():
         for key, arr in series.items():
-            if (iso3, key) in covered:
-                for y, v in zip(years, arr):
-                    if v is not None and (iso3, key, y) not in seen:
-                        records.append(("dashboard", key, iso3, y, None, None, v, "extra_in_dashboard", "no expected row"))
+            if key not in audited_keys:
+                continue
+            note = "no expected row" if (iso3, key) in covered else "no expected row for this country"
+            for y, v in zip(years, arr):
+                if v is not None and (iso3, key, y) not in seen:
+                    records.append(("dashboard", key, iso3, y, None, None, v, "extra_in_dashboard", note))
     res = pd.DataFrame(records, columns=["source", "indicator_key", "iso3", "year", "raw_value", "expected", "published", "class", "note"])
     RESULTS.mkdir(exist_ok=True)
     res[res["class"] != "match"].sort_values(["indicator_key", "iso3", "year"]).to_csv(RESULTS / "mismatches.csv", index=False)

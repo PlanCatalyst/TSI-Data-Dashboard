@@ -138,3 +138,6 @@ data/raw/nd-gain/**
 
 # Editor / AI assistant local state
 .cursor/
+
+# Audit expectations: regenerated from data/store by audit/derive_*.py
+audit/expected/*.csv
