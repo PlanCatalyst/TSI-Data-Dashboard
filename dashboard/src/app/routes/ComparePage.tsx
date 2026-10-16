@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { WhyLink } from "../../components/scores/WhyLink";
+import { Segmented } from "../../components/controls/Segmented";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload, Pillar } from "../../data/contract/types";
 import {
@@ -261,23 +262,23 @@ export function ComparePage() {
       {/* Region filter */}
       <div className="fbar" data-reveal="1">
         <span className="fbar-lbl">Region</span>
-        <button className={activeRegion === "all" ? "fbtn active" : "fbtn"} onClick={() => setActiveRegion("all")}>All</button>
-        {meta.regions.map(r => (
-          <button key={r.code} className={activeRegion === r.code ? "fbtn active" : "fbtn"} onClick={() => setActiveRegion(r.code)}>
-            {r.label}
-          </button>
-        ))}
+        <Segmented
+          label="Region"
+          value={activeRegion}
+          onChange={setActiveRegion}
+          options={[{ value: "all", label: "All" }, ...meta.regions.map(r => ({ value: r.code, label: r.label }))]}
+        />
       </div>
 
       {/* Pillar filter */}
       <div className="fbar" data-reveal="2">
         <span className="fbar-lbl">Pillar</span>
-        <button className={activeDomain === "all" ? "fbtn active" : "fbtn"} onClick={() => setActiveDomain("all")}>All</button>
-        {meta.pillars.map(p => (
-          <button key={p.key} className={activeDomain === p.key ? "fbtn active" : "fbtn"} onClick={() => setActiveDomain(p.key)}>
-            {p.label}
-          </button>
-        ))}
+        <Segmented
+          label="Pillar"
+          value={activeDomain}
+          onChange={setActiveDomain}
+          options={[{ value: "all", label: "All" }, ...meta.pillars.map(p => ({ value: p.key, label: p.label }))]}
+        />
       </div>
 
       {/* Country selector bar */}

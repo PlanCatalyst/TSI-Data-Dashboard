@@ -13,8 +13,8 @@ function GateFunnel({ enabled }: { enabled: boolean }) {
     <div className="wiki-funnel">
       <p className="small wiki-viz-lead">
         {enabled
-          ? "Projections are on in this release. A series is forecast only if it passes every gate."
-          : "Illustrative: projections are off in this release. When on, a series is forecast only if it passes every gate."}
+          ? "Projections are on in this update. We forecast a series only if it passes every check."
+          : "Projections are off in this update. When they are on, we forecast a series only if it passes every check."}
       </p>
       <ol className="wiki-gates">
         {GATES.map((g, i) => (
@@ -30,7 +30,7 @@ function GateFunnel({ enabled }: { enabled: boolean }) {
             +
           </span>
           <span>
-            <b>Forecast shown</b> as a dashed line with an interval. A series that fails any gate shows no forecast.
+            <b>Forecast shown</b> as a dashed line with an interval. A series that fails any check shows no forecast.
           </span>
         </li>
       </ol>

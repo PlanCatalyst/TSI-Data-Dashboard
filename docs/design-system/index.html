@@ -301,6 +301,26 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
 .trend--down { color: var(--need-severe-ink); }
 .trend--flat { color: var(--n-600); }
 
+/* ---- Segmented control ----
+   One choice from a few, always visible (scoring family, before/after, filter).
+   WHY: the bar is exactly as wide as its buttons added together and sits at the
+   start of its row. It must never stretch to fill a grid or column parent, so
+   width is fit-content and justify-self is start. Each button is as wide as its
+   own label. Labels do not wrap; the bar wraps to a second row on a narrow screen.
+   No outline and no dividers. Each unselected button is a light grey cell (n-100) so it
+   reads as a button, hover darkens it to n-200, and the filled blue button is the
+   selection. A 2px gap lets the page ground separate the cells. */
+.seg { display: inline-flex; flex-wrap: wrap; width: fit-content; max-width: 100%; justify-self: start; gap: 2px; }
+.seg-btn {
+  flex: 0 0 auto; min-height: 36px; padding: 0 var(--sp-4);
+  background: var(--n-100); color: var(--n-800); border: 0; cursor: pointer; white-space: nowrap;
+  font: 500 0.8125rem/1 var(--f-body);
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.seg-btn:hover { background: var(--n-200); }
+.seg-btn[aria-checked="true"] { background: var(--pc-blue); color: var(--n-0); }
+.seg-btn:focus-visible { outline: none; box-shadow: var(--focus); position: relative; z-index: 1; }
+
 /* ---- Disclosure ---- */
 .disc { border-top: var(--rule); }
 .disc > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: var(--sp-3) 0; font-weight: 500; color: var(--n-900); }
@@ -545,7 +565,36 @@ pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.75rem
         <button class="btn btn--ghost btn--icon btn--sm" aria-label="Expand panel">&#x2194;</button>
         <button class="btn" disabled>Loading</button>
       </div>
+      <p class="ds-note"><b>Before you build a control.</b> Search the code for the same behaviour, then use or extend a component on this page. <code>npm run lint:components</code> checks every button in the app against <code>dashboard/scripts/component-registry.json</code>: a new button style fails CI until it has a specimen here and an entry in the registry. The registry also lists controls that exist but are not documented yet (<code>legacy</code>); that list only shrinks.</p>
       <p class="ds-note">Primary is for the one action that moves the user forward on a view. Panel chrome uses ghost icon buttons. Hover darkens, press goes navy, focus shows the ring.</p>
+    </div>
+
+    <div class="spec"><span class="label">Segmented control · one choice from a few</span>
+      <div class="ds-grid" style="grid-template-columns:1fr">
+        <div class="seg" role="radiogroup" aria-label="Short labels">
+          <button class="seg-btn" role="radio" aria-checked="true" tabindex="0">Before</button>
+          <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">After</button>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="Mixed label lengths">
+          <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">Ratio to a threshold</button>
+          <button class="seg-btn" role="radio" aria-checked="true" tabindex="0">Gap to a coverage benchmark</button>
+          <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">Share of a goal</button>
+          <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">Density bands</button>
+        </div>
+      </div>
+      <div class="spec" style="padding:0;border:0"><span class="label">With a label, as in a filter bar</span>
+        <div class="ds-row" style="align-items:center">
+          <span class="eyebrow">Region</span>
+          <div class="seg" role="radiogroup" aria-label="Region">
+            <button class="seg-btn" role="radio" aria-checked="true" tabindex="0">All</button>
+            <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">East Asia &amp; Pacific</button>
+            <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">Europe &amp; Central Asia</button>
+            <button class="seg-btn" role="radio" aria-checked="false" tabindex="-1">South Asia</button>
+          </div>
+        </div>
+      </div>
+      <p class="ds-note">The bar is as wide as its buttons added together and starts at the left edge of its row, even inside a grid or column that would stretch it. Each button is as wide as its own text. Arrow keys move between options. No outline or dividers. Unselected buttons are light grey cells so they read as buttons, hover is a darker grey, and the filled blue button is the selection. Focus shows the ring.</p>
+      <p class="ds-note"><b>Where it is used.</b> Every one-choice-from-a-few control: the Region filter on Explore and Compare, the Pillar filter on Compare, the domain filter on the Explore trends chart, and the About page selectors. Do not build another set of filter buttons; use this one.</p>
     </div>
 
     <div class="spec"><span class="label">Chip (need band) · Badge (data status)</span>

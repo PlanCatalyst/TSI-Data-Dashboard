@@ -13,7 +13,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     id: "benchmark",
     term: "Benchmark",
     definition:
-      "The value the client chose as good enough for one indicator, for example 40 tuberculosis cases per 100,000 people. Scores measure distance from it.",
+      "The value we chose as good enough for one indicator, for example 40 tuberculosis cases per 100,000 people. Scores measure distance from it.",
     section: "scoring",
   },
   {
@@ -27,7 +27,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     id: "soft-floor",
     term: "Soft floor",
     definition:
-      "A proposed alternative to the clamp. The benchmark maps to a score of 75 and better countries spread between 75 and 100, so their ranking and trends stay visible.",
+      "An alternative to the clamp that we are considering. The benchmark maps to a score of 75 and better countries spread between 75 and 100, so their ranking and trends stay visible.",
     section: "flat-at-100",
   },
   {

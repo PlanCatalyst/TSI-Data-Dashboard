@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BRAZIL_ABR } from "../../../../content/about/snapshot";
 import { useDashboardData } from "../../../../state/dashboard-context";
 import { LineChart, type Series } from "../charts";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { ShowAsTable } from "../ShowAsTable";
 import { snapshotNote } from "./data";
 

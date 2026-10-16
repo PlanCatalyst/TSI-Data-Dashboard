@@ -66,6 +66,10 @@ jobs:
         working-directory: dashboard
         run: npm run lint:tokens
 
+      - name: Component guardrail
+        working-directory: dashboard
+        run: npm run lint:components
+
       - name: About page content guardrail
         working-directory: dashboard
         run: npm run check:about

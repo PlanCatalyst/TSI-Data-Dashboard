@@ -14,6 +14,7 @@ import { TrendsPanel } from "./TrendsPanel";
 import { useReveal } from "../../hooks/useReveal";
 import { EXPLORE_TABLE_FOOTNOTE, SCORE_INTERPRETATION_NOTE } from "../../content/data-notes";
 import { WhyLink } from "../../components/scores/WhyLink";
+import { Segmented } from "../../components/controls/Segmented";
 
 function trendDelta(trend: Array<number | null>): number | null {
   const vals = trend.filter((v): v is number => v != null);
@@ -166,21 +167,12 @@ export function ExplorePage() {
       </div>
       <div className="fbar" data-reveal="1">
         <span className="fbar-lbl">Region</span>
-        <button
-          className={activeRegion === "all" ? "fbtn active" : "fbtn"}
-          onClick={() => setActiveRegion("all")}
-        >
-          All
-        </button>
-        {meta.regions.map(r => (
-          <button
-            key={r.code}
-            className={activeRegion === r.code ? "fbtn active" : "fbtn"}
-            onClick={() => setActiveRegion(r.code)}
-          >
-            {r.label}
-          </button>
-        ))}
+        <Segmented
+          label="Region"
+          value={activeRegion}
+          onChange={setActiveRegion}
+          options={[{ value: "all", label: "All" }, ...meta.regions.map(r => ({ value: r.code, label: r.label }))]}
+        />
         <input
           className="fsearch"
           type="text"

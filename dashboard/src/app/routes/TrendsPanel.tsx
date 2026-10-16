@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { regionColor, seriesColor } from "../../components/scores/series-color";
 import { WhyLink } from "../../components/scores/WhyLink";
+import { Segmented } from "../../components/controls/Segmented";
 import { basketSeries } from "../../data/contract/selectors";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
@@ -144,17 +145,7 @@ export function TrendsPanel({ filtered, regionLabel }: Props) {
       </p>
 
       {/* Domain selector */}
-      <div className="chart-ind-sel">
-        {domains.map(d => (
-          <button
-            key={d.key}
-            className={domainKey === d.key ? "chart-ind-btn active" : "chart-ind-btn"}
-            onClick={() => setDomainKey(d.key)}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
+      <Segmented label="Domain" value={domainKey} onChange={setDomainKey} options={domains.map(d => ({ value: d.key, label: d.label }))} />
 
       {/* Regional averages chart */}
       <div style={{ fontSize: 11, fontWeight: 600, color: "var(--n-600)", textTransform: "uppercase", letterSpacing: ".4px", margin: "10px 0 4px" }}>

@@ -4,7 +4,7 @@ import { BRAZIL_CLIMATE } from "../../../../content/about/snapshot";
 import { decisionById } from "../../../../content/about";
 import { useDashboardData } from "../../../../state/dashboard-context";
 import { LineChart, type Series } from "../charts";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { ShowAsTable } from "../ShowAsTable";
 import { StatusChip } from "../StatusChip";
 import { snapshotNote } from "./data";
