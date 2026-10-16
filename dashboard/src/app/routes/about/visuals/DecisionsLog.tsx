@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { CANDOUR, visibleDecisions, visibleIssues, type DecisionStatus } from "../../../../content/about";
 import { Segmented } from "../../../../components/controls/Segmented";
-import { Disclosure } from "../Disclosure";
+import { Disclosure } from "../../../../components/controls/Disclosure";
 import { StatusChip } from "../StatusChip";
 
 type Filter = "all" | DecisionStatus;
@@ -52,7 +52,7 @@ export function DecisionsLog() {
           return (
             <Disclosure
               key={d.id}
-              className="wdisc--row"
+              className="disc--row"
               open={open[d.id] === true}
               onToggle={(o) => setOpen((m) => ({ ...m, [d.id]: o }))}
               title={

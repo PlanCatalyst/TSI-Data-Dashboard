@@ -35,6 +35,7 @@ import { DomainTrendsChart } from "./DomainTrendsChart";
 import { PanelHead } from "./PanelHead";
 import { ScoreRow } from "./ScoreRow";
 import { SubdomainBlock } from "./SubdomainBlock";
+import { Disclosure } from "../controls/Disclosure";
 
 type Props = {
   country: CountryPayload | null;
@@ -295,15 +296,18 @@ export function MapDetailPanel({
               const sds = meta.subdomains.filter((sd) => sd.pillar === p.key);
               if (sds.length === 0) return null;
               return (
-                <details key={p.key} className="disc">
-                  <summary>
-                    <span className="summary-left">
+                <Disclosure
+                  key={p.key}
+                  as="div"
+                  title={
+                    <>
                       <i className="stripe" style={{ background: seriesColor(p.key) }} aria-hidden="true" />
                       {p.label}
                       <span className="small">{sds.length} sub-domain{sds.length === 1 ? "" : "s"}</span>
-                    </span>
-                  </summary>
-                  <div className="body sd-list">
+                    </>
+                  }
+                >
+                  <div className="sd-list">
                     {sds.map((sd) => (
                       <SubdomainBlock
                         key={sd.key}
@@ -319,7 +323,7 @@ export function MapDetailPanel({
                       />
                     ))}
                   </div>
-                </details>
+                </Disclosure>
               );
             })}
           </div>
