@@ -192,8 +192,11 @@ strip chart, Map choropleth, and Map country detail panel.
 - `region`: one of the 8 WB codes in `meta.regions[].code`.
 - `scores.<pillar>`: 0-100 rounded to 1 decimal. `null` if insufficient data
   to compute (publisher decides threshold; document once decided).
-- `overall`: arithmetic mean of the 7 pillar scores, rounded to 1 decimal.
-  `null` if any pillar is `null`.
+- `overall`: arithmetic mean of the available pillar scores, rounded to 1
+  decimal. `null` if any core pillar (`health`, `ag`, `si`, `women`,
+  `climate`, `ctx`) is `null`. `pri` is optional: when `pri` is `null` the
+  mean is over the six core pillars; when present it is the 7-pillar mean.
+  Decided 2026-10-15.
 - `trend`: length MUST equal `meta.years.length`. Values are the country's
   `overall` score computed per year using that year's pillar scores. Nulls
   preserved. Powers the sparkline in the Explore table.
