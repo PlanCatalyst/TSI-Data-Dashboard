@@ -171,7 +171,7 @@ class Orchestrator:
 
         # UPLOAD validated CSVs (private container) when upload_azure is on
         set_stage("upload validated")
-        UploadValidated(self.config_path).upload()
+        UploadValidated(self.config_path, runtime=runtime_cfg).upload()
 
         # FORECASTS (default off). Must precede publish.
         if runtime_cfg.get("run_forecasts", False):

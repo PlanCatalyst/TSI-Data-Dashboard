@@ -30,12 +30,13 @@ class UploadValidated:
       credential       ClientSecretCredential if all AZURE_* set, else None
       azure_enabled    True if credential is set
       cfg              Full parsed settings.yaml dict
-      runtime          cfg["runtime"] (upload_azure, ...)
+      runtime          cfg["runtime"] (upload_azure, ...), or the caller's resolved
+                       runtime (env overrides applied) when passed in
       paths_cfg        cfg["paths"] (data_interim_validated, ...)
       azure_cfg        cfg["azure"] (container_name, blob_prefix, validated_upload_paths)
     """
 
-    def __init__(self, config_path: Path) -> None:
+    def __init__(self, config_path: Path, runtime: dict | None = None) -> None:
         load_dotenv(project_root() / ".env")
 
         self.config_path = Path(config_path)
@@ -58,6 +59,8 @@ class UploadValidated:
             )
 
         self._load_config()
+        if runtime is not None:
+            self.runtime = dict(runtime)
 
     def _load_config(self) -> None:
         if not self.config_path.exists():
