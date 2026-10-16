@@ -174,16 +174,6 @@
 .wiki-nowrap { white-space: nowrap; }
 .wiki-axis { display: flex; justify-content: space-between; color: var(--n-600); }
 
-.wiki-seg { display: inline-flex; flex-wrap: wrap; border: var(--rule-strong); background: var(--n-0); max-width: 100%; }
-.wiki-seg-btn {
-  min-height: 36px; padding: 0 var(--sp-4); background: var(--n-0); color: var(--n-800); border: 0; cursor: pointer;
-  font: 500 0.8125rem/1 var(--f-body);
-  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
-}
-.wiki-seg-btn + .wiki-seg-btn { border-left: var(--rule); }
-.wiki-seg-btn:hover { background: var(--n-50); }
-.wiki-seg-btn[aria-checked="true"] { background: var(--pc-blue); color: var(--n-0); }
-
 .wiki-field { display: grid; gap: var(--sp-1); min-width: 0; }
 .wiki-field--grow { flex: 1 1 220px; }
 .wiki-field select {

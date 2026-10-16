@@ -4,7 +4,7 @@ import { seriesColor } from "../../../../components/scores/series-color";
 import { BASKET_MIN_PRESENCE, BASKET_WINDOW_YEARS, computePillarTimeseries, getCountryByIso3 } from "../../../../data/contract/selectors";
 import { useDashboardData } from "../../../../state/dashboard-context";
 import { LineChart, type Series } from "../charts";
-import { Segmented } from "./Segmented";
+import { Segmented } from "../../../../components/controls/Segmented";
 import { ShowAsTable } from "../ShowAsTable";
 import { basketMembers, fmt1, indicatorLabel, plainMeanSeries, scoredYears, seriesOf, shortLabel } from "./data";
 
