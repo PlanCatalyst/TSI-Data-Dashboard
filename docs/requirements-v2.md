@@ -690,7 +690,7 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 | Oddity | Cause | Kind |
 |--------|-------|------|
 | Line flat at 100 for years | Benchmark clamp (DQ-01) | Rule, pending decision |
-| Sawtooth in one small country (Niue tuberculosis) | A few cases move the rate in a population near 1,600 (DQ-09) | Data |
+| Sawtooth in one small country (Niue tuberculosis; Palau on the page, because Niue is not among the 216 countries shown) | A few cases move the rate in a population of a few thousand (DQ-09) | Data |
 | Jagged agriculture aid | Aid disbursements are lumpy by nature (DQ-08) | Data |
 | Series starts late or stops early | Source coverage: IHR 2010 to 2017 only, WASH mortality 2019 only, WGI every other year before 2002, MPI only in survey years | Data |
 | Pillar has no early years | Basket rule needs 75% of the pillar's indicators (DQ-03) | Rule |
@@ -698,7 +698,18 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 | Pillar score marked "1 of 3" | Only one indicator reported that year (DQ-05) | Rule |
 | Dense countries score 0 on population density | Banded scale, denser means more need, confirmed 2026-09-17 | Rule |
 | Sustainable agriculture shows only a handful of countries | The source reports for about 10 countries | Data |
-| Overall score shown while one pillar is blank | Overall averages the pillars that have data; contract wording under review | Open issue |
+| No overall score while one pillar is blank | Overall is null unless all seven pillars have a score (decided 2026-10-15) | Rule, locked |
+
+- REQ9.16 **Sources first.** The page opens with every data source as a
+  large cell in a grid, above the wiki: source name, provider, what the
+  dashboard takes from it, why it is used, how many indicators it feeds, the
+  years it covers (read from the loaded data) and a link to the provider.
+  Added 2026-10-15 (Thomas). Section 10 keeps the coverage bars and the
+  refresh detail.
+- REQ9.17 **Open a country from a link.** `#/map?country=ISO3` opens that
+  country's panel on the Map, so About cards can link to a real country. The
+  indicator inside the panel is named in the link text; the panel does not
+  preselect it.
 
 ### 9.5 Interaction and motion
 
@@ -712,7 +723,10 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   a "Show as table" toggle gives the numbers behind it.
 - REQ9.8 Visuals inside a collapsed Disclosure do not mount until opened, so
   the page loads fast inside the Wix iframe. The About route is a lazy
-  chunk.
+  chunk. **As built 2026-10-15:** each section's visual sits above its detail
+  and mounts when the reader scrolls within 900 px of it (with a reserved
+  minimum height so the page does not jump); the detail mounts when opened.
+  Nothing mounts at page load except the source grid and the rail.
 - REQ9.9 **Explain-in-place links.** Wherever the dashboard shows an oddity,
   a small "Why?" link opens the matching About section: the flat-at-100 tile
   in the side panel, the "n of m" badge, a blank projection slot, the
@@ -727,11 +741,14 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   a domain reader, active voice, no em dashes, no repository paths or code
   names in public copy (series codes may appear in the detail as a
   reference). Follows the writing rules used for the rest of the UI.
-- REQ9.11 The per-indicator methodology table (section 4) is generated, not
-  hand-written: a script reads `indicators/indicators.yaml` and the scorer
-  constants and writes `dashboard/src/content/about/methodology.generated.json`.
-  CI fails if the generated file is stale. This keeps one source of truth
-  and makes yaml versus code drift (found by the 2026-10-14 audit) visible.
+- REQ9.11 The per-indicator methodology table (section 4) is hand-kept in
+  `dashboard/src/content/about/methodology.ts` and checked by
+  `npm run check:about` against `public/v1/meta.json` (all 28 indicators
+  present, keys, source and unit agree). **Changed 2026-10-15 (Thomas):** the
+  originally specified generator from `indicators/indicators.yaml` and the
+  scorer constants is deferred to `TASKS.md`; this release is frontend only.
+  Benchmarks and scoring families are read from the scorer code, not the
+  yaml, and any yaml versus code drift found is named in the section detail.
 - REQ9.12 One decisions module (`content/about/decisions.ts`) holds every
   pipeline data decision: id, title, the consideration, what the dashboard
   decided, why, date, status, linked issue IDs. Entries name no people or
@@ -743,8 +760,11 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   `meta.pipelineRunId`, the visual shows "from snapshot <id>" instead of
   presenting old numbers as current.
 - REQ9.14 Fix the stale and wrong content listed in §9.1 at its source:
-  page copy in `content/about/`, indicator labels and units in
-  `indicators/indicators.yaml` (which flows into `meta.json`).
+  page copy in `content/about/`. **Changed 2026-10-15 (Thomas):** the three
+  wrong indicator labels (`sanit`, `susag`, `u5mr`) are corrected on the
+  About page only through overrides in `methodology.ts`; fixing them in
+  `indicators/indicators.yaml` (which flows into `meta.json` and every other
+  page) is deferred to `TASKS.md` and the next pipeline publish.
 - REQ9.15 Sections that describe a pending client decision (section 5, the
   overall-score rule, the debt-risk input rule) are written so they stay
   true either way, and are updated in the same change that applies the
@@ -783,8 +803,9 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   scroll. Every section is reachable from every other in two clicks with
   `position: sticky` disabled in dev tools (simulates the auto-height
   embed), and the rail collapses and reopens by keyboard.
-- AC9.7 `methodology.generated.json` regenerates identically in CI; the
-  methodology table matches `indicators.yaml` for all 28 indicators.
+- AC9.7 `npm run check:about` passes in CI; the methodology table matches
+  `meta.json` for all 28 indicators and the content rules (no em dashes, no
+  hex literals, no repository paths, no dangling decision references) hold.
 - AC9.8 Lighthouse accessibility 95 or higher on the About route; zero hex
   literals outside the token file (AC7.1).
 - AC9.9 Reyna reads the page and can answer, without help, why Brazil's
@@ -798,11 +819,20 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 - No analytics on section views (client decision, §8).
 - No new contract fields; the page reads what `/v1` already carries.
 
-### 9.10 Open questions
+### 9.10 Scope of the first release
+
+Decided 2026-10-15 (Thomas): all 14 sections in one release, built in staged
+commits and deployed once. Frontend only; no pipeline, contract or
+`indicators.yaml` change. Deploy path: pull request, Thomas approves, manual
+`Deploy dashboard` workflow.
+
+### 9.11 Open questions
 
 - Q9.1 (Reyna) How candid should the public page be about open issues?
   Options: full (issue IDs and status), summarised (cause and status, no
-  IDs), or internal-only sections behind a query flag.
+  IDs), or internal-only sections behind a query flag. Build default
+  2026-10-15 (Thomas): summarised, behind one `CANDOUR` flag in
+  `content/about/decisions.ts`; Reyna approves the level before release.
 - Q9.2 Should the decisions log name individuals or only roles? Decided
   2026-10-15: neither. See REQ9.12.
 - Q9.3 (Thomas) Embed mode in Wix: fixed height with internal scroll, or
