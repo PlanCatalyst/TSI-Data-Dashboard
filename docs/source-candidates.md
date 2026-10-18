@@ -2,11 +2,13 @@
 
 ## Purpose
 
-Provide a pre-approved starting shortlist so source work can proceed without
-waiting on PM follow-up.
+Provide a shortlist of candidate sources for indicators that lacked one.
 
-These candidates align with the client frontend blueprint:
-`PlanCatalyst TSI Data Dashboard Final.html`.
+Status (2026-10-17): all 28 indicators are live. Sources are the UN SDG API (fetch window
+starts 1990), World Bank API (1990-2024), ND-GAIN ZIP, UNDP HDR (GII, MPI) and World Bank WGI
+XLSX. The entries below are retained as source provenance.
+
+These candidates align with the original UI mock (kept outside the repo).
 
 ## Indicator candidates
 
@@ -21,7 +23,7 @@ These candidates align with the client frontend blueprint:
 - Sample check (2023 baseline): AFG=0.665, ALB=0.116, AUS=0.063, range 0.009–0.838 on the expected 0-1 scale.
 - Scoring: wired via `GII_INDEX` series_code → `RatioThresholdScorer(threshold=0.32)` in `src/calculating/factory.py`. Direction is vulnerability-oriented in pipeline output; publish step inverts.
 - Pillar wiring: `women → women → gii → GII_INDEX` (already in `pillar_taxonomy.py`).
-- Caveat: dataset goes back to 1990; other pillar indicators (UN SDG) only have data 2010+, so the `women` pillar will have lonely pre-2010 years in `pillarscores.csv`. Display-year filtering happens at the publish/frontend boundary, not in cleaning.
+- Caveat (written when the UN SDG window started 2010; the fetch window now starts 1990, so coverage depends on what each series actually reports): GII goes back to 1990, so pre-2010 years may be thinner for other `women` pillar series. Display-year filtering happens at the publish/frontend boundary, not in cleaning.
 
 ### `mpi` (Multidimensional Poverty Index) — **live**
 
@@ -36,18 +38,10 @@ These candidates align with the client frontend blueprint:
 - **Data-science note for the team**: MPI is **not an annual panel** — each country has 1–2 observations at the household-survey years (DHS/MICS). The cleaner emits one row per survey wave, dated to the *survey-end year* (e.g. "2022/2023 M" → 2023). The publish layer needs a decision on how to display: latest-only, carried-forward, or sparse-by-design. Open question for the contract.
 - Name→ISO3: HDR uses UN long forms ("Bolivia (Plurinational State of)"); `_HDR_NAME_TO_ISO3` in the cleaner resolves these. New alias additions go there.
 
-### `mpi` (Multidimensional Poverty Index)
-
-- Primary candidate: UNDP Human Development Reports MPI datasets.
-- Frontend source intent: "UNDP Human Development Reports".
-- Notes:
-  - maintain country/year coverage matrix and explicit nulls where no observation
-  - preserve source provenance date/version in ingestion notes
-
 ### `ndgain` (ND-GAIN Vulnerability Index) — **live**
 
 - Source: University of Notre Dame, ND-GAIN Country Index 2026 bulk ZIP.
-- ZIP path: `data/raw/nd-gain/ndgain_countryindex_2026.zip` (staged in repo; download manually from `https://gain.nd.edu/our-work/country-index/download-data/`).
+- ZIP path: `data/raw/nd-gain/ndgain_countryindex_2026.zip` (staged in repo; download manually from `https://gain.nd.edu/our-work/country-index/download-data/`). The pipeline can also read the newest ZIP from the private ND-GAIN source Blob container (`sources/ndgain/`) when `NDGAIN_BLOB_CONTAINER` is set (the Container Apps Job path).
 - Composite path inside ZIP: `resources/vulnerability/vulnerability.csv` (overall, the canonical published composite — same number ND-GAIN itself displays). Sector composites (`food`, `water`, `health`, `ecosystems`, `habitat`, `infrastructure`) are also pulled and tagged `vulnerability_<sector>` for transparency / future scorers, but only `ND_GAIN_VULN` flows to scoring today.
 - Clean output: `data/clean/ndgain/nd_gain_clean.csv` (187 countries × 1995–2023 = 5,423 composite rows; sector and component rows are present in the same CSV with `series_code` NaN — defensively ignored by scoring).
 - Sample check (2023, top vulnerability): Chad 0.640, Niger 0.633, Solomon Islands 0.629, Micronesia 0.621, Guinea-Bissau 0.613, Sudan 0.612, Somalia 0.611. Matches ND-GAIN's published 2023 ranking.
@@ -74,18 +68,17 @@ These candidates align with the client frontend blueprint:
 
 - The Hanson-Sigman dataset (`data/raw/owid-state-capacity/` if present) is preserved as a reference but is no longer wired. If PlanCatalyst ever wants to re-evaluate, the OWID grapher CSV is at `https://ourworldindata.org/grapher/state-capacity-index.csv` (data 1960–2015).
 
-### `conces` / macrosec composite — **scored 2026-09-19; coverage drop vs HDI**
+### `conces` / macrosec composite - **live as `mspi`**
 
 - Status: formula is in `docs/spec-macrosec-index.md` (`index_version: "1.0"`).
   Contract key `mspi` landed 2026-09-19. Composer emits `MSPI_INDEX`; taxonomy
   maps `mspi` → `MSPI_INDEX`. Local score: **117 countries / 1,693 country-years**
   (2010–2024) vs HDI **193 / 2,688**. `DT.DOD.ALLC.ZS` and `DT.DOD.DECT.EX.ZS`
   are archived on WDI and must be fetched from IDS source 6 with counterpart-area
-  WLD. Do not live-publish until PlanCatalyst confirms the coverage drop.
-- Why it was deferred: the Concessionality Index was never a published dataset. PlanCatalyst
-  has now specified a four-component World Bank composite (equal 25% weights, fixed bounds,
-  null if any component is null). The six methodology questions below are answered.
-- Answers (2026-09-17 spec):
+  WLD. Non-covered countries are excluded, not substituted (rule applied 2026-09-24); `mspi` was published live 2026-09-29.
+- Why it was deferred: the Concessionality Index was never a published dataset. The index is now specified as a four-component World Bank composite (equal 25% weights, fixed bounds,
+  null if any component is null). The six methodology questions below are settled.
+- Decisions (2026-09-17 spec):
   1. **Per-capita income** — `NY.GDP.PCAP.CD`, log then fixed min-max ln(200)–ln(150,000). 25%.
   2. **Vulnerability and fragility** — mean of WGI EST dimensions `VA, PV, GE, RQ, RL, CC`,
      fixed min-max −2.5 to +2.5. Skip missing dimensions. 25%. Do not reuse `WGI_GOVEFF`.
@@ -96,9 +89,8 @@ These candidates align with the client frontend blueprint:
   5. Four components combined by **equal weight**.
   6. Normalized on **fixed absolute bounds**, clipped to [0, 1], then × 100. Not
      cross-country min-max, not percentile rank.
-- Implementation is unblocked. Owner: **Thomas** (finishing the project solo as of
-  2026-09-19). Contract key is `mspi`. Flag coverage drop vs HDI before swapping
-  the live snapshot. Composer is in `src/calculating/mspi.py`.
+- Implemented and live. Contract key is `mspi`. Composer is in `src/calculating/mspi.py` and emits a
+  per-country status (`scored` / `out_of_scope` / `incomplete_data`).
 
 ## Required acceptance criteria per source
 
@@ -106,4 +98,4 @@ These candidates align with the client frontend blueprint:
 2. Fetch and clean path committed in `src/fetch/` + `src/clean/`.
 3. Country identity reconciled to `indicators/country_codes.csv` (`iso3` canonical).
 4. Missing observations emitted as null-compatible values (no sentinel coercion).
-5. Scorer/factory wiring completed or explicitly marked as blocking with owner + ETA.
+5. Scorer/factory wiring completed or explicitly marked as blocking.

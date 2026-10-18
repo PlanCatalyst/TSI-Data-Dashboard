@@ -2,7 +2,7 @@
 
 *How the dashboard gets its numbers, and how to refresh them yourself from the Azure portal.*
 
-Version draft 1, 2026-10-14. Owner: Thomas Llamzon.
+Version draft 1, 2026-10-14. Maintainer: Thomas Llamzon.
 
 ---
 
@@ -26,7 +26,7 @@ If a refresh is skipped, the dashboard keeps showing the previous numbers. Nothi
 
 ## 3. Before you start
 
-**Access.** You need to be able to open the Azure portal and see the resource group named `tsi-data-dashboard`. If you can open it but cannot press "Run now" on the job, ask IT for the Contributor role on that resource group.
+**Access.** You need to be able to open the Azure portal and see the dashboard's resource group (the maintainer supplies its name). If you can open it but cannot press "Run now" on the job, you need the Contributor role on that resource group.
 
 **Nothing to renew.** The job signs in with its own Azure identity. There is no password or key that expires.
 
@@ -42,8 +42,8 @@ Go to the ND-GAIN Country Index website and download the latest "country index" 
 
 ### 4.2 Upload the ZIP to Azure
 
-1. In the Azure portal, search for `tsidashboardblobstorage` and open it. `[Screenshot 02]`
-2. In the left menu choose **Containers**, then open **pipeline-sources**. `[Screenshot 03]`
+1. In the Azure portal, open the dashboard storage account (the account in `AZURE_STORAGE_ACCOUNT_URL`; the maintainer supplies its name). `[Screenshot 02]`
+2. In the left menu choose **Containers**, then open the ND-GAIN source container (`NDGAIN_BLOB_CONTAINER`, set in `infra/container-apps-job.sh`). `[Screenshot 03]`
 3. Open the folder **sources**, then **ndgain**.
 4. Press **Upload**, choose the ZIP from step 4.1, and press **Upload**. `[Screenshot 04]`
 
@@ -51,7 +51,7 @@ The job always uses the newest ZIP in this folder. Old ones can stay; they are i
 
 ### 4.3 Start the job
 
-1. Search for `tsi-pipeline-refresh` and open it. `[Screenshot 05]`
+1. Search for the refresh job (defined in `infra/container-apps-job.sh`; the maintainer supplies its name) and open it. `[Screenshot 05]`
 2. Press **Run now** at the top, then **Run** to confirm. `[Screenshot 06]`
 
 ### 4.4 Watch it run
@@ -86,10 +86,10 @@ The last log line tells you which part failed. The three most likely:
 | Last line starts with | What it means | What to do |
 |-----------------------|---------------|------------|
 | `PIPELINE RUN FAILED: nd-gain source` | The job could not find or open the ZIP you uploaded | Check the file is a `.zip`, is in `sources/ndgain`, and is not empty. Re-upload and run again. |
-| `PIPELINE RUN FAILED: fetch` | One of the public data sources did not answer | Usually temporary. Wait an hour and run again. If it fails twice, contact Thomas. |
-| `PIPELINE RUN FAILED: publish` | The numbers were produced but failed the safety check before upload | Do not retry. Contact Thomas with the run date. The dashboard is unaffected. |
+| `PIPELINE RUN FAILED: fetch` | One of the public data sources did not answer | Usually temporary. Wait an hour and run again. If it fails twice, contact the maintainer. |
+| `PIPELINE RUN FAILED: publish` | The numbers were produced but failed the safety check before upload | Do not retry. Contact the maintainer with the run date. The dashboard is unaffected. |
 
-Anything else: send Thomas the full last line and the run date.
+Anything else: send the maintainer the full last line and the run date.
 
 In every failure case the dashboard keeps showing the previous numbers. A failed run never half-publishes.
 
@@ -99,8 +99,8 @@ You will also receive an email when a run fails, so you do not have to watch the
 
 Publishing replaces the three data files in place. If a refresh completed but the numbers look wrong, the previous files can be put back:
 
-1. Before any refresh, Thomas keeps a dated copy of the three files. Ask for the copy from the previous refresh.
-2. Open `tsidashboardblobstorage`, **Containers**, **dashboard-public**, folder **v1**.
+1. Before any refresh, the maintainer keeps a dated copy of the three files. Ask for the copy from the previous refresh.
+2. Open the dashboard storage account, **Containers**, the public payload container (`publish.dashboard_container_name` in `src/config/settings.yaml`), folder **v1**.
 3. Upload `countries.json` and `timeseries.json` first, ticking **Overwrite if files already exist**.
 4. Upload `meta.json` last. `[Screenshot 11]` The dashboard reads it on the next page load.
 
@@ -119,7 +119,7 @@ The order matters: `meta.json` is the file that tells the dashboard a snapshot i
 
 | What | Who |
 |------|-----|
-| Azure subscription, resource group `tsi-data-dashboard`, storage account | PlanCatalyst (IT) |
-| Pipeline code, dashboard code, this document | Thomas Llamzon (Gmail) |
-| Scoring decisions and sign-off | the reviewer, PlanCatalyst |
-| Failure alert email | `[client-owned address, set when the job is created]` |
+| Azure subscription, resource group, storage account | PlanCatalyst |
+| Pipeline code, dashboard code, this document | Thomas Llamzon (maintainer) |
+| Scoring decisions | PlanCatalyst |
+| Failure alert email | `[PlanCatalyst-owned address, set when the job is created]` |

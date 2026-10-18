@@ -141,3 +141,9 @@ data/raw/nd-gain/**
 
 # Audit expectations: regenerated from data/store by audit/derive_*.py
 audit/expected/*.csv
+
+# Client documents (specs, briefs, spreadsheets, mocks) stay outside this public repo.
+*.docx
+*.xlsx
+*.pdf
+!docs/UNSDG-Global-Indicator-Framework-after-2025.pdf

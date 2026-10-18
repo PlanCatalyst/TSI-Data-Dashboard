@@ -13,16 +13,16 @@ taken once the Container Apps Job exists (`infra/container-apps-job.sh`).
 | File | Shows |
 |------|-------|
 | `01-portal-home.png` | Azure portal home with the search box |
-| `02-storage-account.png` | `tsidashboardblobstorage` overview |
-| `03-containers.png` | Containers list with `pipeline-sources` selected |
+| `02-storage-account.png` | Dashboard storage account overview |
+| `03-containers.png` | Containers list with the ND-GAIN source container selected |
 | `04-upload-zip.png` | Upload dialog with the ND-GAIN ZIP chosen, folder `sources/ndgain` |
-| `05-job-overview.png` | Container Apps Job `tsi-pipeline-refresh` overview with Run now |
+| `05-job-overview.png` | Container Apps Job overview with Run now |
 | `06-run-now.png` | Run now confirmation |
 | `07-execution-history.png` | Execution history with a running row |
 | `08-logs-complete.png` | Log stream ending in `PIPELINE RUN COMPLETE` |
 | `09-logs-failed.png` | Log stream ending in `PIPELINE RUN FAILED` |
 | `10-dashboard-check.png` | Dashboard map with a country panel open, generated date visible |
-| `11-rollback-upload.png` | Uploading saved `meta.json` to `dashboard-public/v1` |
+| `11-rollback-upload.png` | Uploading saved `meta.json` to the public payload container, folder `v1` |
 
 ## Producing the Word document
 

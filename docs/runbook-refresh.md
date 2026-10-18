@@ -30,13 +30,13 @@ changing the location needs a rebuild; refreshing the data does not.
 
 ---
 
-## The Azure job (client-operable refresh)
+## The Azure job (PlanCatalyst-operable refresh)
 
-`infra/container-apps-job.sh` provisions everything in resource group
-`tsi-data-dashboard`: a private `pipeline-sources` container for ND-GAIN
-uploads, a Container Apps environment, the manual job `tsi-pipeline-refresh`
+`infra/container-apps-job.sh` provisions everything in the resource group it
+defines: a private container for ND-GAIN
+uploads, a Container Apps environment, the manual job
 with a system-assigned identity, the two role assignments (Storage Blob Data
-Contributor on the storage account, AcrPull on `TSIcontainers`), and an email
+Contributor on the storage account, AcrPull on the registry), and an email
 alert on failed executions. Review the variables, export `ALERT_EMAIL`, run it
 once from an `az login` session with rights to assign roles.
 
@@ -46,9 +46,9 @@ variables, which override `settings.yaml` at run time:
 | Variable | Job value | Effect |
 |---|---|---|
 | `AZURE_STORAGE_ACCOUNT_URL` | the account URL | Enables Azure; identity comes from the default credential chain |
-| `NDGAIN_BLOB_CONTAINER` / `NDGAIN_BLOB_PREFIX` | `pipeline-sources` / `sources/ndgain/` | Newest `.zip` under the prefix is used and logged as `ND-GAIN source:` |
+| `NDGAIN_BLOB_CONTAINER` / `NDGAIN_BLOB_PREFIX` | the ND-GAIN source container / `sources/ndgain/` | Newest `.zip` under the prefix is used and logged as `ND-GAIN source:` |
 | `PIPELINE_FETCH_RAW` | `true` | Live fetch of UN SDG, World Bank, UNDP, WGI |
-| `PIPELINE_UPLOAD_AZURE` / `PIPELINE_PUBLISH_DASHBOARD` | `true` | Validated CSVs to `validated-scores`, contract JSON to `dashboard-public/v1` |
+| `PIPELINE_UPLOAD_AZURE` / `PIPELINE_PUBLISH_DASHBOARD` | `true` | Validated CSVs to the container at `azure.container_name`, contract JSON to `publish.dashboard_container_name` under `v1` (both in `src/config/settings.yaml`) |
 | `PIPELINE_RUN_FORECASTS` | `false` | Historical only |
 
 No secret is stored anywhere in the job. Locally, the same variables can be
@@ -61,9 +61,8 @@ exported to reproduce a job run; with the `AZURE_*` service principal triple in
 
 1. `.env` at the repo root with `AZURE_STORAGE_ACCOUNT_URL` and, for the
    service principal path, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
-   `AZURE_CLIENT_SECRET`. The principal `tsidashboard-pipeline` holds Storage
-   Blob Data Contributor on `dashboard-public` only; its secret expires
-   **2027-09-28**. Never commit `.env`.
+   `AZURE_CLIENT_SECRET`. The pipeline principal holds Storage
+   Blob Data Contributor on the public payload container only. Never commit `.env`.
 2. `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
 3. A clean git tree, so the refreshed fixtures diff is readable.
 4. Run, with the toggles as environment variables rather than edits to
@@ -90,8 +89,11 @@ exported to reproduce a job run; with the `AZURE_*` service principal triple in
 6. Verify the live endpoint and the console:
 
    ```zsh
-   curl -s https://tsidashboardblobstorage.blob.core.windows.net/dashboard-public/v1/meta.json | head -c 200
+   curl -s "$AZURE_STORAGE_ACCOUNT_URL/$PUBLISH_CONTAINER/v1/meta.json" | head -c 200
    ```
+
+   `AZURE_STORAGE_ACCOUNT_URL` is in `.env`; `PUBLISH_CONTAINER` is
+   `publish.dashboard_container_name` from `src/config/settings.yaml`.
 
    `generatedAt` and `pipelineRunId` must match the completion line. The site
    should log `Loading contract from Azure`, not the local `/v1` fallback.
@@ -108,7 +110,7 @@ publish:
 ```zsh
 mkdir -p backups/v1-$(date +%Y%m%d)
 for f in meta.json countries.json timeseries.json projections.json; do
-  curl -s "https://tsidashboardblobstorage.blob.core.windows.net/dashboard-public/v1/$f" \
+  curl -s "$AZURE_STORAGE_ACCOUNT_URL/$PUBLISH_CONTAINER/v1/$f" \
     -o "backups/v1-$(date +%Y%m%d)/$f" || true
 done
 ```
@@ -127,7 +129,7 @@ frontend.
 `soft_floor` (requirements v2 option B). Changing it changes every score:
 bump `index_version`, record it in `docs/data-contract.md` and
 `indicators/SCORING_AUDIT.md`, run `scripts/clamp_audit.py --write-audit`,
-then publish. Awaiting the client decision.
+then publish. Awaiting the scoring decision.
 
 ---
 
@@ -158,15 +160,14 @@ gh workflow run deploy-dashboard.yml --ref main
 gh run watch <run-id> --compact --exit-status
 ```
 
-Static Web App `tsi-dashboard-frontend`, resource group `tsi-data-dashboard`,
-subscription "Azure subscription 1" (PlanCatalyst), public host
-`jolly-pebble-0e2f9300f.7.azurestaticapps.net`. If the deploy fails with
+The Static Web App lives in PlanCatalyst's subscription; set `SWA_NAME` and
+`RESOURCE_GROUP` to its name and resource group (from the Azure portal). If the deploy fails with
 `deployment_token was not provided`, re-set the environment secret without the
 value touching a terminal or a file:
 
 ```zsh
-az staticwebapp secrets list --name tsi-dashboard-frontend \
-  --resource-group tsi-data-dashboard --query "properties.apiKey" -o tsv \
+az staticwebapp secrets list --name "$SWA_NAME" \
+  --resource-group "$RESOURCE_GROUP" --query "properties.apiKey" -o tsv \
   | tr -d '\n' | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --env production
 gh run rerun <run-id> --failed
 ```

@@ -10,7 +10,7 @@
  *   {countries}                            live fact from the loaded contract
  */
 
-/** Locked: decided and shipped. Pending: waiting on the client. Open: known, not decided. */
+/** Locked: decided and shipped. Pending: decision not made yet. Open: known, not decided. */
 export type DecisionStatus = "locked" | "pending" | "open";
 
 export type DetailBlock = {

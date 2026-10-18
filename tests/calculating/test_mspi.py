@@ -189,7 +189,7 @@ def test_status_incomplete_lists_missing_components_from_latest_year():
 
 
 def test_status_in_scope_by_lending_type_but_no_ids_history_is_out_of_scope():
-    """Client decision 2026-09-29: no IDS observation in any year = out of scope."""
+    """Scope refinement 2026-09-29: no IDS observation in any year = out of scope."""
     from src.calculating.mspi import mspi_country_status
 
     # No data at all.

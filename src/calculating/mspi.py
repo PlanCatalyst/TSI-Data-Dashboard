@@ -1,6 +1,6 @@
 """Country Macro Socio-Economic Performance Index (mspi) composer.
 
-Client spec: ``docs/spec-macrosec-index.md`` (index_version 1.1, revised
+Spec: ``docs/spec-macrosec-index.md`` (index_version 1.1, revised
 2026-09-23; scope refinement accepted 2026-09-29).
 
 Builds one ``MSPI_INDEX`` row per country-year whose four components are all
@@ -74,7 +74,7 @@ _COMPONENT_NAMES = {
 _COMPONENT_COLS = tuple(_COMPONENT_NAMES)
 # Raw IDS (Debtor Reporting System) inputs. A country that never reports any
 # of these has no IDS history and is out of scope even if its lending type
-# says otherwise (client decision 2026-09-29).
+# says otherwise (scope refinement 2026-09-29).
 _IDS_RAW_COLS = ("concessional_pct", "pv_gni", "pv_exp", "fv_gni", "fv_exp", "ds_exp")
 _PANEL_COLS = ["country_code", "country_name", "year", *_COMPONENT_COLS, "debt_basis", "ids_reported"]
 
@@ -289,7 +289,7 @@ def mspi_country_status(
 
     Scope comes from ``country_metadata.ids_in_scope`` (World Bank
     ``lendingType.id`` resolved by ``WorldBankCleaner.clean_country_metadata``),
-    the rule as written in the client's 2026-09-23 revision. Countries absent
+    the rule as written in the 2026-09-23 revision. Countries absent
     from the metadata are not IBRD / IDA / blend borrowers and are therefore
     out of scope.
 

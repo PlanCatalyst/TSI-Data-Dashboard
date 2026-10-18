@@ -54,8 +54,8 @@ Columns:
 | 24 | state     | ctx     | statecap | WGI_GOVEFF      | + | higher=need | yes | SimpleDirectional (100 - value). **Live (2026-05-17)** — source switched from Hanson-Sigman (stopped 2015) to World Bank WGI Government Effectiveness (current through 2024); WGI's 0-100 score used directly. See `docs/source-candidates.md`. |
 | 25 | pov       | ctx     | poverty  | SI_POV_NAHC     | - | higher=need | yes | RatioThreshold(10, 10) |
 | 26 | mpi       | ctx     | poverty  | MPI_INDEX       | - | higher=need | yes | RatioThreshold(0.089). **Live (2026-05-17)** — UNDP HDR + OPHI 2025 Global MPI Table 2, 88 countries, 1–3 survey waves each (2001–2024). See `docs/source-candidates.md`. |
-| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | higher=need | yes | **Verified 2026-07-07 (issue #6).** Banded formula produces 0/25/50/75/100. **Display direction confirmed 2026-09-17:** denser = higher need in the pipeline, so after the publish invert a country at ≥250/km² *displays* 0. Keep scored + inverted. No code change. |
-| 28 | mspi      | pri     | macrosec | MSPI_INDEX | + | higher=need | yes | **Scored 2026-09-19.** Composer `src/calculating/mspi.py`; `SimpleDirectionalScorer` flips to higher=need. **Coverage:** 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688 in the same window. High-income DRS-non-reporters are null (USA, GBR, DEU, …). Spec: `docs/spec-macrosec-index.md`. Confirm with PlanCatalyst before swapping the live snapshot. |
+| 27 | popdens   | ctx     | ctxmisc  | EN.POP.DNST | ? | higher=need | yes | **Verified 2026-07-07 (issue #6).** Banded formula produces 0/25/50/75/100. **Display direction (2026-09-17):** denser = higher need in the pipeline, so after the publish invert a country at ≥250/km² *displays* 0. Keep scored + inverted. No code change. |
+| 28 | mspi      | pri     | macrosec | MSPI_INDEX | + | higher=need | yes | **Scored 2026-09-19.** Composer `src/calculating/mspi.py`; `SimpleDirectionalScorer` flips to higher=need. **Coverage:** 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688 in the same window. High-income DRS-non-reporters are null (USA, GBR, DEU, …). Spec: `docs/spec-macrosec-index.md`. Published live 2026-09-29. |
 
 ## Implementation gaps for the pipeline team
 
@@ -64,7 +64,7 @@ Tracking these so nothing falls through the cracks after handoff:
 - **Missing scorers** (0): `mspi` composer is wired and scored (`MSPI_INDEX` / `SimpleDirectionalScorer`). Coverage is thinner than HDI (117 vs 193 countries, 2010–2024). `state` uses `WGI_GOVEFF` (live 2026-05-17).
 - **Missing data in pipeline** (0): `gii` and `mpi` are both live as of 2026-05-17. `gii` uses the 2025 HDR composite-indices CSV; `mpi` uses the 2025 OPHI/UNDP Global MPI Table 2 XLSX (88 countries, survey-wave granularity). Note: MPI is not an annual panel — display logic decision still open.
 - **ND-GAIN composite** (was 1, now 0): `ndgain` is live as of 2026-05-17 — pipeline now reads ND-GAIN's published composite directly from `resources/vulnerability/vulnerability.csv` rather than recomputing from components. Matches ND-GAIN's canonical published numbers by construction.
-- **Pop density scorer** (formula fixed and verified): `popdens` — banded formula adopted 2026-07-03 (`b19f1a8`), verified 2026-07-07 (issue #6). Display direction confirmed 2026-09-17: keep scored + inverted.
+- **Pop density scorer** (formula fixed and verified): `popdens` - banded formula adopted 2026-07-03 (`b19f1a8`), verified 2026-07-07 (issue #6). Display direction (2026-09-17): keep scored + inverted.
 
 ### Reconciliation with published output (2026-07-07 run)
 
@@ -75,14 +75,14 @@ Tracking these so nothing falls through the cracks after handoff:
 | `clean` | #5 | **Fixed** | 8,730 `EG_EGY_CLEAN` rows scored; `clean.csv` produced |
 | `popdens` | #6 | **Verified** | Banded scores {0, 25, 50, 75, 100}; 3,617 non-null scores |
 
-**Net:** 28/28 indicators reach scoring. `popdens` direction is closed (2026-09-17). The `pri/macrosec` contract key is `mspi` backed by `MSPI_INDEX` (scored 2026-09-19: 117 countries vs HDI 193). Do not live-publish until PlanCatalyst confirms that coverage drop.
+**Net:** 28/28 indicators reach scoring. `popdens` direction is closed (2026-09-17). The `pri/macrosec` contract key is `mspi` backed by `MSPI_INDEX` (scored 2026-09-19: 117 countries vs HDI 193). The coverage drop vs HDI is intentional (non-covered countries are excluded, not substituted); `mspi` is live.
 
 Open semantic question: none.
 
 ### conces / macrosec — spec received 2026-09-17; contract key `mspi` as of 2026-09-19
 
-PlanCatalyst declined the HDI substitution (2026-08-13) and supplied the Country Macro
-Socio-Economic Performance Index on 2026-09-17. Spec: `docs/spec-macrosec-index.md`
+The HDI substitution was dropped (2026-08-13) and the Country Macro
+Socio-Economic Performance Index spec arrived on 2026-09-17. Spec: `docs/spec-macrosec-index.md`
 (`index_version: "1.1"`, revised 2026-09-23, scope refinement 2026-09-29). Four equal-weight World Bank components (income, WGI fragility,
 LIC-DSF debt-risk proxy, non-concessional share); null if any component is null; higher =
 better before the pipeline invert.
@@ -104,7 +104,7 @@ Three reasons:
 
 ## What the frontend must do with this
 
-Nothing special. Consume the published JSON as "higher is better." No per-indicator inversion table in client code.
+Nothing special. Consume the published JSON as "higher is better." No per-indicator inversion table in frontend code.
 
 ## Dimension selection and basket aggregation (2026-10-14)
 
@@ -125,7 +125,7 @@ ignored. The frontend mirrors the rule. Issue log:
 Every benchmark scorer (`RatioThresholdScorer`, `InverseRatioScorer`,
 `GoalRatioScorer`) takes `below_benchmark`, set once in
 `src/config/settings.yaml` under `scoring.below_benchmark`. Default is `clamp`,
-the v1 behaviour, until the client picks an option. Switching to `soft_floor`
+the v1 behaviour, until a rule is chosen. Switching to `soft_floor`
 changes every published score, so it requires an `index_version` bump and a
 `docs/data-contract.md` entry before the publisher runs (AC1.3). Test coverage:
 `tests/calculating/test_scorers.py` (AC1.4).
@@ -161,7 +161,7 @@ dashboard and is the reason this is option B rather than fixed min-max
 
 ## Benchmark clamp audit
 
-Generated 2026-10-14 by `scripts/clamp_audit.py` with `scoring.below_benchmark: clamp`. A pinned row is a real source value scored at the floor (need 0, dashboard 100) because the country is already better than the client benchmark. The last column counts countries whose score sits unchanged for ten or more consecutive years while the source value moves (requirements v2, AC1.1). Re-run after any scorer change.
+Generated 2026-10-14 by `scripts/clamp_audit.py` with `scoring.below_benchmark: clamp`. A pinned row is a real source value scored at the floor (need 0, dashboard 100) because the country is already better than the benchmark. The last column counts countries whose score sits unchanged for ten or more consecutive years while the source value moves (requirements v2, AC1.1). Re-run after any scorer change.
 
 | Indicator | Country-years | Pinned at floor | Share | Countries flat 10+ years |
 |---|---:|---:|---:|---:|

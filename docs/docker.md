@@ -6,8 +6,9 @@ frontend in `dashboard/` is built and deployed separately.
 
 ## What's in the image
 
-The image packages the batch pipeline — `fetch → clean → score/aggregate →
-upload` — and runs it via the same entrypoint you'd use locally:
+The image packages the batch pipeline (`fetch → raw store → clean → score/aggregate →
+validate → upload → publish`, with forecasts off by default) and runs it via the same
+entrypoint you'd use locally:
 
 ```
 python -m src.pipeline.run_pipeline
@@ -37,64 +38,52 @@ python -m src.pipeline.run_pipeline
 
 ## The registry
 
-The registry **already exists** — `TSIcontainers`, in resource group
-`tsi-data-dashboard`, Canada Central.
+The registry **already exists** (name in `ACR_NAME`, set in `.env` and in
+`infra/container-apps-job.sh`).
 
-Its login server carries a hash suffix
-(`tsicontainers-ftd4exffe0b2h4e7.azurecr.io`) because **Domain name label
+Its login server carries a hash suffix because **Domain name label
 scope** is enabled — a newer ACR feature that makes the public hostname
-tenant-unique. So the login server is **not** `<name>.azurecr.io`. Always use
+tenant-unique. So the login server is **not** just the registry name plus the default Azure registry domain. Always use
 `ACR_LOGIN_SERVER` (not `ACR_NAME`) when constructing image references for
-`docker pull`; the registry *name* (`TSIcontainers`) is what `az acr` commands
+`docker pull`; the registry *name* (`ACR_NAME`) is what `az acr` commands
 take via `--registry` / `--name`.
 
-Relevant `.env` values:
+Relevant `.env` values (set both to your registry's values):
 
 ```
-ACR_NAME=TSIcontainers
-ACR_LOGIN_SERVER=tsicontainers-ftd4exffe0b2h4e7.azurecr.io
-RESOURCE_GROUP=tsi-data-dashboard
-LOCATION="Canada Central"
+ACR_NAME=<registry-name>
+ACR_LOGIN_SERVER=<registry-login-server>
 ```
 
-### One-time permission grant — **needs an Owner / User Access Administrator**
+### Permissions
 
-The service principal in `.env` is **Storage-only** by design (it publishes JSON
-to Blob) — it has no rights on the registry, so it can't push. The push identity
-needs **Contributor scoped to the registry**, not just `AcrPush`:
+The publish service principal in `.env` is **Storage-only** by design (it publishes
+JSON to Blob), so it has no rights on the registry. Two paths use the registry:
 
-> `az acr build` runs a server-side ACR *Task*, which requires
-> `Microsoft.ContainerRegistry/registries/scheduleRun/action`. That action is in
-> the **Contributor** role, **not** in the data-plane `AcrPush` role. `AcrPush`
-> only enables a local `docker push`. So for cloud build, grant **Contributor**.
-
-This grant requires `Microsoft.Authorization/roleAssignments/write` — i.e.
-**Owner** or **User Access Administrator** on the registry/RG/subscription.
-Plain Contributor (and "Container Apps Contributor") **cannot** assign roles.
+- **Running the job:** the Container Apps Job
+  (defined in `infra/container-apps-job.sh`) pulls the image with its own system-assigned managed
+  identity, which the script grants `AcrPull` on the registry. No registry credentials are
+  stored.
+- **Building the image:** `az acr build` runs a server-side ACR *Task*, which requires
+  `Microsoft.ContainerRegistry/registries/scheduleRun/action`. That action is in the
+  **Contributor** role, **not** in the data-plane `AcrPush` role (which only enables a local
+  `docker push`). So whoever runs `scripts/acr_build.sh` needs Contributor scoped to the
+  registry. Granting it needs `Microsoft.Authorization/roleAssignments/write`, i.e. **Owner**
+  or **User Access Administrator**; plain Contributor cannot assign roles.
 
 ```zsh
-# Run as an Owner / User Access Administrator
-ACR_ID=$(az acr show -n TSIcontainers --query id -o tsv)
-
-# Option A — grant the service principal (best for headless CI / the build script)
-az role assignment create \
-  --assignee [redacted] \
-  --scope "$ACR_ID" --role Contributor
-
-# Option B — grant a human who will run builds interactively
-az role assignment create \
-  --assignee [redacted] \
-  --scope "$ACR_ID" --role Contributor
+# Run as an Owner / User Access Administrator, for the identity that will run builds
+ACR_ID=$(az acr show -n "$ACR_NAME" --query id -o tsv)
+az role assignment create --assignee <build-identity-object-id>   --scope "$ACR_ID" --role Contributor
 ```
 
 **Alternative without an Owner:** enable the registry admin user
-(`az acr update -n TSIcontainers --admin-enabled true`, needs registry
+(`az acr update -n "$ACR_NAME" --admin-enabled true`, needs registry
 Contributor) and switch to a *local* `docker build` + `docker push` using the
 admin username/password. This sidesteps RBAC but uses a shared static
 credential and still can't do `az acr build`.
 
-> `.env` must stay sourceable: quote values with spaces (`LOCATION="Canada
-> Central"`) and avoid inline `#` comments on a `KEY=value` line — `source` does
+> `.env` must stay sourceable: quote values with spaces and avoid inline `#` comments on a `KEY=value` line; `source` does
 > not strip them.
 
 ## Build & push
@@ -112,7 +101,7 @@ scripts/acr_build.sh v1.2.0     # tags :v1.2.0 and :<git-sha>
 Verify the push:
 
 ```zsh
-az acr repository show-tags -n TSIcontainers --repository tsi-pipeline -o table
+az acr repository show-tags -n "$ACR_NAME" --repository tsi-pipeline -o table
 ```
 
 ### Local build (alternative)
@@ -133,19 +122,24 @@ single stage. Behaviour is governed by `src/config/settings.yaml` — notably:
 
 - `runtime.fetch_raw` — set `true` to fetch fresh upstream data inside the
   container (UN SDG is slow/rate-limited; default `false` reuses `data/raw/`).
-- `runtime.upload_azure` — set `true` to push validated CSVs to Blob.
+- `runtime.upload_azure` - governs the Azure upload and live publish. Override per run with the
+  `PIPELINE_UPLOAD_AZURE` env var (the job sets its own overrides in
+  `infra/container-apps-job.sh`).
 
-Provide Azure credentials at runtime via `--env-file .env` (local) or
-environment variables on the execution host (e.g. Azure Container Instances).
+Provide Azure credentials at runtime via `--env-file .env` (local). On the execution host, the
+Azure Container Apps Job authenticates with its managed identity (`infra/container-apps-job.sh`).
 
 ## Status & open items
 
 - ✅ Dockerfile, `.dockerignore`, and `acr_build.sh` are in place.
-- ✅ Registry `TSIcontainers` exists (Canada Central, `tsi-data-dashboard`).
-- ⏳ `AcrPush` grant — **descoped 2026-09-04** with the container path. If the
-  cadence ever shortens, this grant is Thomas's to request. Until then the
-  build script is not used for delivery.
-- 🔭 Execution host (ACI / scheduled job) is not chosen yet; the image is built
-  to be CMD-overridable and run anywhere. Forecast processing and atomic
-  dashboard publish are wired into the orchestrator; scheduling remains the
-  follow-up.
+- ✅ Registry exists (`ACR_NAME`).
+- ✅ Execution host chosen: Azure Container Apps Job, defined in
+  `infra/container-apps-job.sh` (manual trigger, 3h timeout, failure email alert,
+  managed identity with AcrPull and Storage Blob Data Contributor). **Coded, not yet
+  provisioned.** `scripts/acr_build.sh` produces the image the job runs. There is no cron;
+  the six-month cadence is a human routine (`docs/runbook-refresh.md`).
+- ⏳ Build identity: whoever runs `scripts/acr_build.sh` needs Contributor on the registry
+  (see Permissions above); not yet granted for the provisioning step.
+- ✅ ACR login server verified 2026-10-17 (`az acr show -n "$ACR_NAME" --query loginServer`);
+  the value goes in `ACR_LOGIN_SERVER`. `infra/container-apps-job.sh` now reads it from
+  Azure instead of deriving it from the registry name.

@@ -33,7 +33,7 @@ class IndicatorScorerFactory:
             # so 100 - value gives vulnerability orientation directly. The old
             # RatioGoalInverse(0.04) / (1/value^2) transform was built for the
             # 1-5 scale and saturated every 0-100 value to 0. See SCORING_AUDIT
-            # issue #4. NOTE (a contributor): confirm the true UN SDG return scale.
+            # issue #4. NOTE: confirm the true UN SDG return scale.
             "AG_LND_SUST": SimpleDirectionalScorer(),                # 2.4.1
             # 2.a.2 — value must be normalized to ag-flow/GDP BEFORE scoring
             # (done in pipeline.score_indicators). GoalRatioScorer then applies

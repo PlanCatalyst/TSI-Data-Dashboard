@@ -12,13 +12,13 @@ Core sequence:
 3. Score/Aggregate
 4. Upload validated CSVs (optional Azure)
 5. Optional World Bank forecast emit (`runtime.run_forecasts`) → `data/processed/`
-6. Publish contract JSON (`data/organized/v1/` dry run, or `dashboard-public/v1/`
+6. Publish contract JSON (`data/organized/v1/` dry run, or the public payload container under `v1/`
    when `runtime.upload_azure` is true and Azure creds are set). Payloads first,
    `meta.json` last; optional `projections.json` when forecasts CSV is present.
 
 ## Ownership
 
-- **Thomas:** remaining delivery as of 2026-09-19 (orchestration, publish, Azure, indicators)
+Maintainer: Thomas Llamzon.
 
 See `TASKS.md`.
 
@@ -32,7 +32,7 @@ Publish-only (skip fetch/clean/score):
 
 ```zsh
 python3 -m src.upload.publish_dashboard          # dry run → data/organized/v1/
-python3 -m src.upload.publish_dashboard --azure  # upload to dashboard-public/v1/
+python3 -m src.upload.publish_dashboard --azure  # upload to the public payload container (v1/)
 ```
 
 ## Expected Outputs

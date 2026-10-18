@@ -11,7 +11,7 @@ import type { Decision, DecisionStatus } from "./types";
  *   full        cause, status and the internal issue id
  *   summarised  cause and status, no issue ids (build default)
  *   hidden      entries that are not yet decided are left out of the log
- * the reviewer approves the level before release; changing it is this one line.
+ * The level is set before release; changing it is this one line.
  */
 export type Candour = "full" | "summarised" | "hidden";
 export const CANDOUR: Candour = "summarised";

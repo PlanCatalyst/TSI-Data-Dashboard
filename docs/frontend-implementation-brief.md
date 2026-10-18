@@ -2,12 +2,13 @@
 
 ## Purpose
 
-Turn `PlanCatalyst TSI Data Dashboard Final.html` into a production React frontend
-that preserves the client vision while mounting cleanly to the backend contract.
+Turn the original UI mock (kept outside the repo) into a production React frontend
+that preserves the approved design while mounting cleanly to the backend contract.
 
-Core contract integration (loaders, Explore, Compare, publish builders, iframe
-sync) is in place. Remaining work is presentability, Map/About polish, responsive
-QA, and hosted E2E — owned by **Thomas**, including live Blob JSON and Azure hosting.
+Status (2026-10-17): the app lives in `dashboard/` (React + Vite + D3) and is deployed to
+Azure Static Web Apps, reading the live Blob contract (`deploy-dashboard.yml`, manual dispatch).
+Production build, Azure hosting, live Blob publish and CORS are done. Remaining work is
+presentability, Map/About polish, responsive QA at Wix iframe widths, and hosted E2E.
 
 ## Non-Negotiable Integration Rules
 
@@ -15,6 +16,7 @@ QA, and hosted E2E — owned by **Thomas**, including live Blob JSON and Azure h
    - `meta.json`
    - `countries.json`
    - `timeseries.json`
+   - `projections.json` only when a forecast run published it (off by default)
 2. `docs/data-contract.md` is source of truth for payload semantics.
 3. `iso3` is canonical join key across all frontend data joins.
 4. Missing values remain `null` and must render as explicit no-data states.
@@ -23,7 +25,7 @@ QA, and hosted E2E — owned by **Thomas**, including live Blob JSON and Azure h
 
 ## Product Blueprint Source
 
-Use `PlanCatalyst TSI Data Dashboard Final.html` as the UI/feature blueprint:
+Use the original UI mock (kept outside the repo) as the UI/feature blueprint:
 
 - page structure
 - visual hierarchy
@@ -37,10 +39,10 @@ document the change in PR notes and preserve user intent.
 ## React App Structure (Recommended)
 
 ```text
-frontend/
+dashboard/
   src/
     app/
-      routes/              # Explore, Compare, Map, About
+      routes/              # ExplorePage, ComparePage, MapPage, about/ (AboutPage), TrendsPanel
       layout/              # shell, nav, iframe-safe wrappers
     components/
       tables/
@@ -123,30 +125,27 @@ Must be explicitly designed and implemented for:
 ## Theming and Visual Parity
 
 1. Lift colors/labels/domain mapping from `meta.json` where applicable.
-2. Keep visual intent from the client HTML for:
+2. Keep visual intent from the original HTML mock for:
    - typography hierarchy
    - panel composition
    - chart/map emphasis
    - interaction rhythm
 3. Ensure responsive behavior across desktop/tablet/mobile with no layout breakage.
 
-## Work split (updated 2026-09-19)
-
-**Thomas** (remaining delivery)
+## Remaining work
 
 - mock parity and presentability on all four pages
 - responsive QA vs HTML mock
-- missing-indicator UX (sparse pillars; `mspi` once the composite is live)
+- missing-indicator UX (sparse pillars; `mspi` is live with an `indicatorStatus` status model)
 - hosted E2E verification (Wix + Azure Blob JSON)
-- production build (`npm run build`)
-- live Blob publish and `VITE_CONTRACT_BASE_URL` for production
-- fresh contract JSON after pipeline runs
-- Azure frontend hosting + CORS
+- fresh contract JSON after pipeline runs (manual refresh, `docs/runbook-refresh.md`)
+- ~~production build (`npm run build`)~~, ~~live Blob publish and `VITE_CONTRACT_BASE_URL`~~,
+  ~~Azure frontend hosting + CORS~~: done
 
 ## Definition of Done for Frontend Mounting
 
 1. App runs against Blob-hosted `/v1/*.json` with no local hardcoded fallback in production.
-2. All major views map to contract data and match client blueprint intent.
+2. All major views map to contract data and match the original mock's intent.
 3. Contract-load failures are visible/recoverable (no blank screen).
 4. Null and disabled-projection states are intentional and QA-verified.
 5. Frontend requires no direct read of pipeline CSVs.

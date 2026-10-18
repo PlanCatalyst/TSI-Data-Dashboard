@@ -27,7 +27,7 @@ WGI legacy code remaps applied: {'ADO': 'AND', 'ROM': 'ROU', 'TMP': 'TLS', 'ZAR'
 ## mspi (composite)
 
 Implemented per docs/spec-macrosec-index.md: income = clip((ln gdp - ln200)/(ln150000-ln200)); fragility = clip((mean of available WGI EST + 2.5)/5); debt tier cutoffs -0.20/-0.80; LIC-DSF thresholds weak 30/140/10, medium 40/180/15, strong 55/240/21; max ratio bins 0.75/1.0; score map 1/0.5/0; nonconcessional = 1 - clip((100-conc)/100) (= conc/100); composite = 100 * mean of four. expected_score = composite (spec is higher_is_better; pipeline inverts then publish re-inverts).
-Same-year alignment for all inputs (no carry-forward; spec silent). Scope gate: lendingType in IBD/IDB/IDX from WB metadata (current-state). The unapproved high-income refinement is NOT applied.
+Same-year alignment for all inputs (no carry-forward; spec silent). Scope gate: lendingType in IBD/IDB/IDX from WB metadata (current-state). The high-income refinement is NOT applied.
 
 Choices made where spec is ambiguous (all conservative, drop rather than guess):
 - PV used only if both PV GN and PV EX present; face value only if both PV absent and both face present; exactly one PV present is dropped.

@@ -1,16 +1,15 @@
 # Requirements: Delivery v2 (post-review, 2026-10-14)
 
-**Status:** draft for client sign-off. §7 design and motion system **approved by Thomas 2026-10-14**.
-**Source:** review call with the reviewer (PlanCatalyst), 2026-10-14, plus repo verification the same day
-**Owner:** Thomas
-**Sign-off:** the reviewer is the final authority on scoring and scope decisions
+**Status:** draft. §7 design and motion system approved 2026-10-14.
+**Source:** delivery review, 2026-10-14, plus repo verification the same day
+**Owner:** Thomas Llamzon (maintainer)
 **Design system reference:** https://claude.ai/artifact/8uYYAMdRPDARvscBYUM47Z (source: `docs/design-system/index.html`)
 
 The v2 delivery is two passes that ship together: a **data validation and
 faithfulness pass** (§1, §1.6) and a **UI/UX pass** (§2, §7). The ops work
 (§3, §4) follows and is documented against the result.
 
-This document captures every ask from the 2026-10-14 review, what the repo
+This document captures every requirement from the 2026-10-14 review, what the repo
 actually does today, and the acceptance criteria for the next delivery. It is
 the single source for the v2 work; `TASKS.md` tracks execution against it.
 
@@ -21,27 +20,27 @@ is subordinate to `docs/data-contract.md` and needs that file updated first.
 
 ## 0. Summary of the review
 
-the reviewer's feedback in one line: the data plumbing works, but the dashboard needs
+In one line: the data plumbing works, but the dashboard needs
 to **look right to a domain reader** and needs to be **operable by a
 non-engineer every six months**.
 
-| # | Ask | Type | Verdict after verification |
+| # | Requirement | Type | Verdict after verification |
 |---|-----|------|----------------------------|
 | R1 | Brazil climate adaptation shows a flat 100 across the whole time span; is the data right? | Data faithfulness | Data is correct. The scoring rule pins every country better than the global benchmark to a flat 100. See §1. |
-| R2 | Side panel is too crowded when you click a country | UX | Confirmed from screenshots. See §2. |
-| R3 | A playbook document the team can follow every six months, written for non-engineers | Documentation | Does not exist. The runbook is engineer-facing. See §4. |
-| R4 | Refresh the data themselves from Azure, without a laptop or a terminal | Operations | Does not exist. Publishing is a manual Python run. See §3. |
-| R5 | Account housekeeping: contact Thomas on Gmail, retire the PlanCatalyst account later | Admin | Noted. No engineering work. See §5. |
-| R6 | (Thomas) Make the UI modern, intuitive and smooth; the original spec was a single clogged HTML mock | UX / design system | Confirmed drift in the codebase. See §7. |
-| R7 | (Thomas) Fix the side panel bugs, e.g. close leaves the map shrunk | Bug | Reproduced in code. See §7.2. |
-| R8 | (Thomas) Design system and motion system from PlanCatalyst's brand: square corners, white, blue and green, fade reveals, restrained motion | Design system | Brand extracted from plancatalyst.org. See §7.3 to §7.5. |
-| R9 | (Thomas) A comprehensive, interactive About page that explains the methodology, every material decision and every visible oddity | Content / UX | Current page is thin and partly wrong. See §9. |
+| R2 | Side panel is too crowded when you click a country | UX | Confirmed from review screenshots. See §2. |
+| R3 | A playbook document staff can follow every six months, written for non-engineers | Documentation | Does not exist. The runbook is engineer-facing. See §4. |
+| R4 | Refresh the data themselves from Azure, without a laptop or a terminal | Operations | Status 2026-10-17: coded, not yet provisioned (manual Container Apps Job in `infra/container-apps-job.sh`). Until provisioned, publishing is a manual Python run. See §3. |
+| R5 | Account housekeeping: project contact moves to the maintainer; the PlanCatalyst account is retired later | Admin | No engineering work. See §5. |
+| R6 | Make the UI modern, intuitive and smooth; the original spec was a single clogged HTML mock | UX / design system | Confirmed drift in the codebase. See §7. |
+| R7 | Fix the side panel bugs, e.g. close leaves the map shrunk | Bug | Reproduced in code. See §7.2. |
+| R8 | Design system and motion system from PlanCatalyst's brand: square corners, white, blue and green, fade reveals, restrained motion | Design system | Brand extracted from plancatalyst.org. See §7.3 to §7.5. |
+| R9 | A comprehensive, interactive About page that explains the methodology, every material decision and every visible oddity | Content / UX | Current page is thin and partly wrong. See §9. |
 
 ---
 
 ## 1. Data faithfulness: benchmark clamping
 
-### 1.1 What the reviewer saw
+### 1.1 What the review found
 
 Brazil, climate adaptation pillar, score 100 "low need", flat from the first
 year to the last. The US shows the same flat 100. Several other pillars show
@@ -70,9 +69,8 @@ Scale of the effect in the latest two ND-GAIN years:
 The same clamp applies to every indicator scored with `RatioThresholdScorer`
 or `InverseRatioScorer`, which is most of the SDG health, agriculture and
 social-infrastructure indicators plus the Gender Inequality Index and MPI. Any
-country better than the client-supplied benchmark is pinned. This is the
-client's original scoring framework applied faithfully; it is not a pipeline
-bug.
+country better than its benchmark is pinned. This is the original scoring
+framework applied faithfully; it is not a pipeline bug.
 
 ### 1.3 Why it matters
 
@@ -82,7 +80,7 @@ reader uses to compare, say, Brazil with Chile. Flat lines also read as
 "broken" to a domain expert, which undermines trust in the pillars that are
 working.
 
-### 1.4 Decision required (the reviewer)
+### 1.4 Decision required
 
 Pick one. Recommendation is option B.
 
@@ -90,7 +88,7 @@ Pick one. Recommendation is option B.
 |--------|------|--------|------|
 | A. Keep as is | Benchmark clamp stays | No change; document the behaviour in the UI | Trust problem remains |
 | **B. Soft floor (recommended)** | Keep the benchmark as the midpoint but let values below it map onto a lower band instead of 0, e.g. linear from the observed best value to the benchmark into `[0, 25]` need | Preserves "better than benchmark" semantics, restores variation and trends | Scoring audit update, index_version bump, re-publish |
-| C. Full min-max | Drop benchmarks, normalise each indicator across the observed country range per year | Maximum variation | Loses the client's benchmark framing entirely; cross-year comparability needs care |
+| C. Full min-max | Drop benchmarks, normalise each indicator across the observed country range per year | Maximum variation | Loses the benchmark framing entirely; cross-year comparability needs care |
 
 ### 1.5 Acceptance criteria
 
@@ -104,7 +102,7 @@ Pick one. Recommendation is option B.
 - AC1.5 The data notes in the frontend explain the benchmark rule in one
   sentence where a score is shown.
 
-### 1.6 Related observations from the screenshots (verify, then triage)
+### 1.6 Related observations from the review screenshots (verify, then triage)
 
 - Brazil agriculture shows 0.7 "severe need" from 1 of 3 indicators, with a
   series that jumps from about 50 to 0 and back. Single-indicator pillars
@@ -117,11 +115,10 @@ Pick one. Recommendation is option B.
 - "Projection band coming soon" is still visible. Either ship projections or
   remove the placeholder before handoff.
 
-### 1.7 Data validation module (added 2026-10-14, Thomas)
+### 1.7 Data validation module (added 2026-10-14)
 
-Thomas's review of the rebuilt UI on the published snapshot found that the
-zigzags the reviewer described were not one defect but three, and that the fix has
-to be structural: every defect gets a log entry, a rule that catches it in
+The zigzags seen on the rebuilt UI and the published snapshot were not one
+defect but three, and the fix has to be structural: every defect gets a log entry, a rule that catches it in
 data, and a stage that blocks publish on it.
 
 - REQ1.1 `docs/data-quality-issues.md` is the issue log. A dashboard defect is
@@ -158,7 +155,7 @@ Acceptance:
 - AC1.8 No series in the published `timeseries.json` has three or more
   sign-alternating jumps of 25 points unless logged as genuine.
 
-### 1.8 Raw data store and independent audit (added 2026-10-14, Thomas)
+### 1.8 Raw data store and independent audit (added 2026-10-14)
 
 Trust in the published numbers is rebuilt by re-deriving them from raw with
 code that does not touch the pipeline, and reconciling number by number.
@@ -196,7 +193,7 @@ Acceptance:
 On country click the panel shows seven pillar tiles, each with score, need
 band, "latest" badge, coverage fraction, year and trend arrow, followed by a
 seven-series trend chart and a sub-domain breakdown. Everything is open at
-once. the reviewer's words: "too much data at once."
+once, which is too much data at once.
 
 ### 2.2 Requirements
 
@@ -208,7 +205,7 @@ once. the reviewer's words: "too much data at once."
   user expanded. Full seven-series overlay is a toggle, off by default.
 - REQ2.4 Sub-domain breakdown lives behind a single disclosure per pillar.
 - REQ2.5 Panel width stays fixed; no horizontal clipping of tile labels (the
-  screenshots show "GENDE / LOW NE" truncation at the right edge).
+  review screenshots show "GENDE / LOW NE" truncation at the right edge).
 - REQ2.6 All changes go through the existing design tokens and components in
   `dashboard/src/components/map/`; no one-off styles.
 
@@ -217,18 +214,18 @@ once. the reviewer's words: "too much data at once."
 - AC2.1 On a 1280 px wide viewport, the panel above the fold shows at most
   8 numbers (overall plus seven pillars).
 - AC2.2 Every value hidden by default is reachable within one click.
-- AC2.3 Screenshot review with the reviewer before merge; she signs off the layout.
+- AC2.3 Screenshot review before merge; the layout is checked there.
 
 ---
 
-## 3. Client-operable refresh
+## 3. PlanCatalyst-operable refresh
 
-### 3.1 What the reviewer asked for
+### 3.1 Requirement
 
-The team wants to run the six-month refresh themselves, from Azure, so they
-understand how the backend works. Her sketch: drop a new ND-GAIN ZIP into
+PlanCatalyst staff run the six-month refresh themselves, from Azure, so they
+understand how the backend works. Sketch: drop a new ND-GAIN ZIP into
 Blob, press a run button or restart a container, and see "Pipeline Run
-Complete" in the logs. Thomas's note: the exact mechanism is open; pick
+Complete" in the logs. The exact mechanism is open; pick
 whatever is simplest to describe in the playbook and reliable to run.
 
 ### 3.2 What exists today
@@ -236,11 +233,11 @@ whatever is simplest to describe in the playbook and reliable to run.
 | Piece | Status |
 |-------|--------|
 | Pipeline container image, CMD-overridable | Built and verified in CI |
-| Container registry `TSIcontainers`, Canada Central | Exists |
-| Execution host (Container Apps Job, ACI) | Not chosen, not built; tracked as deferred in HANDOFF and TASKS |
-| ND-GAIN input | Read from a local ZIP path in `settings.yaml`; Blob is not consulted |
+| Container registry (`ACR_NAME`) | Exists |
+| Execution host (Container Apps Job) | Status 2026-10-17: coded in `infra/container-apps-job.sh` (manual trigger, managed identity, 3h timeout, failure email alert), not yet provisioned |
+| ND-GAIN input | Status 2026-10-17: newest ZIP is read from the private ND-GAIN source container when `NDGAIN_BLOB_CONTAINER` is set; the local ZIP path remains the fallback |
 | Other sources (UN SDG, World Bank, UNDP HDR, WGI) | Fetched from public APIs when `runtime.fetch_raw` is true |
-| End-of-run signal | None. No structured completion log line |
+| End-of-run signal | Status 2026-10-17: coded (one completion or failure line per run) |
 | Credentials | One service principal, Storage Blob Data Contributor only, secret with a recorded expiry |
 
 ### 3.3 Design principle
@@ -253,7 +250,7 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
 - REQ3.1 A single Azure Container Apps Job, manual trigger, in resource group
   `tsi-data-dashboard`, running the existing pipeline image.
 - REQ3.2 The job authenticates with a managed identity, not the service
-  principal secret, so nothing expires on the client's side.
+  principal secret, so nothing expires on the PlanCatalyst side.
 - REQ3.3 ND-GAIN is read from a Blob container (`sources/ndgain/`) at run
   time. The job picks the newest ZIP by name or by last-modified time and logs
   which file it used.
@@ -265,13 +262,13 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
   or `PIPELINE RUN FAILED: <stage> <reason>`, as the last line of output.
 - REQ3.6 Validation still gates publish. A failed run leaves the previous
   `/v1/` snapshot live and says so in the failure line.
-- REQ3.7 A failed execution sends an email alert to a client-owned address
+- REQ3.7 A failed execution sends an email alert to a PlanCatalyst-owned address
   (Azure Monitor alert rule on job execution failure).
 - REQ3.8 The playbook (§4) is written against this job and nothing else.
 
 ### 3.5 Non-requirements
 
-- No scheduled trigger. Manual only, so the client decides when a refresh
+- No scheduled trigger. Manual only, so staff decide when a refresh
   happens and nothing runs unattended.
 - No web UI beyond the Azure portal.
 - No change to the frontend contract.
@@ -292,13 +289,12 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
 
 ### 3.7 Open questions
 
-- Which Azure role does the reviewer's team already hold on the resource group?
-  Determines whether a custom role or a built-in one is needed. **TODO: ask.**
-- Should the IT team or Thomas create the managed identity? The original
-  IT request in `docs/azure-it-request.md` predates this.
-- Second principal `tsi-analytics` holds the same role on `dashboard-public`
-  (seen 2026-09-29). On the call nobody could say who created it (a contributor or
-  IT). Confirm its owner and purpose; if unused, ask IT to remove it. **TODO.**
+- Which Azure role does the operating team hold on the resource group?
+  Determines whether a custom role or a built-in one is needed. **TODO.**
+- Who creates the managed identity?
+- A second principal holds the same role on the public payload container
+  (seen 2026-09-29). Its owner and purpose are undocumented; if
+  unused, remove it. **TODO.**
 
 ---
 
@@ -306,8 +302,8 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
 
 ### 4.1 Audience
 
-PlanCatalyst staff. No engineering background assumed. the reviewer's phrase: they
-want to "actually understand how the application works in the backend."
+PlanCatalyst staff. No engineering background assumed. The document must let
+them understand how the application works in the backend.
 
 ### 4.2 Required contents
 
@@ -321,7 +317,7 @@ want to "actually understand how the application works in the backend."
    ZIP, upload to Blob, start the job, watch the logs, read the completion
    line, spot-check three countries on the dashboard.
 5. What a failure looks like and what to do: the three most likely failure
-   lines, what each means, and when to contact Thomas.
+   lines, what each means, and when to contact the maintainer.
 6. Rollback: how to restore the previous snapshot from the portal.
 7. Glossary of terms that appear in the logs and on the dashboard
    (pillar, indicator, snapshot, need band, benchmark).
@@ -331,7 +327,7 @@ want to "actually understand how the application works in the backend."
 
 - AC4.1 Delivered as `.docx` and kept in the repo under `docs/playbook/`
   with the screenshots as separate image files so they can be refreshed.
-- AC4.2 A dry run: the reviewer or a colleague follows the document once with Thomas
+- AC4.2 A dry run: a PlanCatalyst staff member follows the document once with the maintainer
   observing but not helping. Any step they stall on gets rewritten.
 - AC4.3 No command-line instruction anywhere in the document.
 
@@ -339,13 +335,11 @@ want to "actually understand how the application works in the backend."
 
 ## 5. Admin and housekeeping
 
-- Thomas's contact for the project is his Gmail from now on.
-- The PlanCatalyst email account stays open for now and is closed later once
-  it is confirmed nothing depends on it (GitHub org membership, Azure
-  sign-in, Wix). **Before closing, verify no Azure resource or GitHub
-  permission is bound to that identity.**
-- Resource group `tsi-data-dashboard` was created by Thomas. Ownership and
-  subscription are PlanCatalyst's.
+- The project contact is the maintainer's own address, not a PlanCatalyst one.
+- The PlanCatalyst account is retired only after confirming nothing depends
+  on it (GitHub org membership, Azure sign-in, Wix). **Before retiring it,
+  verify no Azure resource or GitHub permission is bound to that identity.**
+- Azure ownership and subscription are PlanCatalyst's.
 
 ---
 
@@ -357,7 +351,7 @@ Goal: every number and line on the dashboard is one a domain reader can
 defend. Covers §1 and §1.6.
 
 ```
-A1. Scoring decision (§1.4) ........ needs the reviewer; blocks the A2 switch and republish
+A1. Scoring decision (§1.4) ........ pending; blocks the A2 switch and republish
 A2. Scorer change + SCORING_AUDIT + index_version bump + republish (§1)
     ... built 2026-10-14 as `scoring.below_benchmark: clamp | soft_floor`
         (default clamp, AC1.4 tests, AC1.2 audit text). Open: flip, bump, republish after A1.
@@ -390,7 +384,7 @@ B4. Legend and tooltip as tokenised components; map component untouched (§7.2 B
 B5. Remaining routes: Explore, Compare, About, Trends (§7) ..... done, d476f5c
 B6. Reveal hook and motion tokens wired (§7.5) ................. done, ad25976
 B7. CI hex and radius guardrail (REQ7.6) ....................... done, 31a4d65
-B8. Before/after screenshots and the reviewer review (AC2.3, AC7.7) ... open
+B8. Before/after screenshots and review (AC2.3, AC7.7) ... open
 B9. About page rebuild: wiki layout, 14 sections, live visuals (§9) ... open
 ```
 
@@ -399,7 +393,7 @@ Notes from the build (2026-10-14):
 - The v1 choropleth ramp reads darker = higher score (lower need). B4 kept
   that direction and only swapped hex for `--map-*` tokens. Flipping to
   darker = higher need, as the design system proposes, is a token reorder
-  in `WorldChoropleth.tsx` once the reviewer answers the open question.
+  in `WorldChoropleth.tsx` once the open question is answered.
 - Pillar, region and country colours come from one module,
   `dashboard/src/components/scores/series-color.ts`. The contract's
   `pillar.color` is no longer read by the UI.
@@ -414,11 +408,11 @@ C1. Container Apps Job + Blob-sourced ND-GAIN + completion line + alert (§3)
         managed identity capable credential (REQ3.2), newest-ZIP Blob source
         with logged file (REQ3.3), env overrides for the job, provisioning
         script `infra/container-apps-job.sh` with roles and alert (REQ3.1,
-        3.7, AC3.4). Open: run the script against Azure (Thomas), first
+        3.7, AC3.4). Open: run the script against Azure, first
         execution, AC3.2 and AC3.3 checks against the real job.
 C2. Playbook draft (§4) ............ text drafted in docs/playbook/playbook.md;
         screenshots and .docx wait on C1 execution
-C3. Playbook dry run with client (§4, AC4.2) ... open
+C3. Playbook dry run with PlanCatalyst staff (§4, AC4.2) ... open
 C4. Vault and HANDOFF updates, close out ... running
 ```
 AC3.5 runbook reduced to the engineer path ... done
@@ -431,17 +425,17 @@ nothing is styled twice.
 
 ## 7. UI modernisation, design system and motion
 
-**Approved 2026-10-14 (Thomas).** The design system and motion system are
+**Approved 2026-10-14.** The design system and motion system are
 final for v2. Reference page: https://claude.ai/artifact/8uYYAMdRPDARvscBYUM47Z
 Source of truth in the repo: `docs/design-system/index.html`; its `:root`
 block becomes `dashboard/src/styles/tokens.css` unchanged. Any later
 change to a token or motion value is made on that page first, then in code.
-the reviewer reviews the result through the before/after screenshots (AC7.7), not
+The result is reviewed through the before/after screenshots (AC7.7), not
 the token values.
 
 ### 7.1 Problem
 
-The dashboard inherited its look from the client's original spec, a single
+The dashboard inherited its look from the original spec, a single
 dense HTML mock. A token file exists (`dashboard/src/styles/tokens.css`,
 23 lines) but the codebase has drifted away from it:
 
@@ -570,14 +564,14 @@ rules separate content. Generous whitespace, photography-led, no shadows.
 - AC7.5 Reduced-motion verified with the OS setting on.
 - AC7.6 Lighthouse accessibility 95 or higher on the Map route; all text
   tokens pass WCAG AA contrast on white and on `#F2F2F2`.
-- AC7.7 Before and after screenshots of Map, Compare and About for the reviewer's
-  sign-off.
+- AC7.7 Before and after screenshots of Map, Compare and About for
+  review.
 
 ---
 
 ## 8. Out of scope for v2
 
-- Any analytics or usage tracking (client decision, see vault).
+- Any analytics or usage tracking (out of scope by decision, see vault).
 - Projection bands. Remove the placeholder or ship separately.
 - Changes to the pillar taxonomy or indicator list.
 - Scheduled or automatic refreshes.
@@ -586,7 +580,7 @@ rules separate content. Generous whitespace, photography-led, no shadows.
 
 ## 9. About page: methodology, decisions and known oddities
 
-**Added 2026-10-15 (Thomas).** Direction from Thomas, expanded here. Visual
+**Added 2026-10-15.** Visual
 reference: the audit explainer at https://claude.ai/artifact/CMLqZaakkKJAXoDJpdLLZ5
 (same tokens, same motion, the treatment the About page should reach).
 
@@ -598,7 +592,7 @@ building the dashboard, and parts of it are now wrong:
 
 - It says pillar and subdomain scores are "simple arithmetic means for the
   selected year". Since DQ-03 they are basket means (§1.7).
-- It says the population density direction is pending. It was confirmed on
+- It says the population density direction is pending. It was fixed on
   2026-09-17 (`SCORING_AUDIT.md` row 27).
 - It gives ND-GAIN as 1995 to 2023. The 2026 release runs to 2024.
 - It still carries a deferred note for `conces`, which `mspi` replaced.
@@ -612,13 +606,13 @@ building the dashboard, and parts of it are now wrong:
 Meanwhile readers see things that look like bugs and are not: lines pinned at
 100, single-country sawtooth, series that start late or stop early, pillars
 with no early years, and a projections slot that is always empty. Nothing on
-the page tells them why. the reviewer asked the same questions in the 2026-10-14
-review (§1.1).
+the page tells them why. The 2026-10-14 review raised the same questions
+(§1.1).
 
 ### 9.2 Goal
 
 The About page is where the dashboard explains itself. A domain reader
-(the reviewer, a funder, a member of the public) should be able to answer three
+(a PlanCatalyst reviewer, a funder, a member of the public) should be able to answer three
 questions there without contacting us:
 
 1. **How was this number made?** From the source file to the score on screen.
@@ -626,7 +620,7 @@ questions there without contacting us:
    entry with its cause and whether it is a property of the data, a
    deliberate rule, or an open issue.
 3. **What did you decide, and what is still open?** Every material
-   methodology decision, who made it, when, and its status.
+   methodology decision, why, when, and its status.
 
 It does this by showing as well as telling: each concept gets an
 interactive visual built on real data from the current snapshot, with the
@@ -664,7 +658,7 @@ plain-language answer first and the detail one click away.
 - REQ9.4 **Section anatomy.** Every section carries the same parts in the
   same order: short answer, visual, detail, "See it on the dashboard" link
   where one applies, and a provenance line (date, status chip:
-  Locked, Pending client decision, Open issue). The status chips come from
+  Locked, Decision pending, Open issue). The status chips come from
   one decisions module (REQ9.12) so a decision changes in one place.
 - REQ9.5 **Filter.** A text box at the top of the rail filters sections and
   glossary terms by title and keywords. Client-side only; no search engine.
@@ -681,7 +675,7 @@ content module with the snapshot id they belong to.
 | 2 | Reading a score | 0 to 100, higher is better (less need). Need bands at 75, 50, 25. A dash means no data, never zero. | Score scale with the four need bands; hover a band to see example countries from the current year. *live* |
 | 3 | From source to screen | The pipeline in seven stages: fetch, raw store, clean, choose the right row, score, check, combine and publish. | Animated stage diagram. Click a stage to see what it does, and follow one real record (Brazil tuberculosis, latest year) through every stage with its value at each step. *static, stamped with run id* |
 | 4 | How each indicator is scored | Five scoring families: ratio to a threshold, gap to a coverage benchmark, share of a goal, index already 0 to 100, density bands. | One interactive curve per family: drag the raw value, watch need and the displayed score move, benchmark marked. Below it, a sortable table of all 28 indicators: source, unit, family, benchmark. *static (generated, REQ9.11)* |
-| 5 | Why some lines sit flat at 100 | The benchmark rule: any country better than the client benchmark scores 100, so better-performing countries tie and show no trend (DQ-01). | Brazil climate vulnerability as a line, with a toggle between the current rule and the proposed soft floor (values from `SCORING_AUDIT.md`). Status: Pending client decision until the reviewer rules, then Locked. *static* |
+| 5 | Why some lines sit flat at 100 | The benchmark rule: any country better than its benchmark scores 100, so better-performing countries tie and show no trend (DQ-01). | Brazil climate vulnerability as a line, with a toggle between the current rule and the proposed soft floor (values from `SCORING_AUDIT.md`). Status: Decision pending until the rule is ruled on, then Locked. *static* |
 | 6 | Choosing the right number from the source | Sources publish several rows per country-year (by sex, age, area). We keep national totals; adolescent births use ages 15 to 19; IHR is the mean of 13 capacities; bank accounts use adults 15+; women-only measures use the women's figure; city-only rows are never used as national. | Before and after toggle on the Brazil reproductive health sawtooth (DQ-02): 100, 31, 100, 31 becomes one honest line. *static* |
 | 7 | Combining indicators into pillars | Basket rule: an indicator counts toward a pillar if it reported in the last five years; a year is scored only when 75% of the basket is present (DQ-03). Explains why early years disappear and what the "n of m" badge means (DQ-05). | Basket grid: indicators as rows, years as columns, filled cells where data exists, with the scored years marked underneath. Toggle "old rule" to see the 1996 to 1998 zigzag (70.5, 80.2, 69.7) return. Country picker. *live* |
 | 8 | Why a chart might look odd | A gallery of every known oddity, each with symptom, cause, and whether it is data, rule or open issue. | Small-multiple sparklines from real series, one per oddity, each linking to the country and indicator on the dashboard. *live* |
@@ -711,7 +705,7 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   large cell in a grid, above the wiki: source name, provider, what the
   dashboard takes from it, why it is used, how many indicators it feeds, the
   years it covers (read from the loaded data) and a link to the provider.
-  Added 2026-10-15 (Thomas). Section 10 keeps the coverage bars and the
+  Added 2026-10-15. Section 10 keeps the coverage bars and the
   refresh detail.
 - REQ9.17 **Open a country from a link.** `#/map?country=ISO3` opens that
   country's panel on the Map, so About cards can link to a real country. The
@@ -748,15 +742,14 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   a domain reader, active voice, no em dashes, no repository paths or code
   names in public copy (series codes may appear in the detail as a
   reference). Follows the writing rules used for the rest of the UI.
-  Added 2026-10-15 (Thomas): the voice follows PlanCatalyst's own site, with
+  Added 2026-10-15: the voice follows PlanCatalyst's own site, with
   "we" for PlanCatalyst and "you" for the reader, short plain sentences, and
   the meaning before the arithmetic. `check:about` rejects "client" and process
-  vocabulary in public copy. The status label "Pending client decision" is now
-  "Decision pending".
+  vocabulary in public copy. The status label is "Decision pending".
 - REQ9.11 The per-indicator methodology table (section 4) is hand-kept in
   `dashboard/src/content/about/methodology.ts` and checked by
   `npm run check:about` against `public/v1/meta.json` (all 28 indicators
-  present, keys, source and unit agree). **Changed 2026-10-15 (Thomas):** the
+  present, keys, source and unit agree). **Changed 2026-10-15:** the
   originally specified generator from `indicators/indicators.yaml` and the
   scorer constants is deferred to `TASKS.md`; this release is frontend only.
   Benchmarks and scoring families are read from the scorer code, not the
@@ -772,12 +765,12 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   `meta.pipelineRunId`, the visual shows "from snapshot <id>" instead of
   presenting old numbers as current.
 - REQ9.14 Fix the stale and wrong content listed in §9.1 at its source:
-  page copy in `content/about/`. **Changed 2026-10-15 (Thomas):** the three
+  page copy in `content/about/`. **Changed 2026-10-15:** the three
   wrong indicator labels (`sanit`, `susag`, `u5mr`) are corrected on the
   About page only through overrides in `methodology.ts`; fixing them in
   `indicators/indicators.yaml` (which flows into `meta.json` and every other
   page) is deferred to `TASKS.md` and the next pipeline publish.
-- REQ9.15 Sections that describe a pending client decision (section 5, the
+- REQ9.15 Sections that describe a pending decision (section 5, the
   overall-score rule, the debt-risk input rule) are written so they stay
   true either way, and are updated in the same change that applies the
   decision.
@@ -792,7 +785,7 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   enhancement only. Following the parent's scroll would need Wix custom code
   posting scroll offsets into the iframe; out of scope.
 - The page is public. Section 8, section 11 and the decisions log explain our
-  own open issues. the reviewer approves the level of candour before release (open
+  own open issues. The level of candour is approved before release (open
   question below).
 - Live visuals add work to the About route. Keep each under one pass over
   the timeseries for one country or indicator; no whole-dataset scans on
@@ -820,7 +813,7 @@ Section 8 starts with at least these entries, each tied to its issue ID:
   hex literals, no repository paths, no dangling decision references) hold.
 - AC9.8 Lighthouse accessibility 95 or higher on the About route; zero hex
   literals outside the token file (AC7.1).
-- AC9.9 the reviewer reads the page and can answer, without help, why Brazil's
+- AC9.9 A reviewer reads the page and can answer, without help, why Brazil's
   climate line is flat, why a pillar has no early years, and why there are
   no projections.
 
@@ -828,25 +821,25 @@ Section 8 starts with at least these entries, each tied to its issue ID:
 
 - No CMS or remote content store; copy ships with the build.
 - No full-text search engine; the rail filter is enough.
-- No analytics on section views (client decision, §8).
+- No analytics on section views (out of scope, §8).
 - No new contract fields; the page reads what `/v1` already carries.
 
 ### 9.10 Scope of the first release
 
-Decided 2026-10-15 (Thomas): all 14 sections in one release, built in staged
+Decided 2026-10-15: all 14 sections in one release, built in staged
 commits and deployed once. Frontend only; no pipeline, contract or
-`indicators.yaml` change. Deploy path: pull request, Thomas approves, manual
+`indicators.yaml` change. Deploy path: pull request, maintainer approval, manual
 `Deploy dashboard` workflow.
 
 ### 9.11 Open questions
 
-- Q9.1 (the reviewer) How candid should the public page be about open issues?
+- Q9.1 How candid should the public page be about open issues?
   Options: full (issue IDs and status), summarised (cause and status, no
   IDs), or internal-only sections behind a query flag. Build default
-  2026-10-15 (Thomas): summarised, behind one `CANDOUR` flag in
-  `content/about/decisions.ts`; the reviewer approves the level before release.
+  2026-10-15: summarised, behind one `CANDOUR` flag in
+  `content/about/decisions.ts`.
 - Q9.2 Should the decisions log name individuals or only roles? Decided
   2026-10-15: neither. See REQ9.12.
-- Q9.3 (Thomas) Embed mode in Wix: fixed height with internal scroll, or
+- Q9.3 Embed mode in Wix: fixed height with internal scroll, or
   auto-height. No longer blocking: REQ9.1 assumes auto-height (decided
   2026-10-15). Confirming fixed height only turns the sticky enhancement on.

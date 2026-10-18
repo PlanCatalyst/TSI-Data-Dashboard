@@ -22,36 +22,35 @@ existing authority easier for an agent to act on.
 ## 1. Mission (One Sentence)
 
 Publish contract-valid JSON (`meta.json`, `countries.json`, `timeseries.json`)
-from an automated pipeline so a React frontend embedded in Wix can render
+from a manually triggered pipeline (automation-ready, see `infra/container-apps-job.sh`) so a React frontend embedded in Wix can render
 country-level development vulnerability without ever touching pipeline internals.
 
 ## 2. Locked Decisions (Do Not Re-Debate)
 
-These are pre-approved by the PM and listed in `TASKS.md`. An agent
+These are fixed decisions listed in `TASKS.md`. An agent
 encountering one of these should proceed, not pause to ask:
 
 
 
 1. **Contract path**: `/v1/` now; breaking changes require `/v2/` and keeping
   both live during cutover.
-2. **Frontend blueprint**: `PlanCatalyst TSI Data Dashboard Final.html` is
-  client-approved. Match its UX intent unless a strict implementation
+2. **Frontend blueprint**: The original UI mock (kept outside the repo) is
+  the approved design. Match its UX intent unless a strict implementation
    constraint forces deviation.
 3. **Coverage target:** all 28 indicators live for MVP, or explicit
-  client-approved exceptions documented in `SCORING_AUDIT.md` (e.g. `conces`).
+  approved exceptions documented in `SCORING_AUDIT.md`. All 28 are live; `mspi` (the
+  Macro Socio-Economic Performance Index) replaced `conces`/`hdi` in the `pri/macrosec` slot.
 4. **Projection transparency:** Projections are **disabled for MVP**
-  (`meta.projections.enabled === false`). Post-MVP projection work is owned by
-  **Thomas**.
+  (`meta.projections.enabled === false`). Post-MVP projection work is tracked in `TASKS.md`.
 5. **Publish phasing:** Phase A is local `dry_run` to `data/organized/v1/`.
   Phase B is Azure upload. Do not skip Phase A.
 6. **Repo hygiene:** upload code lives in `src/upload/`, active settings live
   in `src/config/settings.yaml`. Do not create root-level duplicates.
-7. **Decision routing:** **Thomas** is the default unblock owner as of 2026-09-19.
-  Contract-semantic decisions are recorded in `docs/`.
+7. **Decision routing:** the maintainer decides by default. Contract-semantic decisions are recorded in `docs/`.
 
 ## 3. Hard Invariants (Treat As Laws)
 
-These cannot change without a contract version bump and PM sign-off:
+These cannot change without a contract version bump and a recorded review in `TASKS.md`:
 
 1. **Frontend reads only `/v1/*.json` from Blob.** Never let it read pipeline
   internals (`data/clean/`, `data/interim/validated/`).
@@ -87,7 +86,8 @@ When multiple things are broken or missing, fix in this order:
 1. Contract correctness and publish validation.
 2. Source coverage closure for missing indicators.
 3. Frontend parity and robust error/null handling.
-4. Automation, alerts, and operational reliability.
+4. Automation, alerts, and operational reliability (the manual Container Apps Job and its
+   failure alert are coded but not yet provisioned; refresh stays manual until then).
 5. Projections readiness assessment (post-MVP).
 
 ## 6. Agent Autonomy Rules
@@ -109,7 +109,7 @@ and does not change what crosses the publish boundary.
 - The change would introduce a non-Azure / non-React stack assumption.
 - The change would commit secrets or modify `.gitignore` to allow them.
 - A document conflict is unresolved by the Source of Truth Hierarchy.
-- A task explicitly requires a PM sign-off in `TASKS.md`.
+- A task explicitly requires a recorded review in `TASKS.md`.
 
 ### Never do
 
@@ -136,8 +136,9 @@ indicator, which year) over silently emitting a degraded payload.
 
 ## 8. Definition Of Project Success
 
-- Contract-valid JSON publishes from automated pipeline runs without manual
-intervention.
+- Contract-valid JSON publishes from a single pipeline run (local command or the manual
+  Container Apps Job) with a documented, repeatable refresh. Fully unattended automation is not
+  a current goal: the six-month cadence is a human routine (`docs/runbook-refresh.md`).
 - Hosted frontend reads Blob payloads with no local hacks or fallbacks.
 - All 28 indicators are either live or explicitly exception-tracked with
 owner + ETA.

@@ -46,8 +46,8 @@ the unconverted fall-through breaks it.
 NaN where `valid` is false instead of leaving it, so a country-year with no
 denominator publishes `null`. One extra line after the `if valid.any()` block
 (or make the assignment unconditional). Also drop the early `return df` when
-`gdp.empty` at `pipeline.py:62-63`, which has the same fall-through. Decision for
-the client: whether to fall back to another GDP source for CUB 2021-24 and
+`gdp.empty` at `pipeline.py:62-63`, which has the same fall-through. Open decision:
+whether to fall back to another GDP source for CUB 2021-24 and
 SYR/YEM recent years; that is a separate data choice, not part of this fix.
 
 **DQ draft.**
@@ -147,11 +147,10 @@ can only lower max_ratio, so the pipeline's choice biases debt risk toward Low
 (better score). A null `debt_basis` on a published score also contradicts the
 spec requirement to record the basis used.
 
-**Proposed fix.** Not a bug to patch silently; needs a decision (the reviewer is final
-sign-off per client parameters). Recommended: require all three ratios (stock
+**Proposed fix.** Not a bug to patch silently; needs a decision. Recommended: require all three ratios (stock
 pair plus debt service) in `norm_debt_risk`, returning NaN otherwise, which
 makes these 15 country-years `incomplete_data` like the other gaps, and match the
-audit's rule on a lone PV series. If the client prefers permissive, change the
+audit's rule on a lone PV series. If permissive handling is preferred, change the
 audit script to skip-missing instead and document it in the spec. Either way,
 write the choice into the spec first (contract-affecting for scored vs null).
 
@@ -164,7 +163,7 @@ write the choice into the spec first (contract-affecting for scored vs null).
 Section text: **Seen:** mspi published where a debt input is missing. **Evidence:**
 `indicatorscores/mspi.csv` null `debt_basis` on 14 rows; raw store has no
 `DT.DOD.*.GN.ZS` for them. **Cause:** `norm_debt_risk` takes max over available
-ratios. **Fix:** pending client decision on partial inputs.
+ratios. **Fix:** pending decision on partial inputs.
 
 ## Files cited
 

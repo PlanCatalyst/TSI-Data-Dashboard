@@ -1,17 +1,17 @@
 # Country Macro Socio-Economic Performance Index
 
-Client indicator specification. Two revisions received:
+Indicator specification for the `mspi` composite in the `pri/macrosec` slot, as implemented in
+`src/calculating/mspi.py`. There are two revisions:
 
-| Revision | Received | Source file (repo root) |
-|---|---|---|
-| Original | 2026-09-17 | `Country Macro Socio-Economic Performance Index (1).docx` |
-| **Updated (current)** | **2026-09-24** (doc mtime 2026-09-23) | `Macro_Socio-Economic_Performance_Index_Spec UPDATED.docx` |
+| Revision | Date |
+|---|---|
+| Original | 2026-09-17 |
+| **Updated (current)** | **2026-09-24** |
 
-The client kept `index_version: "1.0"` on both. **That is wrong and we do not
-mirror it.** The updated revision adds a scope rule and a three-value status
+Both revisions carry `index_version: "1.0"`. **That is not mirrored here.** The updated revision adds a scope rule and a three-value status
 field, which changes output semantics, so this document tracks
-`client_doc_revision: 2026-09-23` alongside it. Ask the reviewer to bump her version
-string. See "Delta against the original revision" below for what actually
+`source_doc_revision: 2026-09-23` alongside it. The source version string
+should be bumped. See "Delta against the original revision" below for what actually
 changed and what it costs us.
 
 The formula, weights, bounds, series list and debt-risk logic are **byte-for-byte
@@ -20,6 +20,10 @@ the output and how a null is labelled.
 
 This composite **replaces the interim `hdi` stopgap** in the `pri / macrosec`
 slot. `hdi` stays live until the composite is wired, scored, and published.
+
+**Status (2026-10-17):** that condition is met. `mspi` is live (republished 2026-09-29) and `hdi`
+no longer occupies the slot; the updated-revision scope rule and status model are implemented in
+`src/calculating/mspi.py` and carried to the frontend as the additive `indicatorStatus` field.
 
 The pipeline still emits vulnerability-oriented scores (`higher = more need`).
 This spec is `higher_is_better`. Invert once at scoring
@@ -191,18 +195,18 @@ GET https://api.worldbank.org/v2/country/{iso3}?format=json  ->  lendingType.id
 | `IDX` | IDA | yes |
 | `LNX` | Not classified | no |
 
-Client caveat carried over verbatim: `lendingType` approximates DRS reporting
+Source caveat: `lendingType` approximates DRS reporting
 but is not identical to it. Recently graduated countries may still report for a
 period, and Guyana is a documented high-income exception that remains in IDS.
 Any country flagged `out_of_scope` that unexpectedly returns debt data is worth
 reviewing.
 
-**Implementation note (ours, not the client's):** do not issue one call per
+**Implementation note:** do not issue one call per
 iso3. `GET https://api.worldbank.org/v2/country?format=json&per_page=400`
 returns every country with its `lendingType` in a single response. Same data,
 one request instead of ~200.
 
-**Limitation to record (ours, not the client's):** `lendingType` is a
+**Limitation to record:** `lendingType` is a
 *current-state* attribute. This is a timeseries product covering 1990-2024, so
 applying today's lending classification to a 1994 observation is an anachronism.
 A country that was IDA in 1994 and is `LNX` today will be marked `out_of_scope`
@@ -226,7 +230,7 @@ pipeline regressions: an in-scope country that silently loses a component would
 look identical to a high-income country that was never meant to be scored.
 
 `partial_scores: false`. An out-of-scope country is **not** given a partial
-score. The client's reasoning, which is correct and worth preserving: a score
+score. The reasoning, which is correct and worth preserving: a score
 built from only the two available components (income and governance) would be
 systematically inflated, because the two missing components are precisely the
 ones that could have pulled it down. Such a figure would not be a less precise
@@ -234,12 +238,12 @@ version of the full score. It would sit in the same column as fully-computed
 scores while being biased upward.
 
 This supersedes the original revision's coverage warning, and it is the
-mechanism behind the reviewer's 2026-09-24 note: "exclude countries that don't have
-coverage from this index, so that we don't compare apples to oranges."
+mechanism that excludes countries without coverage, so that the index does not
+compare unlike countries.
 
 ## Scope rule validated against live data (2026-09-24)
 
-Ran the client's `lendingType` rule against the World Bank country endpoint and
+Ran the `lendingType` rule against the World Bank country endpoint and
 cross-checked it with the 117 countries `MSPI_INDEX` currently scores.
 
 | Set | Count |
@@ -251,7 +255,7 @@ cross-checked it with the 117 countries `MSPI_INDEX` currently scores.
 
 Two things follow.
 
-**1. The rule and the client's own stated count disagree.** The document says
+**1. The rule and the specification's own stated count disagree.** The document says
 scope is "roughly 120 low- and middle-income economies (119 plus Guyana)". The
 rule as written yields 145. The 25-country gap is larger than the document's
 "approximates DRS reporting" caveat implies.
@@ -273,11 +277,11 @@ gaps or non-reporting states (`ERI`, `SSD`, `VEN`, `TKM`, `LBY`, `GNQ`, `NAM`,
 This is precisely the failure the `status` field exists to prevent, so the rule
 that feeds it should not manufacture 14 false positives.
 
-**Proposed refinement, needs the reviewer's sign-off.** Keep her `lendingType` test as
+**Refinement.** Keep the `lendingType` test as
 the scope gate. Then, when assigning status, treat an in-scope country that is
 **high income and has zero IDS observations across the whole window** as
 `out_of_scope` rather than `incomplete_data`. That reclassifies exactly the
-graduated non-reporters and leaves real gaps flagged. It also preserves her
+graduated non-reporters and leaves real gaps flagged. It also preserves the
 documented Guyana exception without special-casing it: Guyana is `IDX`, does
 report to IDS, and stays `scored` on its data rather than on its income label.
 A blanket "exclude all high-income" filter would break Guyana, which is why the
@@ -316,6 +320,9 @@ a status column, a `missing_components` column, and it must stop dropping rows.
 The published contract then needs a way to carry `status` to the frontend, which
 is an additive field rather than a `/v2` bump under invariant 6.
 
+**Status (2026-10-17):** done. The composer now takes the scope input, emits `status` and
+`missing_components`, no longer drops rows, and the contract carries `indicatorStatus`.
+
 ### `mrnev=1` conflicts with this being a timeseries product
 
 The updated retrieval examples specify `&mrnev=1`, which returns the **most
@@ -325,9 +332,9 @@ flat trend line on the Trends panel while the other six pillars move.
 
 The formula itself is year-agnostic and composes fine per year, and we already
 fetch full series. **Recommendation: keep the full series and treat `mrnev=1` as
-the client describing a one-off lookup rather than specifying our retrieval.**
-Confirm with the reviewer before building, because if she does want a single latest
-value it changes what the Trends panel shows for an entire pillar.
+a description of a one-off lookup rather than a specification of our retrieval.**
+Confirm before building, because a single latest value would change what the
+Trends panel shows for an entire pillar.
 
 ## Contract / keying
 
@@ -340,7 +347,7 @@ keep calling the composite `hdi`. Do not restore `conces`. Taxonomy maps
 ```json
 {
   "index_version": "1.0",
-  "client_doc_revision": "2026-09-23",
+  "source_doc_revision": "2026-09-23",
   "weights": { "income": 0.25, "fragility": 0.25, "debt_risk": 0.25,
                "nonconcessional": 0.25 },
   "normalization": { "mode": "fixed_absolute_bounds", "clip": [0, 1] },
@@ -397,16 +404,18 @@ keep calling the composite `hdi`. Do not restore `conces`. Taxonomy maps
 }
 ```
 
-## Implementation ownership
+## Implementation status
 
-Thomas owns remaining delivery as of 2026-09-19. Contract key `mspi` is in
+Contract key `mspi` is in
 `docs/data-contract.md`, `publish_dashboard.py`, and `indicators.yaml`.
 Composer is wired (`src/calculating/mspi.py`, taxonomy `mspi` → `MSPI_INDEX`).
 WDI/IDS fetched and scored 2026-09-19: **117 countries / 1,693 country-years**
 vs HDI **193 / 2,688** (2010–2024). High-income non-reporters are null.
-Coverage confirmed by the client 2026-09-24: exclude non-covered countries.
+Coverage rule since 2026-09-24: non-covered countries are excluded.
 The updated spec revision (2026-09-23) replaces that with an explicit
-`lendingType` scope test and a three-value status field, none of which is built
-yet. About-page copy + tooltip/vintage UI still to do. Keep UNDP `HDI_INDEX` fetch as a verification
+`lendingType` scope test and a three-value status field.
+
+**Status (2026-10-17):** the scope test and status field are built (see above); only About-page
+copy and tooltip/vintage UI remain. Keep UNDP `HDI_INDEX` fetch as a verification
 baseline. `DT.DOD.ALLC.ZS` and `DT.DOD.DECT.EX.ZS` must be fetched from IDS
 source 6 with `counterpart_area: WLD` — they are archived on WDI.

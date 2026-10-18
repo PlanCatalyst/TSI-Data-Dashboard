@@ -19,7 +19,7 @@ Method: read-only trace through data/clean/, data/interim/validated/, the publis
   - CHI is one of ~48 non-country codes in world_bank_clean.csv absent from country_codes.csv; the rest are aggregates. CHI is the only real economy there.
   - The CHI mismatch rows carry expected 0.0 vs nothing published; the band scoring itself is not in dispute.
 - Verdict: audit wrong relative to the published country scope. The country list is country_codes.csv by design (country_identity.py docstring lines 30-31, "216-row canonical list"; it also intentionally omits GGY/JEY, the two components of CHI, which sit in _EXTRA_M49). Mild spec ambiguity: nothing in the spec says explicitly that territories without an ISO3 of their own are out of scope.
-- Proposed fix: audit script. Restrict expected rows to iso3 in indicators/country_codes.csv, and list CHI (and any other WB non-canonical economy) as an "out of scope" count in findings. No pipeline change. Optional (needs the reviewer): add CHI to country_codes.csv, but then it also needs an M49/region and a TopoJSON key; the map has no polygon for it, so not recommended.
+- Proposed fix: audit script. Restrict expected rows to iso3 in indicators/country_codes.csv, and list CHI (and any other WB non-canonical economy) as an "out of scope" count in findings. No pipeline change. Optional (needs a scope decision): add CHI to country_codes.csv, but then it also needs an M49/region and a TopoJSON key; the map has no polygon for it, so not recommended.
 - DQ entry draft:
 
 ```

@@ -30,7 +30,7 @@ Required values for Azure upload/publish:
 AZURE_TENANT_ID=your-tenant-id
 AZURE_CLIENT_ID=your-client-id
 AZURE_CLIENT_SECRET=your-client-secret
-AZURE_STORAGE_ACCOUNT_URL=https://<your-storage-account>.blob.core.windows.net
+AZURE_STORAGE_ACCOUNT_URL=<your-storage-account-url>
 ```
 
 If you are only doing a local dry run, you can disable upload in `src/config/settings.yaml`:

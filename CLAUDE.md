@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Mission
 
-Deliver a reliable backend-to-frontend contract for the PlanCatalyst dashboard:
+Maintain PlanCatalyst's **Global Country Development Scoring Engine**: a scoring pipeline and the web frontend that presents it. Call the product by that name, never "the dashboard" (`dashboard/` is only the frontend's directory). The work:
 
 1. Fetch and normalize source data (UN SDG, World Bank API, ND-GAIN, UNDP HDR, World Bank WGI).
 2. Score and aggregate by the 7-pillar taxonomy.
 3. Publish versioned JSON payloads (`meta.json`, `countries.json`, `timeseries.json`) to Azure Blob.
 4. Serve those payloads to a React frontend embedded in Wix.
 
-The dashboard is a decision-support product for identifying country-level need. It is **not** an impact attribution system.
+The engine is a decision-support product for identifying country-level need. It is **not** an impact attribution system.
 
 ## Repository Layout
 Moved verbatim to `docs/CLAUDE-reference.md` (same heading). Read it before working in this area.
@@ -99,10 +99,9 @@ Moved verbatim to `docs/CLAUDE-reference.md` (same heading). Read it before work
 ## Current Known Gaps
 Moved verbatim to `docs/CLAUDE-reference.md` (same heading). Read it before working in this area.
 
-## Team Execution Model
+## Ownership
 
-- **Thomas:** remaining delivery (pipeline, Azure, frontend, Wix E2E). Finishing
-  the project solo as of 2026-09-19.
+Maintainer: Thomas Llamzon (pipeline, Azure, frontend, Wix embed).
 
 Remaining work lives in `TASKS.md`.
 
@@ -110,12 +109,12 @@ Remaining work lives in `TASKS.md`.
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues at `PlanCatalyst/TSI-Data-Dashboard`, created manually. No team-wide conventions for labels or workflow yet. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues at `PlanCatalyst/TSI-Data-Dashboard`, created manually. No team-wide conventions for labels or workflow yet.
 
 ### Triage labels
 
-Default canonical vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Only `wontfix` exists in the repo today; the others will be created by the `triage` skill on first use. See `docs/agents/triage-labels.md`.
+Default canonical vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Only `wontfix` exists in the repo today; the others will be created by the `triage` skill on first use.
 
 ### Domain docs
 
-Single-context. `CONTEXT.md` and `docs/adr/` live at the repo root; both `src/` (Python pipeline) and `dashboard/` (React frontend) share the same domain vocabulary (pillars, indicators, contract). See `docs/agents/domain.md`.
+Single-context. `CONTEXT.md` and `docs/adr/` live at the repo root; both `src/` (Python pipeline) and `dashboard/` (React frontend) share the same domain vocabulary (pillars, indicators, contract).

@@ -7,7 +7,7 @@ where one is possible, then the fix. The validation stage runs between score
 and publish and blocks the run on any `block` finding; the report lands in
 `data/interim/validated/data_quality_report.md`.
 
-Status values: open, fixed (date, commit), decision (waits on the client).
+Status values: open, fixed (date, commit), decision (waits on a scoring decision).
 
 | ID | Symptom | Rule | Status |
 |----|---------|------|--------|
@@ -35,14 +35,14 @@ equality and climate; Brazil climate flat at 100 since 1995.
 **Evidence:** `scripts/clamp_audit.py`: 58.5% of ND-GAIN country-years
 pinned, 72.3% of electricity access, 70.2% of adolescent births. Russia's
 values are real (under-five mortality, water, electricity, GII, ND-GAIN) and
-all sit on the better side of the client benchmark.
+all sit on the better side of the benchmark.
 **Cause:** `RatioThresholdScorer` and `InverseRatioScorer` floor need at 0
 below the benchmark (`docs/requirements-v2.md` section 1). Not a data error.
 **Rule:** R4 warns on a score flat for 10+ years while the source moves
 (AC1.1); R5 warns when more than half an indicator's country-years are
 pinned. Both become `block` once the scoring decision is made.
 **Fix:** built as `scoring.below_benchmark: soft_floor`, default off.
-Waits on the reviewer (requirements section 1.4).
+Waits on the scoring decision (requirements section 1.4).
 
 ## DQ-02 Disaggregated rows collapse to an arbitrary one per year
 
@@ -102,7 +102,7 @@ jumping between about 50 and 0.
 basket of three or more.
 **Fix:** the detail panel shows an "n of m" badge on low-confidence rows; the
 basket rule removes single-member years that were outside the basket. A
-minimum-coverage rule that hides the score entirely is a client decision
+minimum-coverage rule that hides the score entirely is an open scoring decision
 (requirements section 1.6).
 
 ## DQ-06 Score shape: a missing value became a score
@@ -130,7 +130,7 @@ after harmonisation; R9 blocks an impossible year.
 **Rule:** R3 reports it as a warning (series listed in
 `src/validation/run.py` `LUMPY_SERIES`), not a block.
 **Status:** open. Candidate treatment: a three-year rolling mean before
-scoring, to be decided with the client.
+scoring, still to be decided.
 
 ## DQ-09 Sawtooth in a single country
 
@@ -142,7 +142,7 @@ hundreds per 100,000. Real data, not processing.
 **Rule:** R3 blocks a sawtooth only when it appears in three or more
 countries of one series; a lone country warns under this entry.
 **Status:** open. Candidate treatment: a minimum-population rule for
-rate-based indicators, to be decided with the client.
+rate-based indicators, still to be decided.
 
 ## DQ-10 Agriculture aid scored as a ratio while still in USD millions
 
@@ -161,7 +161,7 @@ above 100% of GDP is a unit error).
 **Fix:** a country-year without GDP gets a null value, including the case
 where GDP is absent altogether. Tests in
 `tests/calculating/test_agoda_normalization.py`. Whether to fall back to
-another GDP source for these countries is a separate client question.
+another GDP source for these countries is a separate open question.
 
 ## DQ-11 Urban-only rows published as national values
 
@@ -221,7 +221,7 @@ missing data biases debt risk toward Low. `docs/spec-macrosec-index.md` does
 not say what to do with a missing ratio.
 **Rule:** R12 once decided: block an mspi row with null `debt_basis` or an
 incomplete ratio set.
-**Status:** decision for the reviewer. Recommended: require all three ratios and
+**Status:** decision pending. Recommended: require all three ratios and
 publish null otherwise, matching the spec's own `partial_scores: false`
 principle. Write the choice into the spec first.
 

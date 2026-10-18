@@ -23,5 +23,4 @@ the app can fetch:
 Use:
 
 - `docs/frontend-implementation-brief.md`
-- `PlanCatalyst TSI Data Dashboard Final.html`
 - `docs/data-contract.md`

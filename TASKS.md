@@ -1,42 +1,48 @@
 # Tasks
 
 > Replaces `TEAM-TASKS.md`, `DELIVERY-CHECKLIST.md`, and `DELEGATION-PROMPTS.md`
-> (deleted 2026-09-08). Remaining work belongs to **Thomas**.
+> (deleted 2026-09-08).
 > Contract truth: `docs/data-contract.md`. Invariants: `CLAUDE.md`.
 
 Status (2026-09-29): **live Blob republished** as `refresh-20260929` with the
 2026-07-07 scoring fixes, `mspi` and `indicatorStatus`, and the **frontend
-redeployed** the same evening. All client-side questions are answered; the reviewer offered a wrap-up call
-this week or next. Earlier: forecasting MVP merged 2026-09-15.
+redeployed** the same evening. All open scoring questions are closed. Earlier: forecasting MVP merged 2026-09-15.
 
-**Ownership (2026-09-19):** Thomas is finishing the project. a contributor is no
-longer an active owner. Historical commits and closed items still name him
-where he did the work.
+**Ownership:** maintained by Thomas Llamzon.
 
 Contract key `mspi` landed 2026-09-19 (`docs/data-contract.md`, publisher,
 `indicators.yaml`). Composer wired and scored the same day (`MSPI_INDEX`:
-117 countries vs HDI 193 in 2010–2024). **Coverage confirmed by the reviewer
-2026-09-24:** exclude non-covered countries, do not substitute. `mspi` is
-cleared to replace `hdi` in the live snapshot. Her **revised spec arrived the
-same day** (`Macro_Socio-Economic_Performance_Index_Spec UPDATED.docx`, repo
-root): formula unchanged, but it adds an IDS scope rule resolved from
+117 countries vs HDI 193 in 2010–2024). **Coverage rule (2026-09-24):** exclude non-covered countries, do not substitute. `mspi` is
+cleared to replace `hdi` in the live snapshot. The **spec was revised the
+same day**: formula unchanged, but it adds an IDS scope rule resolved from
 `lendingType.id`, a three-value `status` field, and `partial_scores: false`.
-`src/calculating/mspi.py` implements it as of 2026-09-29, including her
-accepted scope refinement (no IDS history means out of scope) and
+`src/calculating/mspi.py` implements it as of 2026-09-29, including the
+scope refinement (no IDS history means out of scope) and
 `index_version` 1.1. See `docs/spec-macrosec-index.md`.
 
-**Azure, 2026-09-29:** `tsidashboardblobstorage` confirmed in PlanCatalyst's
-subscription (resource group `tsi-data-dashboard`). Service principal
-`tsidashboard-pipeline` issued at container scope; secret expires 2027-09-28.
+**Azure, 2026-09-29:** the storage account (`AZURE_STORAGE_ACCOUNT_URL`) is in
+PlanCatalyst's subscription. Pipeline service principal issued at container scope
+(credentials in `.env`).
 
 ## Owner
 
 | Person | Role |
 |--------|------|
-| **Thomas Llamzon** | PM and remaining delivery (pipeline, Azure, frontend, Wix E2E) |
+| **Thomas Llamzon** | Maintainer (pipeline, Azure, frontend, Wix E2E) |
 
 ## Remaining
 
+- **Rescore 7.2.1 `renew` and 3.7.1 `contra` to their target benchmarks.** Due by 2026-10-19.
+  `renew` (`EG_FEC_RNEW`) scores against a 20% renewable-share goal, `1 - (20 / value)`;
+  `contra` (`SH_FPL_MTMM`) scores against the 77.2% global average, `1 - (77.2 / value)`.
+  Both are higher-is-better, values below the benchmark harmonize to 0, and scores
+  normalize to 0-100 with the top country at 100. Today `src/calculating/factory.py` runs
+  both through `InverseRatioScorer` (20.0 and 11.5) as gap benchmarks, which means an 80%
+  share and 88.5% coverage. Keep the single inversion at publish (invariant 4): the need
+  scorer emits `100 - target_score` so the publish flip yields the target. No scorer
+  max-normalizes yet, which overlaps the open `scoring.below_benchmark` setting. Then
+  update `SCORING_AUDIT.md` rows 9 and 20 and the About methodology copy
+  (`npm run check:about`), bump `index_version`, add tests, rerun and republish.
 - About wiki follow-ups (deferred from the 2026-10-15 frontend-only release,
   `docs/requirements-v2.md` §9): fix the `sanit`, `susag` and `u5mr` labels
   and units in `indicators/indicators.yaml` so they reach `meta.json`; write
@@ -45,7 +51,7 @@ subscription (resource group `tsi-data-dashboard`). Service principal
   in `dashboard/src/content/about/methodology.ts`.
 - Macrosec composite from the 2026-09-17 spec (`docs/spec-macrosec-index.md`):
   **scored 2026-09-19** (`MSPI_INDEX`, 117 countries vs HDI 193 in 2010–2024),
-  **coverage confirmed 2026-09-24**. Still to do: About-page / tooltip /
+  **coverage rule applied 2026-09-24**. Still to do: About-page / tooltip /
   vintage copy naming the excluded set.
 - Rework `src/calculating/mspi.py` for the updated spec. **Status side done
   2026-09-27:** `mspi_country_status()` derives `scored` / `out_of_scope` /
@@ -55,7 +61,7 @@ subscription (resource group `tsi-data-dashboard`). Service principal
   117 scored, 28 incomplete, 128 out of scope, matching the spec diff. The
   composer still drops incomplete rows from the scored output, which is
   correct under `partial_scores: false`. **Scope refinement applied
-  2026-09-29** after the reviewer accepted it: in scope by lending type but no IDS
+  2026-09-29**: in scope by lending type but no IDS
   observation in any year is `out_of_scope`. Published set: 117 scored,
   5 incomplete (BGR, ERI, GNQ, RUS, TKM), rest out of scope. Done.
 - ~~Add a World Bank country-metadata fetch for `lendingType.id`.~~
@@ -75,18 +81,18 @@ subscription (resource group `tsi-data-dashboard`). Service principal
   instead of the generic no-data line. Bundled fixtures under
   `dashboard/public/v1/` regenerated from the dry run, so the local frontend
   now carries `mspi` in place of `hdi`. Additive, so no `/v2`.
-- ~~Ask the reviewer three follow-ups on the revised spec.~~ **All answered 2026-09-29:** scope
-  refinement accepted (no IDS history means out of scope), series not snapshot, version
+- ~~Resolve three open points in the revised spec.~~ **Closed 2026-09-29:** no IDS
+  history means out of scope, series not snapshot, version
   bumped to 1.1. Applied in `src/calculating/mspi.py` the same day.
 - ~~Re-run the UN SDG cleaner for M49 country codes.~~ **Closed 2026-09-24.**
   The on-disk file already carries ISO3 throughout (234 distinct codes, none
   numeric). No re-run needed.
-- ~~Confirm which subscription owns `tsidashboardblobstorage`.~~ **Confirmed
+- ~~Confirm which subscription owns the storage account.~~ **Resolved
   2026-09-29:** PlanCatalyst's. No migration, no frontend URL change.
-- Pre-handoff hardening: CORS allow-list on `dashboard-public` limited to
+- Pre-handoff hardening: CORS allow-list on the public payload container limited to
   the Wix/plancatalyst origins plus local dev; verify `Cache-Control` on the
   live payloads; scan git history for secrets.
-- ~~Republish `dashboard-public/v1/`.~~ **Done 2026-09-29**, run id `refresh-20260929`,
+- ~~Republish the public payload container.~~ **Done 2026-09-29**, run id `refresh-20260929`,
   meta last, verified live: `mspi` in `pri`, 216 countries with `indicatorStatus`
   (117 scored / 5 incomplete / 94 out of scope on the published set).
   `Cache-Control: public, max-age=3600` confirmed on the payloads.
@@ -97,8 +103,8 @@ subscription (resource group `tsi-data-dashboard`). Service principal
 - ~~Deploy the forecast-enabled frontend build~~ (deployed 2026-09-29), then publish
   forecasts with `runtime.run_forecasts: true` when ready.
 - Mock parity pass and responsive QA at Wix iframe widths.
-- Wix embed E2E on `plancatalyst.org` once the reviewer places the iframe.
-- Route client sign-off (the reviewer is final authority).
+- Wix embed E2E on `plancatalyst.org` once the iframe is placed.
+- Release review.
 
 - ~~Confirm rank and comparison views treat a null `pri` as excluded rather
   than last place.~~ **Audited 2026-09-24.** `cmpNumeric` in `ExplorePage`
@@ -112,41 +118,38 @@ subscription (resource group `tsi-data-dashboard`). Service principal
   `dashboard/src/data/contract/selectors.ts:133` falls back to averaging
   whichever pillars are non-null when `overall` is null, and the result renders
   in the same column as true 7-pillar averages. That is the same bias the
-  client's own `partial_scores: false` rule rejects: the pillars that are
+  documented `partial_scores: false` rule rejects: the pillars that are
   missing are not missing at random. Deliberate (it keeps the map from going
   grey) but now inconsistent with the documented methodology. Needs a product
   call: either mark partial averages visually, or stop computing them.
 
-## Blocked on PlanCatalyst (asked 2026-09-04; reply 2026-09-17)
+## Resolved inputs
 
-- ~~`conces` composite spec document.~~ Received 2026-09-17. Contract key
+- ~~`conces` composite spec document.~~ Spec in place 2026-09-17. Contract key
   `mspi` landed 2026-09-19. ~~Coverage 117 vs HDI 193, confirm before live
-  swap.~~ Confirmed 2026-09-24: exclude non-covered countries.
-- ~~Revised index document.~~ Received and diffed 2026-09-24. Three follow-up
-  questions now with the reviewer (scope count, `mrnev=1`, version bump).
-- ~~Service principal.~~ **Issued 2026-09-29:** `tsidashboard-pipeline`, Storage Blob Data
-  Contributor on the `dashboard-public` container only, on `tsidashboardblobstorage` in
-  PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires
-  2027-09-28. A second principal `tsi-analytics` holds the same role; confirm on the call.
-- ~~`popdens` display-direction confirmation.~~ Confirmed 2026-09-17: keep
+  swap.~~ Rule 2026-09-24: exclude non-covered countries.
+- ~~Revised index document.~~ Applied 2026-09-24. Three follow-up
+  points (scope count, `mrnev=1`, version bump) closed 2026-09-29.
+- ~~Service principal.~~ **Issued 2026-09-29:** the pipeline service principal, Storage Blob Data
+  Contributor on the public payload container only, in PlanCatalyst's subscription
+  (credentials in `.env`). A second principal holds the same role; its purpose is undocumented.
+- ~~`popdens` display-direction confirmation.~~ Decision 2026-09-17: keep
   scored + inverted; dense countries display low. No code change.
-- Call scheduling. She prefers to wait until IT finishes, then close remaining
-  items in one meeting.
 
 ## Acceptance (MVP)
 
 1. Live Blob serves a post-fix snapshot and the hosted frontend reads it.
 2. Wix iframe live on `plancatalyst.org`; all four routes work at iframe
    widths, mobile and desktop.
-3. 28/28 indicators live, or a client-approved exception recorded in
+3. 28/28 indicators live, or an approved exception recorded in
    `indicators/SCORING_AUDIT.md`.
 4. Handoff docs complete: `docs/runbook-refresh.md`, `RUNNING.md`,
    `HANDOFF.md`.
-5. PlanCatalyst sign-off recorded.
+5. Release review recorded.
 
 ## Descoped / deferred
 
-- Scheduled pipeline: not planned. The client runs a manual Container Apps
+- Scheduled pipeline: not planned. Refresh runs as a manual Container Apps
   Job instead (requirements v2, section 3). Code landed 2026-10-14; the job
   itself is created by `infra/container-apps-job.sh`, which has not been run
   yet. Forecast publish stays manual; see `docs/runbook-refresh.md`.
@@ -157,7 +160,7 @@ subscription (resource group `tsi-data-dashboard`). Service principal
 
 ## Forecasting MVP — merged 2026-09-15
 
-- Quality gates, ARIMA intervals, atomic publish, projection UI, and the reviewer's
+- Quality gates, ARIMA intervals, atomic publish, projection UI, and the
   interim runbook are now on `main`.
 - Verification: 43 backend tests pass; production TypeScript/Vite build passes.
 - The UI now labels the last observed year and visually separates solid

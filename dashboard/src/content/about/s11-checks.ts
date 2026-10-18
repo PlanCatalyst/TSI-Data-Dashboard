@@ -30,7 +30,7 @@ export const section: SectionContent = {
       id: "what-it-found",
       heading: "What the check found",
       body: [
-        "We found no scoring mistakes. Every problem was in what got published: values shown with no valid source behind them, and valid values that never reached the dashboard. We fixed four of them. The fifth, debt risk scored from a partial input, is waiting on a decision.",
+        "The independent check found no scoring errors. Five problems were in what got published: values shown with no valid source behind them, and valid values that were never published. Four are fixed. The fifth, debt risk scored from a partial input, has a decision pending.",
         "After the fixes, 97,038 of 97,038 expected values match, and no row is unaccounted for.",
       ],
     },

@@ -6,27 +6,29 @@ These sections were moved verbatim from `CLAUDE.md` to keep it under 5 KB. CLAUD
 
 Two top-level deliverables in one repo:
 
-- **`src/`** — Python data pipeline (the backend). Stages: `fetch/`, `clean/`, `calculating/`, `upload/`, orchestrated by `pipeline/`. Config lives in `src/config/settings.yaml`.
+- **`src/`** - Python data pipeline (the backend). Stages: `fetch/`, `archive/` (raw store), `clean/`, `calculating/`, `validation/`, `upload/`, optional `forecasting/` and `projections/`, orchestrated by `pipeline/`; shared helpers in `utils/`. Config lives in `src/config/settings.yaml`.
 - **`dashboard/`** — React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs. Page routes live in `dashboard/src/app/routes/` (`AboutPage`, `ComparePage`, `ExplorePage`, `MapPage`, `TrendsPanel`); shared UI in `dashboard/src/components/` (`charts/`, `map/`, `panels/`, `states/`, `tables/`); contract loaders in `dashboard/src/data/`.
 - **`indicators/`** — taxonomy source of truth: `indicators.yaml` (pillar/subdomain/indicator hierarchy), `country_codes.csv` (canonical name + iso3 + numeric id), `SCORING_AUDIT.md` (scoring direction + known gaps).
 - **`docs/`** — `data-contract.md` (authoritative payload schema), `PRINCIPLES.md`, `repo-architecture.md`.
 - **`scripts/`** — ad-hoc utilities (one-off conversions, debugging helpers). Not part of the production pipeline; safe to edit without contract concerns.
-- **`data/`** — local-only artifacts: `raw/` (per-source raw payloads), `clean/` (per-source cleaned CSVs), `interim/validated/` (scored), `organized/` (local pre-publish JSON in `dry_run`).
+- **`data/`** - local-only artifacts: `raw/` (per-source raw payloads), `store/<run_id>/` (immutable raw store per run), `clean/` (per-source cleaned CSVs), `interim/validated/` (scored), `organized/` (local pre-publish JSON in `dry_run`), `processed/`.
 
 ## Pipeline Architecture
 
 ```
-fetch -> clean -> score/aggregate -> publish contract JSON -> Azure Blob -> React frontend -> Wix iframe
+fetch -> raw store -> clean -> score/aggregate -> validate (blocking) -> upload validated -> forecasts (off by default) -> publish contract JSON -> Azure Blob -> React frontend -> Wix iframe
 ```
 
 Stages are orchestrated by `src/pipeline/orchestrator.py` (entered via `src/pipeline/run_pipeline.py`):
 
-1. **Fetch** (`src/fetch/`) — abstract-factory clients for UN SDG (API), World Bank (API), ND-GAIN (local ZIP), UNDP HDR (static CSV/XLSX), and World Bank WGI (static XLSX). Per-source raw payloads land under `data/raw/<source>/` when `runtime.save_raw: true`.
-2. **Clean** (`src/clean/`) — same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`. Cleaner output schema is `country_code, country_name, year, value, indicator, series_code` (plus source-specific extras). Rows whose `series_code` isn't registered in `IndicatorScorerFactory` persist in the CSV but are defensively skipped by scoring.
-3. **Calculating** (`src/calculating/`) — `pipeline.run_pipeline` reads the UN SDG cleaned CSV plus any additional interim CSVs listed under `runtime.interim_data` (ND-GAIN, UNDP HDR, WGI, etc.), concatenates them, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`.
-4. **Upload** (`src/upload/upload_validated.py`) — pushes the validated CSVs to the private Azure container (`validated-scores`) when `runtime.upload_azure: true`.
-5. **Forecast/Publish** — optional World Bank forecast processing runs when
-   `runtime.run_forecasts: true`, then `src/upload/publish_dashboard.py`
+1. **Fetch** (`src/fetch/`) - abstract-factory clients for UN SDG (API), World Bank (API), ND-GAIN (local ZIP, or the newest ZIP from the private ND-GAIN source Blob container when `NDGAIN_BLOB_CONTAINER` is set), UNDP HDR (static CSV/XLSX), and World Bank WGI (static XLSX). Per-source raw payloads land under `data/raw/<source>/` when `runtime.save_raw: true`.
+2. **Raw store** (`src/archive/store.py`) - archives the fetched raw payloads under `data/store/<run_id>/` (see `docs/raw-data-store.md`), right after fetch.
+3. **Clean** (`src/clean/`) - same factory pattern; outputs tidy per-source CSVs under `data/clean/<source>/`. Cleaner output schema is `country_code, country_name, year, value, indicator, series_code` (plus source-specific extras). Rows whose `series_code` isn't registered in `IndicatorScorerFactory` persist in the CSV but are defensively skipped by scoring.
+4. **Calculating** (`src/calculating/`) - `pipeline.run_pipeline` reads the UN SDG cleaned CSV plus any additional interim CSVs listed under `runtime.interim_data` (ND-GAIN, UNDP HDR, WGI, etc.), concatenates them, applies per-`series_code` scorers via `IndicatorScorerFactory`, then aggregates to subdomain and pillar via `pillar_aggregate.py`. Writes `Indicator_Scores_Full.csv`, `indicatorscores/*.csv`, `subdomainscores.csv`, `pillarscores.csv` under `data/interim/validated/`. Dimension and `mspi` composition live in `dimensions.py` and `mspi.py`.
+5. **Data validation** (`src/validation/`) - blocking gate: a failure stops the run before anything is uploaded or published.
+6. **Upload** (`src/upload/upload_validated.py`) - pushes the validated CSVs to the private Azure container (`azure.container_name`) when `runtime.upload_azure: true`.
+7. **Forecast/Publish** - optional forecast processing (`src/forecasting`, `src/projections`) runs only when
+   `runtime.run_forecasts: true` (off by default; `projections.json` is published only on such a run), then `src/upload/publish_dashboard.py`
    validates and publishes contract payloads atomically with `meta.json` last.
 
 ### The publish boundary is the only place orientation flips
@@ -40,7 +42,7 @@ The pipeline emits **vulnerability-oriented** scores ("higher = more need") all 
 - yaml/frontend world: `frontend_key` (e.g. `"uhc"`, `"tb"`) inside `health, ag, si, women, climate, ctx, pri`.
 - pipeline world: source-specific `series_code` (e.g. `"SH_ACS_UNHC_25"`, `"EN.POP.DNST"`).
 
-SDG indicators bridge automatically through `SDG_ID_TO_SERIES_CODE`; non-SDG indicators (gii, ndgain, mpi, popdens, state, conces) bridge through `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`. When wiring a new source, add its `series_code` to one of these maps so pillar aggregation picks it up automatically.
+SDG indicators bridge automatically through `SDG_ID_TO_SERIES_CODE`; non-SDG indicators (gii, ndgain, mpi, popdens, state, mspi) bridge through `NON_SDG_FRONTEND_KEY_TO_SERIES_CODE`. When wiring a new source, add its `series_code` to one of these maps so pillar aggregation picks it up automatically.
 
 ## Key Dev-Loop Knobs (`src/config/settings.yaml`)
 
@@ -48,7 +50,7 @@ SDG indicators bridge automatically through `SDG_ID_TO_SERIES_CODE`; non-SDG ind
 - `runtime.upload_azure: false` — disable Azure upload for local dry runs.
 - `runtime.save_raw` / `runtime.save_cleaned` — control whether raw/clean CSVs persist to disk between stages.
 - `runtime.interim_data.<source>` — paths to cleaned CSVs that downstream stages consume.
-- `azure.container_name` (`validated-scores`) vs `publish.dashboard_container_name` (`dashboard-public`) — backend artifacts vs frontend payloads. They are different containers with different access policies.
+- `azure.container_name` vs `publish.dashboard_container_name` (both in `src/config/settings.yaml`) - backend artifacts vs frontend payloads. They are different containers with different access policies.
 
 Azure auth: `.env` at repo root with `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_STORAGE_ACCOUNT_URL`. Never commit `.env`.
 
@@ -62,7 +64,7 @@ Azure auth: `.env` at repo root with `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZUR
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as of 2026-09-19):
+From `indicators/SCORING_AUDIT.md`, and the vault context (as of 2026-09-19):
 
 - **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since
   2026-05-17. `pri/macrosec` contract key is `mspi` as of 2026-09-19, backed by
@@ -72,49 +74,40 @@ From `indicators/SCORING_AUDIT.md`, the vault context, and the client thread (as
   2026-07-07 scoring fixes, `mspi`, and the additive `indicatorStatus` field. The hosted
   frontend was redeployed the same day and renders it.
 - **Publish credentials exist locally.** `.env` at repo root holds the four `AZURE_*` values
-  for service principal `tsidashboard-pipeline` (Storage Blob Data Contributor on the
-  `dashboard-public` container only). Secret expires 2027-09-28. Never commit or print it.
-- `conces` / macrosec: client declined the `hdi` substitution (2026-08-13) and
-  supplied the composite spec on **2026-09-17** (`docs/spec-macrosec-index.md`).
+  for the pipeline service principal (Storage Blob Data Contributor on the
+  public payload container only). Never commit or print it.
+- `conces` / macrosec: the `hdi` substitution was dropped (2026-08-13) and
+  the composite is specified in `docs/spec-macrosec-index.md` (2026-09-17).
   Contract key **`mspi`** landed 2026-09-19. Composer wired and scored
-  (`MSPI_INDEX`: 117 countries vs HDI 193 in 2010–2024). **Coverage confirmed
-  2026-09-24:** the client chose to exclude non-covered countries rather than
-  substitute, so the all-or-nothing null rule stands and `mspi` is cleared to
+  (`MSPI_INDEX`: 117 countries vs HDI 193 in 2010–2024). **Coverage rule
+  since 2026-09-24:** non-covered countries are excluded rather than
+  substituted, so the all-or-nothing null rule stands and `mspi` is cleared to
   replace `hdi` in the live snapshot. Remaining: About-page copy naming the
   excluded set, and confirming rank/compare views treat a null `pri` as
-  excluded, not last place. **A revised spec arrived 2026-09-24**
-  (`Macro_Socio-Economic_Performance_Index_Spec UPDATED.docx`, repo root).
-  Formula, weights, bounds and series are unchanged; it adds an IDS scope rule
-  resolved from World Bank `lendingType.id`, a three-value `status` field
-  (`scored` / `out_of_scope` / `incomplete_data`), a requirement that every
-  country appear in the output, and `partial_scores: false`.
-  `src/calculating/mspi.py` implements the superseded model (one `complete`
-  filter that drops incomplete rows) and needs rework, plus an additive
-  contract `status` field. Her scope rule also returns 145 countries against
-  her stated ~120 and mislabels 15 high-income IBRD graduates as data gaps;
-  three follow-ups are with her. Do not build until they are answered.
-  `docs/spec-macrosec-index.md` carries the full diff.
-- `popdens`: **resolved as scored** (client, 2026-08-13) and **display direction confirmed**
+  excluded, not last place. **The spec was revised 2026-09-24**
+  (summarized in `docs/spec-macrosec-index.md`). It was **implemented** in `src/calculating/mspi.py`:
+  an IDS scope rule resolved from World Bank `lendingType.id`, a three-value
+  `status` field (`scored` / `out_of_scope` / `incomplete_data`), every country
+  present in the output, and `partial_scores: false`, surfaced through the
+  additive contract `indicatorStatus` field. `mspi` is live (republished
+  2026-09-29). `docs/spec-macrosec-index.md` carries the spec diff.
+- `popdens`: **resolved as scored** (2026-08-13) and **display direction fixed**
   (2026-09-17). Bands are byte-identical to `DensityScorer`. Keep scored + inverted; dense
   countries display low. No code change.
 - ~~Stale `data/clean/unsdg/un_sdg_clean.csv` using numeric UN M49 country codes.~~
   **Closed 2026-09-24.** Verified on disk: 234 distinct `country_code` values,
   all ISO3, zero numeric. The 2026-07-07 cleaner re-run already fixed it; the
   gap note outlived the gap.
-- **Frontend deployed** to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
+- **Frontend deployed** to Azure SWA.
   CI supplies the production Blob URL explicitly. Production deployment is a
   manually dispatched, CI-gated workflow and requires the
   `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
-  environment (set 2026-09-29; recovery steps in `docs/runbook-refresh.md`). The SWA is
-  `tsi-dashboard-frontend` in resource group `tsi-data-dashboard`, PlanCatalyst's subscription.
-- **Storage account ownership confirmed 2026-09-29.** `tsidashboardblobstorage` sits in
-  PlanCatalyst's subscription, resource group `tsi-data-dashboard`, Canada Central. No
-  migration. `dashboard-public` is the only anonymous container (level Blob);
-  `validated-scores`, `powerbi-data-indicators` and `$logs` are private. The pipeline principal
-  has rights on `dashboard-public` only, so `runtime.upload_azure` for validated CSVs stays off
-  unless IT grants a second scoped role. `[redacted]` is their Functions account and
-  is unrelated. History of the IT exchange: `docs/azure-it-request.md`.
-- **ACR / containerised pipeline: descoped 2026-09-04.** At the confirmed 6-month refresh cadence the
-  registry push, image build and container host are not worth their cost. Publish runs manually from
-  a workstation, documented in `docs/runbook-refresh.md`. The container path stays available if the
-  cadence ever shortens; `docs/docker.md` is retained for that case.
+  environment (set 2026-09-29; recovery steps in `docs/runbook-refresh.md`). The SWA is in
+  PlanCatalyst's subscription.
+- **Storage account ownership (2026-09-29).** The storage account sits in
+  PlanCatalyst's subscription. No
+  migration. The public payload container is the only anonymous container (level Blob);
+  the backend artifacts container, the other data containers and `$logs` are private. The pipeline principal
+  has rights on the public payload container only, so `runtime.upload_azure` for validated CSVs stays off
+  unless a second scoped role is granted.
+- **Containerised refresh: coded, not yet provisioned.** The 2026-09-04 descope was superseded. `infra/container-apps-job.sh` defines the manual-trigger Azure Container Apps Job (system-assigned identity with Storage Blob Data Contributor + AcrPull, 3h timeout, failure email alert); its image comes from `scripts/acr_build.sh` (`docs/docker.md`). There is no cron: the six-month cadence is a human routine, and manual publish from a workstation (`docs/runbook-refresh.md`) still works.

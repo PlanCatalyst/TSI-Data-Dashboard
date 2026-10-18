@@ -2,7 +2,7 @@
 Composite index construction and regression modelling.
 
 ### Composite Index Construction
-Composite indices matter because they turn dozens of heterogeneous climate indicators into clean, comparable development metrics aligned with the client’s needs. The pipeline uses the raw indicator values to construct _three_ kinds of composite metrics:
+Composite indices matter because they turn dozens of heterogeneous climate indicators into clean, comparable development metrics aligned with the dashboard's needs. The pipeline uses the raw indicator values to construct _three_ kinds of composite metrics:
 
 __1. Sector Scores__
 _For each country and each sector_ (food, water, etc.):
@@ -32,4 +32,4 @@ These become inputs to regression models to forecast:
 * future development-climate resilience trends
 * sector-specific improvements or deteriorations
 
-This supports the client's requirement to “forecast country-level development indicators” using combined ND-GAIN, SDG, and World Bank data.
+This supports the requirement to “forecast country-level development indicators” using combined ND-GAIN, SDG, and World Bank data.

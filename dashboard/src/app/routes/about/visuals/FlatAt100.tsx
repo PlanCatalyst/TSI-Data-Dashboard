@@ -14,8 +14,8 @@ type Rule = "clamp" | "soft";
 /**
  * Brazil's climate vulnerability under today's rule (cut off at 100) and the
  * proposed soft floor (benchmark at 75, better countries spread to 100). The
- * values are static figures from one snapshot; the status says it is awaiting
- * the client.
+ * values are static figures from one snapshot; the status says the decision is
+ * pending.
  */
 export function FlatAt100() {
   const { meta } = useDashboardData();

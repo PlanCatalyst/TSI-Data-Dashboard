@@ -66,7 +66,7 @@ export const AUDIT = {
   after: { expected: 97038, match: 97038, mismatch: 0, missing: 0, extra: 15 },
   tolerance: 0.15,
   unexplainedDrops: 0,
-  /** Defects the audit found, all fixed except the one waiting on the client. */
+  /** Defects the audit found, all fixed except the one with a decision pending. */
   defects: [
     { id: "aid-needs-gdp", label: "Agriculture aid scored without national income", rows: 60, status: "locked" },
     { id: "national-totals-only", label: "City-only rows shown as national", rows: 482, status: "locked" },

@@ -22,7 +22,7 @@ Every number the pipeline computes from a valid input matches the
 independent derivation exactly. Every defect was in what got published, not
 in how it was scored: values published with no valid source behind them, and
 valid values that never reached the dashboard. The 15 rows left are the mspi
-partial-input question (DQ-14), which waits on the client.
+partial-input question (DQ-14), which is an open decision.
 
 "Before" uses the strict reconcile check (see Audit tooling below); the first
 run reported 102 extras because of a blind spot.
@@ -107,7 +107,7 @@ number today; each is either stale text or an unstated constant.
 
 - renew: yaml says a goal of 20% (a level); the factory uses 20 as the allowed
   gap, an 80% renewable benchmark. Every other gap-based indicator quotes the
-  gap. Client question 1.
+  gap. Open question 1.
 - contra: yaml does not say whether 11.5 is a level or a gap; the factory
   treats it as a gap (88.5% benchmark).
 - abr, gii, ndgain, mpi: yaml says values below the "global average" are
@@ -120,7 +120,7 @@ number today; each is either stale text or an unstated constant.
 - ihr: `SCORING_AUDIT.md` says class-code weighted; the pipeline takes an
   unweighted mean of the 13 capacities (the SDG 3.d.1 definition).
 
-## Open client questions
+## Open questions
 
 1. Renewables benchmark: 20% share goal or 20-point gap (80% share)?
 2. Agriculture aid share divides constant 2022 USD by current-USD GDP. Accept,

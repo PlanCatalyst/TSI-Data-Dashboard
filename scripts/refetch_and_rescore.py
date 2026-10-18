@@ -5,7 +5,7 @@ upload of any kind.
 Mirrors src/pipeline/orchestrator.py (fetch -> clean -> score) but:
   - always fetches (ignores runtime.fetch_raw), since the whole point is a refetch
   - SKIPS the upload_validated stage, so nothing is written to Azure
-  - does NOT touch publish_dashboard / dashboard-public (a contributor's lane)
+  - does NOT touch publish_dashboard / dashboard-public
 
 Not part of the production pipeline. Safe to delete.
 """

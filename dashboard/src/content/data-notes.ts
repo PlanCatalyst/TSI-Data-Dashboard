@@ -29,9 +29,9 @@ export const DEFERRED_INDICATORS: Record<string, string> = {
   // Keep this entry until meta.json is republished and `conces` no longer appears in contract indicators.
   conces:
     "The Concessionality Index is a PlanCatalyst-defined composite with no finalized methodology yet, so it is intentionally left blank rather than estimated. (Deferred by design — see scoring audit.)",
-  // ctx / ctxmisc — banded scorer is live; semantic direction pending PlanCatalyst sign-off.
+  // ctx / ctxmisc: banded scorer is live; semantic direction not yet decided.
   popdens:
-    "Population density uses a banded scoring formula. Whether it contributes to the context pillar score or is display-only is pending client confirmation — see scoring audit.",
+    "Population density uses a banded scoring formula. Whether it contributes to the context pillar score or is display-only is pending a scoring decision; see the scoring audit.",
 };
 
 /**
@@ -80,11 +80,11 @@ export const NO_DATA_IN_SNAPSHOT =
   "Not available in the current data snapshot.";
 
 /**
- * One sentence on the client's benchmark rule (requirements v2, AC1.5). Each
+ * One sentence on the benchmark rule (requirements v2, AC1.5). Each
  * indicator is scored against a PlanCatalyst benchmark; a country already
  * better than the benchmark shows the top score for that indicator, so flat
- * lines at 100 are the rule, not a data gap. Update when the reviewer picks a
- * scoring option (section 1.4).
+ * lines at 100 are the rule, not a data gap. Update when a
+ * scoring option is chosen (section 1.4).
  */
 export const BENCHMARK_RULE_NOTE =
   "Each indicator is scored against a PlanCatalyst benchmark; a country already better than the benchmark shows 100 for it, which is why some lines sit flat at the top.";

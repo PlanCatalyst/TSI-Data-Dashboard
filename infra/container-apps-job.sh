@@ -23,7 +23,6 @@ LOCATION="canadacentral"
 STORAGE_ACCOUNT="tsidashboardblobstorage"
 STORAGE_URL="https://${STORAGE_ACCOUNT}.blob.core.windows.net"
 ACR_NAME="TSIcontainers"
-IMAGE="${IMAGE:-${ACR_NAME,,}.azurecr.io/tsi-pipeline:latest}"   # built by scripts/acr_build.sh
 SOURCES_CONTAINER="pipeline-sources"          # private; ND-GAIN ZIPs go under sources/ndgain/
 LAW_NAME="tsi-dashboard-logs"
 CAE_NAME="tsi-dashboard-env"
@@ -32,6 +31,11 @@ ALERT_EMAIL="${ALERT_EMAIL:?set ALERT_EMAIL to the client-owned address that rec
 ACTION_GROUP="tsi-pipeline-alerts"
 
 az account set --subscription "$SUBSCRIPTION"
+
+# The login server is not <name>.azurecr.io: domain-name-label scope adds a hash
+# suffix (docs/docker.md). Ask Azure for it rather than building it.
+ACR_LOGIN_SERVER=$(az acr show -n "$ACR_NAME" --query loginServer -o tsv)
+IMAGE="${IMAGE:-${ACR_LOGIN_SERVER}/tsi-pipeline:latest}"   # built by scripts/acr_build.sh
 az extension add --name containerapp --upgrade --only-show-errors >/dev/null
 
 echo "1/5 private sources container"
@@ -49,7 +53,7 @@ unset LAW_KEY
 echo "3/5 job (manual trigger, managed identity, 3 hour ceiling for the slow UN SDG path)"
 az containerapp job create -g "$RG" -n "$JOB_NAME" --environment "$CAE_NAME" \
   --trigger-type Manual --replica-timeout 10800 --replica-retry-limit 0 --parallelism 1 --replica-completion-count 1 \
-  --image "$IMAGE" --registry-server "${ACR_NAME,,}.azurecr.io" --registry-identity system \
+  --image "$IMAGE" --registry-server "$ACR_LOGIN_SERVER" --registry-identity system \
   --cpu 1.0 --memory 2.0Gi --mi-system-assigned \
   --env-vars \
     "AZURE_STORAGE_ACCOUNT_URL=$STORAGE_URL" \

@@ -58,7 +58,7 @@ The old code reads legacy paths and schema that don't exist in this repo:
 - Reads `data/interim/world_bank_interim.csv` with columns `country`, `value`
   (this repo uses `data/interim/validated/...` with ISO3 and scored values).
 - Writes `processed/worldbank/{actuals,forecasts}/*.csv` to Azure
-  (this repo's publish boundary is `dashboard-public/v1/{meta,countries,timeseries}.json`
+  (this repo's publish boundary is the public payload container under `v1/{meta,countries,timeseries}.json`
   — see `docs/data-contract.md`).
 - Operates on raw indicator values, not on scored `[0, 100]` series. The
   current contract publishes scored data; deciding whether to project raw or
@@ -76,7 +76,7 @@ When projections are ready to ship, this flag flips and either `timeseries.json`
 gets projected positions appended (with nulls past `firstProjectedYear` for
 indicators that can't be forecast) or a parallel array is added (contract
 change → /v1→/v2). That decision belongs to whoever owns the publisher
-(currently a contributor).
+(the maintainer).
 
 ## Open methodology questions (for the next research pass)
 
@@ -89,7 +89,7 @@ change → /v1→/v2). That decision belongs to whoever owns the publisher
 3. **What's the minimum series length?** Old code used `len(df_subset) < 5` to
    skip. Worth re-evaluating with the current scored output's actual coverage.
 4. **How to expose uncertainty?** Old work emits point forecasts only. The
-   client mock's "projection band" implies an interval, not a line.
+   original mock's "projection band" implies an interval, not a line.
 
 ## Production quality gates (PR A)
 

@@ -52,7 +52,7 @@ export function AuditBar() {
             <span style={{ width: `${pct(after.match, after.expected)}%`, background: "var(--need-low)" }} />
           </div>
           <span className="small num">
-            {nf.format(after.match)} match, {after.missing} missing, {after.extra} left (debt risk, waiting on the client)
+            {nf.format(after.match)} match, {after.missing} missing, {after.extra} left (debt risk, decision pending)
           </span>
         </div>
       </div>

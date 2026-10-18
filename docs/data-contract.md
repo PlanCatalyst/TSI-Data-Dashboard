@@ -9,11 +9,16 @@ change here is a versioned contract change (bump `/v1/` → `/v2/` and keep both
 stopgap. Same slot, still 28 indicators, still `/v1/` — same class of in-place
 replacement as `conces` → `hdi` (2026-06-01). Spec: `docs/spec-macrosec-index.md`.
 Composer is wired (`src/calculating/mspi.py` → `MSPI_INDEX`). Local score
-2026-09-19: 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688.
-Do not live-publish until PlanCatalyst confirms that coverage drop. HDI stays
+2026-09-19 (historical): 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688.
+The coverage was accepted on 2026-09-24 and `mspi` was published live on
+2026-09-29. The live snapshot covers 216 countries and 35 years (1990–2024). HDI stays
 fetched as a verification baseline and no longer occupies this slot.
 
-**Publish location:** `https://<account>.blob.core.windows.net/dashboard-public/v1/`
+**Illustrative examples:** sample payloads below (for example the 185-country and
+2014–2024 year lists) are shapes, not current counts. Authoritative current values come
+from the published `meta.json`.
+
+**Publish location:** `$AZURE_STORAGE_ACCOUNT_URL/<publish.dashboard_container_name>/v1/`
 
 ```
 /v1/meta.json
@@ -25,8 +30,7 @@ Content-Type: `application/json; charset=utf-8`
 Cache-Control: `public, max-age=3600`
 Anonymous read enabled; CORS allows Wix domain + localhost dev/preview.
 
-The shapes are derived directly from the client mock (`PlanCatalyst TSI Data Dashboard Final.html`,
-lines 602–867). Semantics in this document win; if the mock and this document
+The shapes are derived directly from the original mock (the original UI mock (kept outside the repo)). Semantics in this document win; if the mock and this document
 disagree, update this document to match the mock and file an issue.
 
 ---
@@ -219,8 +223,8 @@ absence, while a country inside scope with missing inputs is a data gap somebody
 may need to chase. Collapsing both into `null` loses the distinction and makes
 every absence look like a defect.
 
-This was introduced by PlanCatalyst's 2026-09-23 revision of the `mspi`
-specification (`docs/client-specs/`), which requires every country to appear in
+This was introduced by the 2026-09-23 revision of the `mspi`
+specification (`docs/spec-macrosec-index.md`), which requires every country to appear in
 the output labelled with the reason it does or does not carry a score.
 
 **Shape.** Additive and optional. Absent for the 27 indicators that have no
@@ -272,7 +276,7 @@ with no component data at all lists all four.
 CSVs; the publisher reshapes it and omits `indicatorStatus` entirely when the
 file is absent. Scope comes from the World Bank country metadata
 (`lendingType.id`, cleaned to `ids_in_scope`), the rule as written in the
-2026-09-23 client revision. The three open questions on that rule in
+2026-09-23 revision. The three open questions on that rule in
 `docs/spec-macrosec-index.md` change values, not shape.
 
 **Granularity: country-level, not country-year.** Scope is resolved from the
@@ -298,7 +302,7 @@ country with no index value is not a country that performed worst.
 
 Per-country × per-indicator time-series arrays. Powers the country detail
 panel's Chart.js line plot and the sub-domain aggregation the frontend does
-client-side (matching `subVal` in the client mock).
+client-side (matching `subVal` in the original mock).
 
 ```jsonc
 {
@@ -327,8 +331,9 @@ client-side (matching `subVal` in the client mock).
   measurement. Raw source measurements remain internal pipeline artifacts and
   are not part of the frontend contract. `null` for missing observations.
 
-**Size budget**: 185 countries × 28 indicators × 11 years × ~5 bytes/number
-≈ 285 KB pretty-printed, ~180 KB minified, <60 KB gzipped. Within target.
+**Size budget**: 216 countries × 28 indicators × 35 years × ~5 bytes/number
+≈ 1.1 MB. The current `timeseries.json` is about 1.1 MB (1,144,891 bytes in the local
+fixtures, 2026-10-15), about 125 KB gzipped. Within target.
 
 ---
 
@@ -336,9 +341,12 @@ client-side (matching `subVal` in the client mock).
 
 Every score the pipeline publishes obeys **higher = more favourable**.
 
-The backend scoring formulas in `indicators/indicators.yaml` already invert
-"higher-is-worse" raw measurements (e.g., TB incidence, maternal mortality)
-during normalization. The `indicators[*].rawDirection` field in `meta.json`
+The backend scoring formulas in `indicators/indicators.yaml` produce
+vulnerability-oriented pipeline scores (higher = more need) for "higher-is-worse" raw
+measurements (e.g., TB incidence, maternal mortality). The orientation flip to
+`higher_is_better` (`round(100 - score, 1)`) happens in exactly one place, the publish step
+in `src/upload/publish_dashboard.py` (`build_countries` for pillar scores,
+`build_timeseries` for indicator scores). The `indicators[*].rawDirection` field in `meta.json`
 documents the raw direction for display purposes (e.g., the detail panel can
 label units as "rate per 100k (lower is better for raw values)"); `scoredDirection`
 is always `"higher_is_better"`.

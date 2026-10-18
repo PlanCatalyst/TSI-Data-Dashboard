@@ -13,7 +13,7 @@ For frontend delivery, the important outputs are:
 
 ## Ownership
 
-- **Thomas:** remaining delivery as of 2026-09-19 (scoring, publish, validation)
+Maintainer: Thomas Llamzon.
 
 ## Run Command
 

@@ -1,11 +1,10 @@
 # Handoff and Execution Context — PlanCatalyst Data Dashboard
 
-> Active onboarding and execution guide. Last updated **2026-09-19**.
+> Active onboarding and execution guide. Last updated **2026-10-17**.
 
-## 0) Status, 2026-09-29
+## 0) Status, 2026-10-17 (core state as of 2026-09-29)
 
-The client thread reopened 2026-08-13 and was answered 2026-09-04. Three things define the current
-state:
+Three things define the current state:
 
 1. **All 28 indicators score correctly.** Issues #3, #4, #5 and #6 were closed 2026-07-07. The
    "scoring bugs" block that used to live in section 4 is resolved and has been rewritten.
@@ -14,15 +13,16 @@ state:
    projection-aware frontend are merged and locally verified.
 3. **The live Blob was republished 2026-09-29** (`pipelineRunId: refresh-20260929`) with the
    2026-07-07 scoring fixes, `mspi` in place of `hdi`, and the contract §3.1 `indicatorStatus`
-   field. Credentials: service principal `tsidashboard-pipeline`, Storage Blob Data Contributor on
-   the `dashboard-public` container only, storage account `tsidashboardblobstorage` in
-   PlanCatalyst's subscription (resource group `tsi-data-dashboard`). Secret expires 2027-09-28.
+   field. Credentials: the pipeline service principal (credentials in `.env`), Storage Blob Data
+   Contributor on the public payload container only (`publish.dashboard_container_name` in
+   `src/config/settings.yaml`), in the storage account named by `AZURE_STORAGE_ACCOUNT_URL`.
    The hosted frontend was redeployed the same evening and renders the status field.
 
-**Operations:** the client-operable refresh is coded as of 2026-10-14
+**Operations:** the PlanCatalyst-operable refresh is coded as of 2026-10-14
 (completion line, managed-identity credential, Blob-sourced ND-GAIN, env
-overrides) and the Azure job is provisioned by `infra/container-apps-job.sh`,
-not yet run. Staff procedure: `docs/playbook/`. Engineer path:
+overrides). The Azure Container Apps Job is defined in
+`infra/container-apps-job.sh` (manual trigger, 3h timeout, failure email alert) but is
+**not yet provisioned**. Refresh is manual either way; there is no cron. Staff procedure: `docs/playbook/`. Engineer path:
 `docs/runbook-refresh.md`. Scope and status: `docs/requirements-v2.md`.
 
 ## 1) Project at a glance
@@ -36,7 +36,7 @@ It is not an impact attribution system.
 ## 2) System flow
 
 ```
-fetch -> clean -> score/aggregate -> publish contract JSON -> Azure Blob -> React frontend -> Wix iframe
+fetch -> raw store -> clean -> score/aggregate -> validate (blocking) -> upload validated -> forecasts (off by default) -> publish contract JSON -> Azure Blob -> React frontend -> Wix iframe
 ```
 
 Published contract files:
@@ -44,10 +44,11 @@ Published contract files:
 - `meta.json`
 - `countries.json`
 - `timeseries.json`
+- `projections.json` (only on a forecast run; projections are off by default)
 
 Contract source of truth: `docs/data-contract.md`
 
-**Publish is now wired:** `orchestrator.py` calls `publish_dashboard` at the end of the run (`622e3bf`). The full chain — fetch → clean → score → upload → publish — executes in one command. Dry-run mode (`upload_azure: false`) writes JSON to `data/organized/v1/`; live mode (`upload_azure: true`) pushes to Azure Blob `dashboard-public/v1/`.
+**Publish is now wired:** `orchestrator.py` calls `publish_dashboard` at the end of the run (`622e3bf`). The full chain - fetch → clean → score → upload → publish - executes in one command. Dry-run mode (`upload_azure: false`) writes JSON to `data/organized/v1/`; live mode (`upload_azure: true`) pushes to the public payload container under `publish.dashboard_prefix`.
 
 ## 3) Load-bearing invariants
 
@@ -66,36 +67,34 @@ From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 - ~~`ndgain` composite~~ — **Closed 2026-05-17** (published `vulnerability.csv`).
 - ~~`state`~~ — **Closed 2026-05-17** (WGI Government Effectiveness).
 - ~~`conces`~~ — Replaced by `hdi` (2026-06-01), then by contract key **`mspi`**
-  (2026-09-19) after the client spec arrived. Composer wired; taxonomy maps
+  (2026-09-19) after the `mspi` spec arrived. Composer wired; taxonomy maps
   `mspi` → `MSPI_INDEX`. See `docs/spec-macrosec-index.md`. Scored 2026-09-19
-  at 117 countries vs HDI 193; the client confirmed on 2026-09-24 that
-  non-covered countries are excluded rather than substituted, so `mspi` is
-  cleared for the live snapshot.
+  at 117 countries vs HDI 193; since 2026-09-24 non-covered
+  countries are excluded rather than substituted, so `mspi` is cleared for the
+  live snapshot.
 - ~~Orchestrator → publish wiring~~ — **Closed 2026-07-03** (`622e3bf`). Full pipeline runs in one command.
 - ~~`popdens` series_code missing~~ — **Closed** (`622e3bf`). WB cleaner now emits `EN.POP.DNST`.
-- ~~`popdens` scorer formula saturating~~ — **Closed 2026-07-03** (`b19f1a8`). Banded 0/25/50/75/100 formula adopted from `indicators.yaml`. Display direction confirmed 2026-09-17: keep scored + inverted; dense countries display low.
+- ~~`popdens` scorer formula saturating~~ - **Closed 2026-07-03** (`b19f1a8`). Banded 0/25/50/75/100 formula adopted from `indicators.yaml`. Display direction decision (2026-09-17): keep scored + inverted; dense countries display low.
 - ~~Production `npm run build`~~ — **Closed** (`b88f74a`).
-- ~~Frontend hosting~~ — **Closed 2026-07-03** (`08d96e1`). Deployed to Azure SWA: `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`.
+- ~~Frontend hosting~~ - **Closed 2026-07-03** (`08d96e1`). Deployed to Azure Static Web Apps.
 - `VITE_CONTRACT_BASE_URL` — **set** in `dashboard/.env.production` and the Blob endpoint returns
   200. The file is gitignored, so a fresh clone silently falls back to bundled fixtures. See
   `docs/runbook-refresh.md`.
-- **Storage account ownership unconfirmed; IT looked at the wrong account (2026-09-24).**
-  PlanCatalyst IT reported no `dashboard-public` container, screenshotting `[redacted]`
-  (two Functions runtime containers, nothing dashboard-related). The dashboard reads
-  `tsidashboardblobstorage`, which is live and anonymous-readable. That account also has
-  account-level public blob access disabled (HTTP 409 `PublicAccessNotPermitted`). If
-  `tsidashboardblobstorage` is a personal subscription it must migrate before handoff, and the
-  migration requires a frontend rebuild because the Blob URL is compiled in at build time. Reply
-  for IT: `docs/azure-it-request.md`.
-- ~~**No `.env` at repo root.**~~ **Closed 2026-09-29.** IT issued `tsidashboard-pipeline`;
-  `.env` holds the four `AZURE_*` values locally and is gitignored. Secret expires 2027-09-28,
-  so the refresh after that date needs a rotated secret from IT first.
+- ~~**Storage account ownership unconfirmed.**~~ **Resolved 2026-09-29:** the storage account is in
+  PlanCatalyst's subscription, so no migration and no frontend rebuild for it. Account-level public
+  blob access is disabled (HTTP 409 `PublicAccessNotPermitted`); only the public payload container
+  is anonymous-readable.
+- ~~**No `.env` at repo root.**~~ **Closed 2026-09-29.** The pipeline service principal exists;
+  `.env` holds the four `AZURE_*` values locally and is gitignored. The service principal secret
+  expires, so a refresh after its expiry needs a rotated secret.
 - ~~Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3)~~ — **Closed 2026-09-24.**
   Verified: 234 distinct country codes on disk, all ISO3, none numeric.
-- Stale local fixtures `dashboard/public/v1/` (May 17) — fresh publish to `dashboard-public`.
-- ~~ACR push rights blocked~~ — **Descoped 2026-09-04.** Containerised scheduling is no longer part
-  of the delivery. `docs/docker.md` is retained in case the cadence ever shortens.
-- Frontend presentability / mock parity — **Thomas** (unblocked).
+- ~~Stale local fixtures `dashboard/public/v1/` (May 17)~~ - **Regenerated 2026-10-15.**
+- ~~ACR push rights blocked~~ - **Superseded.** The 2026-09-04 descope of containerised refresh was
+  reversed: the pipeline image (`scripts/acr_build.sh`) now feeds the manual Container Apps Job in
+  `infra/container-apps-job.sh` (managed identity with AcrPull). Coded, not yet provisioned. Open
+  item: ACR login server naming differs between `docs/docker.md` and the scripts.
+- Frontend presentability / mock parity: open.
 
 **✅ Scoring bugs from the 2026-06-28 output: all closed 2026-07-07 (GitHub issues #3–#6).**
 Verified again 2026-09-04 against `data/interim/validated/`.
@@ -111,7 +110,9 @@ Verified again 2026-09-04 against `data/interim/validated/`.
 - `popdens` (#6) — **Verified.** The banded fix produces 0/25/50/75/100 in a fresh run.
 - **Live as of 2026-09-29** (`refresh-20260929`). The pre-fix snapshot lag is closed.
 
-- Automation / alerting — **deferred follow-up.**
+- Automation / alerting - **coded, not provisioned.** `infra/container-apps-job.sh` defines the
+  manual-trigger job and a failure email alert. No cron or scheduler exists; the six-month cadence
+  is a human routine (`docs/runbook-refresh.md`).
 
 ## 5) Legacy output policy
 
@@ -123,42 +124,38 @@ Default policy: keep transitionally, gate with configuration, remove when unused
 
 ## 6) Azure and deployment expectations
 
-- Private container for backend artifacts (`validated-scores`)
-- Public-read container for frontend payloads (`dashboard-public`)
+- Private container for backend artifacts (`azure.container_name` in `src/config/settings.yaml`). The pipeline's `upload_validated`
+  stage writes there, but the publish service principal has rights on the public payload container only
+  (see `docs/CLAUDE-reference.md`), so a run with `upload_azure` on would fail that stage unless a second
+  scoped role is granted; the Container Apps Job uses its own managed identity
+- Private container for ND-GAIN ZIPs (`NDGAIN_BLOB_CONTAINER`, set in `infra/container-apps-job.sh`)
+- Public-read container for frontend payloads (`publish.dashboard_container_name`)
 - CORS allow-list includes production Wix domain and local dev origins
 - Contract payloads served with `Cache-Control: public, max-age=3600`
 - Publish failures must not overwrite last known-good contract snapshot
-- Frontend hosted on **Azure Static Web Apps** (`tsi-dashboard-frontend`, Free tier, `rg tsi-data-dashboard`) — **live at `https://jolly-pebble-0e2f9300f.7.azurestaticapps.net`** (`08d96e1`)
+- Frontend hosted on **Azure Static Web Apps** (Free tier, `08d96e1`)
 - `staticwebapp.config.json` enforces SPA fallback and CSP `frame-ancestors` for Wix/PlanCatalyst domains (`08d96e1`)
 
 ## 7) Ownership
 
-| Person | Scope |
-|--------|-------|
-| **Thomas Llamzon** | Remaining delivery (pipeline, Azure, frontend, Wix E2E). Finishing the project solo as of 2026-09-19. |
+Maintainer: Thomas Llamzon (pipeline, Azure, frontend, Wix embed).
 
 See `TASKS.md` for deliverables and milestones.
 
-## 8) Immediate execution sequence
+## 8) Execution sequence
 
-### Phase 1 — Features (now)
+### Phase 1 - Features
 
-1. ~~**a contributor:** Wire publish into orchestrator~~ — **Done** (`622e3bf`).
-2. ~~**Thomas:** Fix production build~~ — **Done** (`b88f74a`). ~~Deploy frontend on Azure~~ — **Done** (`08d96e1`, SWA live).
-3. ~~**Thomas:** Fix `popdens` scorer formula~~ — **Done** (`b19f1a8`, banded formula).
-4. ~~**a contributor (blocker):** Grant ACR push rights~~ — **Descoped 2026-09-04.** Replaced by a manual
-   publish per `docs/runbook-refresh.md`.
-5. ~~**Thomas (now):** Commit the 2026-07-07 fix work.~~ **Done 2026-09-08.**
-6. ~~**Thomas:** Republish `dashboard-public/v1/` and redeploy the frontend.~~ **Both done
-   2026-09-29**, run id `refresh-20260929`.
-7. **Thomas (unblocked):** Mock parity pass; responsive QA at Wix iframe widths before the client
-   places the embed.
-8. ~~**Thomas:** Route `conces` MVP exclusion sign-off to PlanCatalyst.~~ — **Answered 2026-08-13;
-   spec received 2026-09-17.** Contract key `mspi` landed 2026-09-19.
-9. **Thomas:** Client confirmation of `mspi` coverage (117 vs HDI 193) before
-   swapping the live snapshot. Composer is scored. About-page copy after that.
-10. **Thomas:** Do not book the wrap-up call yet. the reviewer wants it after IT finishes the
-    service-principal request.
+1. Publish wired into the orchestrator (`622e3bf`). Done.
+2. Production build fixed (`b88f74a`); frontend deployed on Azure SWA (`08d96e1`). Done.
+3. `popdens` scorer uses the banded formula (`b19f1a8`). Done.
+4. Manual publish per `docs/runbook-refresh.md` works; the Container Apps Job path is coded, not provisioned.
+5. 2026-07-07 scoring fixes committed (2026-09-08). Done.
+6. Public payload container republished and frontend redeployed 2026-09-29, run id `refresh-20260929`.
+7. Open: mock parity pass; responsive QA at Wix iframe widths before the embed is placed.
+8. `conces` is excluded from the MVP; `mspi` replaces it. Contract key `mspi` landed 2026-09-19.
+9. `mspi` coverage rule applied 2026-09-24 and `mspi` is live. Open: About-page copy naming the excluded set.
+10. Container Apps Job provisioning (service principal and role assignments) is pending.
 
 ### Phase 2 — QA / validation
 
@@ -169,9 +166,9 @@ See `TASKS.md` for deliverables and milestones.
 
 ### Phase 3 — Ops
 
-7. Client-operable refresh: **code complete 2026-10-14, Azure provisioning
+7. PlanCatalyst-operable refresh: **code complete 2026-10-14, Azure provisioning
    pending.** Manual Container Apps Job with managed identity, newest ND-GAIN
-   ZIP from the private `pipeline-sources` container, one completion or
+   ZIP from the private ND-GAIN source container, one completion or
    failure line, email alert on failure. `infra/container-apps-job.sh`
    creates it; the playbook in `docs/playbook/` is written against it.
 
