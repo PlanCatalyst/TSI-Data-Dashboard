@@ -243,6 +243,7 @@
 .map-section { margin: -1rem; }
 .map-layout {
   display: grid;
+  /* Default: map flexes, detail panel fixed ~380px (collapse restores this). */
   grid-template-columns: minmax(0, 1fr) 380px;
   /* Stable height that mirrors the mock's "fills the viewport below the nav" */
   /* feel without going circular in iframe height-resize calculations. */
@@ -250,12 +251,20 @@
   min-height: 480px;
   background: #fff;
   border-top: 1px solid var(--bd);
+  transition: grid-template-columns 0.28s ease;
+}
+/* Expanded: panel ≈ 75% of map+panel viewport; map keeps ~25% on the left. */
+.map-layout.panel-expanded {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
 }
 .map-area-wrap { position: relative; overflow: hidden; min-width: 0; height: 100%; background: #e8eff6; }
 .map-area-wrap .map-area { position: absolute; inset: 0; }
 .detail-panel { background: #fff; border-left: 1px solid var(--bd); overflow-y: auto; min-width: 0; height: 100%; }
 @media (max-width: 1024px) {
   .map-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+  .map-layout.panel-expanded {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  }
 }
 @media (max-width: 860px) {
   .map-layout {
@@ -263,6 +272,11 @@
     grid-template-rows: min(55vw, 420px) auto;
     height: auto;
     min-height: 0;
+    transition: none;
+  }
+  /* Stacked layout: expand is full-width (already 100% of the column). */
+  .map-layout.panel-expanded {
+    grid-template-columns: 1fr;
   }
   .detail-panel { height: auto; max-height: none; border-left: none; border-top: 1px solid var(--bd); }
 }
@@ -306,9 +320,42 @@
 /* ── DETAIL PANEL ── */
 .dp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 10px; padding: 32px 20px; text-align: center; color: var(--mut); min-height: 200px; }
 .dp-empty p { font-size: 13px; line-height: 1.6; }
-.dp-hero { background: var(--blue); color: #fff; padding: 16px; }
-.dp-hero h2 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
-.dp-hero p { font-size: 12px; opacity: .8; }
+.dp-hero {
+  background: var(--blue);
+  color: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dp-hero-text { flex: 1; min-width: 0; }
+.dp-hero h2 { font-size: 17px; font-weight: 700; margin: 0 0 3px; }
+.dp-hero p { font-size: 12px; opacity: .85; margin: 3px 0 0; }
+.dp-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.dp-chrome-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+.dp-chrome-btn:hover { background: rgba(255,255,255,0.28); }
+.dp-chrome-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
 .dp-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--bd); }
 .dp-sc { background: #fff; padding: 10px 6px; text-align: center; }
 .dp-sc-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--mut); font-weight: 600; margin-bottom: 3px; }
@@ -334,6 +381,17 @@
   flex-wrap: wrap;
 }
 .dp-sep { height: 1px; background: var(--bd); }
+
+/* Expanded panel: denser content gets more air and slightly larger type. */
+.detail-panel.is-expanded .dp-hero { padding: 18px 20px; }
+.detail-panel.is-expanded .dp-hero h2 { font-size: 20px; }
+.detail-panel.is-expanded .dp-hero p { font-size: 13px; }
+.detail-panel.is-expanded .dp-section { padding: 16px 20px; }
+.detail-panel.is-expanded .dp-section-title { font-size: 12px; margin-bottom: 10px; }
+.detail-panel.is-expanded .dp-sc { padding: 12px 10px; }
+.detail-panel.is-expanded .dp-sc-lbl { font-size: 10.5px; }
+.detail-panel.is-expanded .dp-sc-trend { font-size: 11px; }
+.detail-panel.is-expanded .src-note { padding: 12px 20px 18px; font-size: 11.5px; line-height: 1.55; }
 
 /* ── COLLAPSIBLE SUBDOMAINS ── */
 .sd-block { border: 1px solid var(--bd); border-radius: 8px; margin-bottom: 7px; overflow: hidden; }

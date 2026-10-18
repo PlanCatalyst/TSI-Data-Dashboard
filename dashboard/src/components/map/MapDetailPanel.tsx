@@ -38,6 +38,9 @@ type Props = {
   projections?: ProjectionsPayload;
   regionLabel: Record<string, string>;
   onClose?: () => void;
+  /** When true, panel takes ~75% of the map+panel viewport (desktop). */
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 };
 
 function TrendChip({ delta }: { delta: number | null }) {
@@ -60,6 +63,8 @@ export function MapDetailPanel({
   projections = [],
   regionLabel,
   onClose,
+  expanded = false,
+  onToggleExpand,
 }: Props) {
   const projectionsEnabled = Boolean(meta.projections.enabled);
   const projectionIndex = useMemo(() => indexProjections(projections), [projections]);
@@ -149,9 +154,11 @@ export function MapDetailPanel({
   }, [projectionViews, projectionsEnabled]);
 
   // Empty state — shown when no country has been selected yet.
+  const panelClass = expanded ? "detail-panel is-expanded" : "detail-panel";
+
   if (!country) {
     return (
-      <div className="detail-panel">
+      <div className={panelClass}>
         <div className="dp-empty">
           <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#b2cd5a" strokeWidth={1.5}>
             <circle cx={12} cy={12} r={10} />
@@ -167,11 +174,11 @@ export function MapDetailPanel({
   const endYearLabel = allChartYears[allChartYears.length - 1] ?? meta.years[meta.years.length - 1];
 
   return (
-    <div className="detail-panel">
-      <div className="dp-hero" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{country.name}</h2>
-          <p style={{ margin: "3px 0 0", fontSize: 12, opacity: 0.85 }}>
+    <div className={panelClass}>
+      <div className="dp-hero">
+        <div className="dp-hero-text">
+          <h2>{country.name}</h2>
+          <p>
             {regionLabel[country.region] ?? country.region}
             {overall.value != null && (
               <>
@@ -189,27 +196,30 @@ export function MapDetailPanel({
             )}
           </p>
         </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close country detail"
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              border: "1px solid rgba(255,255,255,0.3)",
-              color: "#fff",
-              borderRadius: 999,
-              width: 28,
-              height: 28,
-              cursor: "pointer",
-              fontSize: 14,
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        )}
+        <div className="dp-hero-actions">
+          {onToggleExpand && (
+            <button
+              type="button"
+              className="dp-chrome-btn"
+              onClick={onToggleExpand}
+              aria-label={expanded ? "Collapse detail panel" : "Expand detail panel"}
+              aria-pressed={expanded}
+              title={expanded ? "Collapse panel" : "Expand panel"}
+            >
+              {expanded ? "⟶" : "⟵"}
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              className="dp-chrome-btn"
+              onClick={onClose}
+              aria-label="Close country detail"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Pillar score grid — mock's 4+3 split. Robust to N != 7 pillars: */}
