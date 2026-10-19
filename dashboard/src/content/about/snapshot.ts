@@ -79,6 +79,7 @@ export const AUDIT = {
 // ── What changed since the last release (section 14) ────────────────────────
 
 export const CHANGELOG: { date: string; text: string }[] = [
+  { date: "2026-10-19", text: "Renewable energy and family planning now score against a floor: 0 at or below the benchmark (a 20% share; the 77.2% global average), rising to 100 for the best country on record." },
   { date: "2026-10-15", text: "Independent check: we rebuilt every published score from the raw source files. 97,038 of 97,038 match." },
   { date: "2026-10-15", text: "We fixed four publishing problems: aid without national income, city-only rows, a retired country code and a dropped survey year." },
   { date: "2026-10-15", text: "The overall score now needs a score on all six core pillars. Socio-economic performance is included when present." },
