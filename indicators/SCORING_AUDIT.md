@@ -36,7 +36,7 @@ Columns:
 | 6  | stunt     | health  | nutr     | SH_STA_STNT     | - | higher=need | yes | RatioThreshold(12, 12) |
 | 7  | maln      | health  | nutr     | SN_STA_OVWGT    | - | higher=need | yes | RatioThreshold(2.5, 2.5) |
 | 8  | anaem     | health  | nutr     | SH_STA_ANEM     | - | higher=need | yes | RatioThreshold(25, 25) |
-| 9  | contra    | health  | repro    | SH_FPL_MTMM     | + | higher=need | yes | InverseRatio(11.5) |
+| 9  | contra    | health  | repro    | SH_FPL_MTMM     | + | higher=need | yes | **Changed 2026-10-16.** `RelativeGain(77.2)`: 1 − 77.2/value, below the 77.2% global average harmonizes to 0, best country-year = 100. Was InverseRatio(11.5), which read 11.5 as a gap (88.5% benchmark). See below. |
 | 10 | abr       | health  | repro    | SP_DYN_ADKL     | - | higher=need | yes | RatioThreshold(20) |
 | 11 | ihr       | health  | hrisk    | SH_IHR_CAPS     | + | higher=need | yes | SimpleDirectional (100 - value); IHR class-code-weighted inside aggregation |
 | 12 | food      | ag      | foodsec  | AG_PRD_FIESMS   | - | higher=need | yes | RatioThreshold(20, 20) |
@@ -47,7 +47,7 @@ Columns:
 | 17 | washmort  | si      | wash     | SH_STA_WASHARI  | - | higher=need | yes | RatioThreshold(10, 10) |
 | 18 | elec      | si      | energy   | EG_ACS_ELEC     | + | higher=need | yes | InverseRatio(9.8) |
 | 19 | clean     | si      | energy   | EG_EGY_CLEAN    | + | higher=need | yes | InverseRatio(30.4). **Fixed 2026-07-07 (issue #5).** `EG_EGY_CLEAN` rows were absent from on-disk `un_sdg_clean.csv` (stale snapshot predating 7.1.2 coverage). Re-fetch + clean restores 8,730 country-year rows. |
-| 20 | renew     | si      | energy   | EG_FEC_RNEW     | + | higher=need | yes | InverseRatio(20.0) |
+| 20 | renew     | si      | energy   | EG_FEC_RNEW     | + | higher=need | yes | **Changed 2026-10-16.** `RelativeGain(20)`: 1 − 20/value, below the 20% goal harmonizes to 0, best country-year = 100. Was InverseRatio(20.0), which read 20 as a gap (80% benchmark). See below. |
 | 21 | finc      | si      | digfin   | FB_BNK_ACCSS    | + | higher=need | yes | InverseRatio(45.0) |
 | 22 | gii       | women   | women    | GII_INDEX       | - | higher=need | yes | RatioThreshold(0.32). **Live (2026-05-17)** — UNDP HDR 2023-24 composite-indices CSV, 1990–2022, 166 countries. See `docs/source-candidates.md`. |
 | 23 | ndgain    | climate | climate  | ND_GAIN_VULN    | - | higher=need | yes | RatioThreshold(0.46). **Live (2026-05-17)** — pulls ND-GAIN's published composite from `resources/vulnerability/vulnerability.csv` in the 2026 ZIP, 187 countries, 1995–2023. Component / sector rows remain in the cleaned CSV un-scored (defensive series_code filter). |
@@ -120,10 +120,45 @@ only when 75% of the basket is present, members outside the basket are
 ignored. The frontend mirrors the rule. Issue log:
 `docs/data-quality-issues.md`.
 
+## Relative gain: renewables (7.2.1) and family planning (3.7.1), 2026-10-16
+
+The framework now states both indicators in higher-is-better terms:
+
+```
+gain  = 1 - benchmark / value      (0 at the benchmark, rises with value)
+gain  = 0 where value < benchmark
+score = 100 * gain / max(gain)     (best country-year in the series = 100)
+```
+
+with no inversion. Benchmarks: a 20% renewable share for 7.2.1; the 77.2%
+global average (2025, UN Population Division) for 3.7.1. The 7.2.1 text also
+harmonizes values below the global average to 0. The world figure in recent UN
+tracking reports is just under 20%, so the goal is the binding floor and one
+rule covers both. Not verified against the raw store (it holds no World
+aggregate); revisit if the world figure passes 20%.
+
+`RelativeGainScorer` returns `need = 100 - score` so the publish boundary
+flip yields the framework's score unchanged; invariant 4 holds.
+
+Normalization runs over every country-year of the series in one batch, not per
+year. 3.7.1 is survey-based and sparse (some years have one to five
+reporters), so a per-year maximum would hand 100 to whichever country happened
+to report. A batch maximum also means a country's trend moves only with its own
+value. On the 2026-10-15 raw snapshot the anchors are DR Congo 2001 (98.3%)
+for 7.2.1 and China 2001 (96.6%) for 3.7.1.
+
+Below the benchmark every value ties at 0 (dashboard 0): 57% of 2024
+reporters for 7.2.1. That flat floor is the framework's rule, and
+`scoring.below_benchmark` does not apply to these two scorers. In the clamp
+audit below, "pinned at floor" for these two counts only the anchor
+country-year (need 0), while "flat 10+ years" counts the bottom floor: 129
+countries sit at dashboard 0 for renewables for a decade or more while their
+share moves.
+
 ## Below-benchmark rule (requirements v2, section 1.4)
 
 Every benchmark scorer (`RatioThresholdScorer`, `InverseRatioScorer`,
-`GoalRatioScorer`) takes `below_benchmark`, set once in
+`GoalRatioScorer`) except `RelativeGainScorer` takes `below_benchmark`, set once in
 `src/config/settings.yaml` under `scoring.below_benchmark`. Default is `clamp`,
 the v1 behaviour, until a rule is chosen. Switching to `soft_floor`
 changes every published score, so it requires an `index_version` bump and a
@@ -161,36 +196,36 @@ dashboard and is the reason this is option B rather than fixed min-max
 
 ## Benchmark clamp audit
 
-Generated 2026-10-14 by `scripts/clamp_audit.py` with `scoring.below_benchmark: clamp`. A pinned row is a real source value scored at the floor (need 0, dashboard 100) because the country is already better than the benchmark. The last column counts countries whose score sits unchanged for ten or more consecutive years while the source value moves (requirements v2, AC1.1). Re-run after any scorer change.
+Generated 2026-10-19 by `scripts/clamp_audit.py` with `scoring.below_benchmark: clamp`. A pinned row is a real source value scored at the floor (need 0, dashboard 100) because the country is already better than the benchmark. The last column counts countries whose score sits unchanged for ten or more consecutive years while the source value moves (requirements v2, AC1.1). Re-run after any scorer change.
 
 | Indicator | Country-years | Pinned at floor | Share | Countries flat 10+ years |
 |---|---:|---:|---:|---:|
-| `EG_ACS_ELEC` | 9522 | 6887 | 72.3% | 95 |
-| `SP_DYN_ADKL` | 3928 | 2759 | 70.2% | 69 |
-| `SH_DYN_MORT` | 8955 | 5633 | 62.9% | 131 |
-| `EG_EGY_CLEAN` | 8730 | 5420 | 62.1% | 103 |
+| `EG_ACS_ELEC` | 5400 | 3564 | 66.0% | 95 |
 | `SH_STA_WASHARI` | 183 | 111 | 60.7% | 0 |
-| `ND_GAIN_VULN` | 5423 | 3172 | 58.5% | 112 |
-| `SH_STA_MALR` | 1635 | 905 | 55.4% | 46 |
-| `SH_STA_ANEM` | 2716 | 1490 | 54.9% | 103 |
-| `SH_STA_MORT` | 2730 | 1498 | 54.9% | 104 |
-| `FB_BNK_ACCSS` | 6554 | 3560 | 54.3% | 84 |
-| `AG_PRD_FIESMS` | 3417 | 1656 | 48.5% | 61 |
-| `SH_H2O_SAFE` | 5278 | 2490 | 47.2% | 82 |
-| `SH_TBS_INCD` | 3209 | 1513 | 47.1% | 90 |
-| `MPI_INDEX` | 243 | 113 | 46.5% | 0 |
-| `SH_STA_STNT` | 7290 | 3232 | 44.3% | 75 |
-| `SH_SAN_SAFE` | 5558 | 2325 | 41.8% | 68 |
+| `SH_DYN_MORT` | 4975 | 2884 | 58.0% | 125 |
+| `EG_EGY_CLEAN` | 4850 | 2808 | 57.9% | 112 |
+| `SH_H2O_SAFE` | 3991 | 2200 | 55.1% | 85 |
+| `FB_BNK_ACCSS` | 701 | 379 | 54.1% | 0 |
+| `SH_STA_MORT` | 4680 | 2507 | 53.6% | 105 |
+| `SH_STA_ANEM` | 4656 | 2458 | 52.8% | 106 |
+| `SH_STA_MALR` | 2725 | 1405 | 51.6% | 55 |
+| `ND_GAIN_VULN` | 5700 | 2824 | 49.5% | 99 |
+| `AG_PRD_FIESMS` | 1280 | 619 | 48.4% | 47 |
+| `MPI_INDEX` | 244 | 113 | 46.3% | 0 |
+| `SH_SAN_SAFE` | 3667 | 1636 | 44.6% | 61 |
+| `SH_TBS_INCD` | 5307 | 2312 | 43.6% | 94 |
+| `SH_STA_STNT` | 4050 | 1593 | 39.3% | 67 |
 | `GII_INDEX` | 4600 | 1764 | 38.3% | 62 |
-| `SH_IHR_CAPS` | 15041 | 4152 | 27.6% | 0 |
+| `SP_DYN_ADKL` | 3741 | 1365 | 36.5% | 56 |
 | `AG_LND_SUST` | 20 | 4 | 20.0% | 0 |
-| `SN_STA_OVWGT` | 7335 | 1288 | 17.6% | 32 |
-| `EN.POP.DNST` | 3617 | 627 | 17.3% | 236 |
-| `SI_POV_NAHC` | 777 | 94 | 12.1% | 1 |
-| `DC_TOF_AGRL` | 2134 | 179 | 8.4% | 6 |
-| `EG_FEC_RNEW` | 3231 | 248 | 7.7% | 13 |
-| `SH_FPL_MTMM` | 328 | 7 | 2.1% | 0 |
-| `SH_ACS_UNHC_25` | 2730 | 0 | 0.0% | 0 |
-| `MSPI_INDEX` | 1693 | 0 | 0.0% | 0 |
+| `EN.POP.DNST` | 8839 | 1759 | 19.9% | 259 |
+| `SN_STA_OVWGT` | 4075 | 640 | 15.7% | 33 |
+| `SI_POV_NAHC` | 1147 | 114 | 9.9% | 2 |
+| `DC_TOF_AGRL` | 3413 | 158 | 4.6% | 2 |
+| `SH_IHR_CAPS` | 1157 | 13 | 1.1% | 0 |
+| `SH_FPL_MTMM` | 480 | 1 | 0.2% | 4 |
+| `SH_ACS_UNHC_25` | 4680 | 0 | 0.0% | 0 |
+| `MSPI_INDEX` | 2788 | 0 | 0.0% | 0 |
 | `HDI_INDEX` | 5940 | 0 | 0.0% | 0 |
+| `EG_FEC_RNEW` | 7673 | 1 | 0.0% | 129 |
 | `WGI_GOVEFF` | 5340 | 0 | 0.0% | 0 |

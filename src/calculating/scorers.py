@@ -7,7 +7,7 @@ import pandas as pd
 
 from src.calculating.base import IndicatorScorer
 
-# How a value that is already better than the client's benchmark is scored.
+# How a value that is already better than its benchmark is scored.
 #   clamp      : v1 behaviour. Need floors at 0, so every better-than-benchmark
 #                country shows the same top score and no trend (requirements
 #                v2, section 1.2).
@@ -17,7 +17,7 @@ from src.calculating.base import IndicatorScorer
 #                with the original ratio formula. Ordering is preserved and
 #                trends below the benchmark become visible.
 # The active mode is a pipeline setting (settings.yaml scoring.below_benchmark)
-# so the client's decision is a config flip plus an index_version bump.
+# so choosing a mode is a config flip plus an index_version bump.
 BelowBenchmark = Literal["clamp", "soft_floor"]
 SOFT_FLOOR_BAND = 25.0
 
@@ -126,6 +126,42 @@ class InverseRatioScorer(IndicatorScorer):
         better = country_gap < self.threshold_gap
         scores = scores.where(~better | country_gap.isna(), other=0.0)
         return scores
+
+
+class RelativeGainScorer(IndicatorScorer):
+    """
+    Higher-is-better indicators whose benchmark is a floor, scored against the
+    best performer (7.2.1 renewable share, 3.7.1 family planning; framework
+    clarified 2026-10-16):
+
+        gain  = 1 - benchmark / value     (0 at the benchmark, rises with value)
+        gain  = 0 where value < benchmark (and so wherever gain would be < 0)
+        score = 100 * gain / max(gain)    (best country-year = 100)
+        need  = 100 - score
+
+    The framework states the score in higher-is-better terms with no
+    inversion. The pipeline carries need, so this returns 100 - score and the
+    publish boundary flips it back to the framework's score unchanged.
+
+    The max is taken over the whole batch (every country-year of the series),
+    so a country's trend moves only with its own value. below_benchmark does
+    not apply: the framework fixes both the floor and the spread.
+    """
+
+    def __init__(self, benchmark: float):
+        self.benchmark = float(benchmark)
+
+    def score(self, df: pd.DataFrame) -> pd.Series:
+        values = df["value"].astype(float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            gain = 1.0 - (self.benchmark / values)
+        gain = gain.where(~(values < self.benchmark), other=0.0).clip(lower=0.0)
+        best = gain.max()
+        if pd.isna(best) or best <= 0:
+            score = gain * 0.0
+        else:
+            score = 100.0 * gain / best
+        return self.clamp_0_100(100.0 - score).where(values.notna())
 
 
 class RatioGoalInverseScorer(IndicatorScorer):

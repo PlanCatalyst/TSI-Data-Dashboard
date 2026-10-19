@@ -354,6 +354,15 @@ is always `"higher_is_better"`.
 Frontend code can therefore render every number via the same colour scale
 without per-indicator inversion logic. This is a hard invariant; see §1.
 
+**Scoring change, 2026-10-16 (values only, no schema impact).** `renew`
+(7.2.1) and `contra` (3.7.1) are scored as relative gain over a floor:
+`1 - benchmark / value`, 0 below the benchmark (20% renewable share; 77.2%
+family planning demand satisfied), divided by the best country-year in the
+series so the top value is 100. The framework states this score as already
+higher is better, so the pipeline carries `100 - score` and the publish flip
+returns it unchanged. Keys, types and ranges are unchanged; stays on `/v1/`.
+Details: `indicators/SCORING_AUDIT.md`.
+
 ---
 
 ## 6. Frontend-side derivations (NOT in the contract)

@@ -123,6 +123,8 @@ number today; each is either stale text or an unstated constant.
 ## Open questions
 
 1. Renewables benchmark: 20% share goal or 20-point gap (80% share)?
+   Answered 2026-10-16: a 20% share goal, scored as relative gain
+   (`indicators/SCORING_AUDIT.md`).
 2. Agriculture aid share divides constant 2022 USD by current-USD GDP. Accept,
    or deflate GDP?
 3. Countries with no GDP (North Korea, Eritrea, South Sudan, Yemen, Cuba,
@@ -134,6 +136,8 @@ number today; each is either stale text or an unstated constant.
 5. mspi with a missing debt ratio (DQ-14): require all three and publish
    null (recommended), or score from what exists and document it?
 6. Contraception benchmark: is 11.5 a level or a gap?
+   Answered 2026-10-16: neither; the benchmark is the 77.2% global average,
+   scored as relative gain (`indicators/SCORING_AUDIT.md`).
 
 ## Files
 

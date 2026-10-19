@@ -22,7 +22,7 @@ SPEC = {
     "stunt": ("SH_STA_STNT", "ratio", 12.0),
     "maln": ("SN_STA_OVWGT", "ratio", 2.5),
     "anaem": ("SH_STA_ANEM", "ratio", 25.0),
-    "contra": ("SH_FPL_MTMM", "inverse", 11.5),
+    "contra": ("SH_FPL_MTMM", "relative", 77.2),
     "abr": ("SP_DYN_ADKL", "ratio", 20.0),
     "ihr": ("SH_IHR_CAPS", "direct", None),
 }
@@ -95,7 +95,12 @@ for key, (series, kind, const) in SPEC.items():
         res = pd.DataFrame(res_l, columns=["iso3", "year", "v", "note"])
     res["indicator_key"] = key
     res["raw_value"] = res["v"]
-    res["expected_score"] = res["v"].apply(lambda v: round(100 - need(kind, const, v), 1))
+    if kind == "relative":
+        # 2026-10-16 framework: 1 - b/v, 0 below b, best country-year = 100.
+        gain = (1 - const / res["v"]).where(res["v"] >= const, 0.0).clip(lower=0)
+        res["expected_score"] = (100 * gain / gain.max()).round(1)
+    else:
+        res["expected_score"] = res["v"].apply(lambda v: round(100 - need(kind, const, v), 1))
     rows.append(res[["iso3", "year", "indicator_key", "raw_value", "expected_score", "note"]])
     log.append(dict(key=key, series=series, kind=kind, const=const, raw=n_raw, nonnum=n_nonnum,
                     dim=n_dim, iso=n_iso, emitted=len(res), conflicts=conflicts, agg=agg, multi=multi,
@@ -116,7 +121,8 @@ L = ["# SDG health audit findings", "", "Raw: data/store/20261015T001106Z/unsdg/
      "|---|---|---|---|---|---|---|---|---|---|---|---|"]
 for r in log:
     f = {"direct": "need = 100 - v (score = v)", "ratio": "need = 0 if v <= t else 100*(1-t/v)",
-         "inverse": "gap=100-v; need = 0 if gap <= b else 100*(1-b/gap)"}[r["kind"]]
+         "inverse": "gap=100-v; need = 0 if gap <= b else 100*(1-b/gap)",
+         "relative": "gain = 0 if v < b else 1-b/v; score = 100*gain/max(gain)"}[r["kind"]]
     c = "none (yaml: 100 - index)" if r["const"] is None else f"{r['const']} (yaml text and factory agree)"
     L.append(f"| {r['key']} | {r['series']} | {f} | {c} | {r['raw']} | {r['nonnum']} | {r['dim']} | {r['iso']} | "
              f"{r['emitted']} | {r['conflicts']} | {r['ymin']}-{r['ymax']} | {r['nctry']} |")
@@ -141,7 +147,7 @@ L += ["", "## Conflict drops", "",
       "", "## Ambiguities and observations", "",
       "- yaml says values below the global average are harmonized to 0; no global average numbers are given, "
       "so the threshold/benchmark is used as the clamp point (factory sets global_average = threshold). Same result as clamp.",
-      "- contra yaml text: 100 - indicator, then 1 - 11.5/gap (the gap of unmet need), implemented as InverseRatio.",
+      "- contra: framework clarified 2026-10-16, 1 - 77.2/value against the 77.2% global average, 0 below it, best country-year = 100, no inversion.",
       "- yaml 3.2.1 u5mr definition text is a copy of skilled birth attendance; scoring text (target 25) and series SH_DYN_MORT used.",
       "- yaml says stunt result is a continuous 0-1 scale; scored 0-100 as the other ratio indicators.",
       "- Series with only FEMALE sex (mmr, anaem, contra, abr) have no BOTHSEX row; the sole value is used.",

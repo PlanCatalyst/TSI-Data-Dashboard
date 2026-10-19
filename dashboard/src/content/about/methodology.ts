@@ -10,7 +10,7 @@
  * here.
  */
 
-export type FamilyId = "ratio" | "gap" | "goal" | "index" | "bands";
+export type FamilyId = "ratio" | "gap" | "relative" | "goal" | "index" | "bands";
 
 export type Family = {
   id: FamilyId;
@@ -33,6 +33,12 @@ export const FAMILIES: Family[] = [
     name: "Gap to a coverage benchmark",
     rule: "Higher coverage is better. The score is the benchmark gap divided by the country's gap (100 minus coverage), capped at 100.",
     axis: "Coverage, % of population",
+  },
+  {
+    id: "relative",
+    name: "Gain above a floor",
+    rule: "Higher is better and the benchmark is a floor. At or below it the score is 0. Above it the score rises with the value, and the best country on record scores 100.",
+    axis: "Share, %",
   },
   {
     id: "goal",
@@ -63,6 +69,11 @@ export type MethodologyRow = {
   benchmark: number | null;
   /** Benchmark as written in the table. */
   benchmarkText: string;
+  /**
+   * Relative family only: the best value on record, which scores 100. Read
+   * from the scored series; update it when a refresh moves the top country.
+   */
+  best?: number;
   /** Slider range for the curve. */
   slider: { min: number; max: number; step: number; start: number };
 };
@@ -76,7 +87,7 @@ export const METHODOLOGY: MethodologyRow[] = [
   { key: "stunt", family: "ratio", unit: "% of children under 5", benchmark: 12, benchmarkText: "12%", slider: { min: 1, max: 60, step: 0.5, start: 25 } },
   { key: "maln", family: "ratio", unit: "% of children under 5", benchmark: 2.5, benchmarkText: "2.5%", slider: { min: 0.5, max: 25, step: 0.5, start: 8 } },
   { key: "anaem", family: "ratio", unit: "% of women aged 15 to 49", benchmark: 25, benchmarkText: "25%", slider: { min: 5, max: 75, step: 1, start: 40 } },
-  { key: "contra", family: "gap", unit: "% of women aged 15 to 49 with need met", benchmark: 88.5, benchmarkText: "88.5% coverage (gap of 11.5)", slider: { min: 0, max: 100, step: 1, start: 70 } },
+  { key: "contra", family: "relative", unit: "% of women aged 15 to 49 with need met", benchmark: 77.2, benchmarkText: "77.2% global average; best 96.6% scores 100", best: 96.6, slider: { min: 50, max: 100, step: 0.5, start: 85 } },
   { key: "abr", family: "ratio", unit: "Births per 1,000 girls aged 15 to 19", benchmark: 20, benchmarkText: "20 per 1,000", slider: { min: 1, max: 200, step: 1, start: 60 } },
   { key: "ihr", family: "index", unit: "Capacity score, 0 to 100", benchmark: null, benchmarkText: "None, value is the score", slider: { min: 0, max: 100, step: 1, start: 65 } },
   { key: "food", family: "ratio", unit: "% of population", benchmark: 20, benchmarkText: "20%", slider: { min: 1, max: 100, step: 1, start: 45 } },
@@ -87,7 +98,7 @@ export const METHODOLOGY: MethodologyRow[] = [
   { key: "washmort", family: "ratio", unit: "Deaths per 100,000 people", benchmark: 10, benchmarkText: "10 per 100,000", slider: { min: 0.5, max: 100, step: 0.5, start: 25 } },
   { key: "elec", family: "gap", unit: "% of population with access", benchmark: 90.2, benchmarkText: "90.2% coverage (gap of 9.8)", slider: { min: 0, max: 100, step: 1, start: 75 } },
   { key: "clean", family: "gap", unit: "% of population", benchmark: 69.6, benchmarkText: "69.6% coverage (gap of 30.4)", slider: { min: 0, max: 100, step: 1, start: 50 } },
-  { key: "renew", family: "gap", unit: "% of final energy consumption", benchmark: 80, benchmarkText: "80% share (gap of 20), see note", slider: { min: 0, max: 100, step: 1, start: 40 } },
+  { key: "renew", family: "relative", unit: "% of final energy consumption", benchmark: 20, benchmarkText: "20% share goal; best 98.3% scores 100", best: 98.34, slider: { min: 0, max: 100, step: 1, start: 40 } },
   { key: "finc", family: "gap", unit: "% of adults aged 15 and over", benchmark: 55, benchmarkText: "55% coverage (gap of 45)", slider: { min: 0, max: 100, step: 1, start: 40 } },
   { key: "gii", family: "ratio", unit: "Index, 0 (equal) to 1 (unequal)", benchmark: 0.32, benchmarkText: "0.32", slider: { min: 0.05, max: 0.9, step: 0.01, start: 0.5 } },
   { key: "ndgain", family: "ratio", unit: "Vulnerability, 0 to 1", benchmark: 0.46, benchmarkText: "0.46", slider: { min: 0.2, max: 0.8, step: 0.01, start: 0.55 } },
@@ -127,6 +138,11 @@ export function displayedScore(row: MethodologyRow, value: number): number {
       const benchGap = 100 - (row.benchmark ?? 100);
       const gap = 100 - value;
       return gap <= benchGap ? 100 : clamp((100 * benchGap) / gap);
+    }
+    case "relative": {
+      const b = row.benchmark ?? 0;
+      if (value <= b) return 0;
+      return clamp((100 * (1 - b / value)) / (1 - b / (row.best ?? 100)));
     }
     case "goal":
       return clamp((100 * value) / (row.benchmark ?? 1));

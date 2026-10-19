@@ -196,8 +196,10 @@ pillars:
             unit_or_measure: "Proportion (or percentage (%)"
             data_source: "SDG Indicators Database"
             scoring: >
-              100 - original indicator for correct directionality.
-              One minus the ratio of the global average of 11.5% to the country value.
+              Higher is better, no inversion. One minus the ratio of the global average
+              of 77.2% (2025 estimate, UN Population Division) to the country value.
+              Countries below the global average are harmonized to 0. Results
+              normalized to 0, 100 with the highest-scoring country at 100.
               Any countries having a value less than the global average are harmonized to 0.
               Results normalized to 0, 100.
 
@@ -442,10 +444,10 @@ pillars:
             unit_or_measure: "Percentage of final consumption energy"
             data_source: "SDG Indicators Database"
             scoring: >
-              100 - original indicator for correct directionality.
-              One minus the ratio of a goal of 20% to the country value.
-              Any countries having a value less than the global average are harmonized to 0.
-              Results normalized to 0, 100.
+              Higher is better, no inversion. One minus the ratio of a goal of 20%
+              to the country value. Countries below the global average, or whose result
+              would be negative, are harmonized to 0. Results normalized to 0, 100 with
+              the highest-scoring country at 100.
 
       - key: digfin
         label: "Digital financial inclusion"

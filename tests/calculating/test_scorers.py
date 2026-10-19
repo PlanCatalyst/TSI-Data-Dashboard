@@ -9,6 +9,7 @@ from src.calculating.scorers import (
     GoalRatioScorer,
     InverseRatioScorer,
     RatioThresholdScorer,
+    RelativeGainScorer,
 )
 
 
@@ -87,3 +88,45 @@ def test_inverse_ratio_missing_value_stays_missing():
 def test_ratio_threshold_missing_value_stays_missing():
     out = RatioThresholdScorer(threshold=25.0, global_average=25.0).score(_df([None, 10.0, 80.0]))
     assert pd.isna(out.iloc[0]) and out.iloc[1] == 0.0 and out.iloc[2] > 0
+
+
+# 7.2.1 and 3.7.1 (framework clarified 2026-10-16): 1 - benchmark / value,
+# below the benchmark harmonizes to 0, best value = 100, no inversion. The
+# scorer returns need, so the dashboard shows 100 - need.
+def _shown(need):
+    return 100.0 - need
+
+
+def test_relative_gain_renewables_goal_is_a_floor():
+    out = RelativeGainScorer(benchmark=20.0).score(_df([5.0, 19.9, 20.0, 40.0, 80.0]))
+    shown = _shown(out)
+    assert (shown.iloc[:3] == 0.0).all()  # below and at the 20% goal
+    assert shown.iloc[4] == pytest.approx(100.0)  # best value anchors 100
+    # 40% share: (1 - 20/40) / (1 - 20/80) = 0.5 / 0.75
+    assert shown.iloc[3] == pytest.approx(100.0 * 0.5 / 0.75)
+
+
+def test_relative_gain_family_planning_global_average():
+    out = RelativeGainScorer(benchmark=77.2).score(_df([60.0, 77.2, 85.0, 96.6]))
+    shown = _shown(out)
+    assert shown.iloc[0] == 0.0 and shown.iloc[1] == 0.0
+    assert 0.0 < shown.iloc[2] < shown.iloc[3] == pytest.approx(100.0)
+
+
+def test_relative_gain_keeps_nulls_and_survives_zero():
+    out = RelativeGainScorer(benchmark=20.0).score(_df([None, 0.0, 50.0]))
+    assert pd.isna(out.iloc[0])
+    assert _shown(out).iloc[1] == 0.0
+    assert _shown(out).iloc[2] == pytest.approx(100.0)
+
+
+def test_relative_gain_all_below_benchmark_scores_zero():
+    out = RelativeGainScorer(benchmark=77.2).score(_df([50.0, 70.0]))
+    assert (_shown(out) == 0.0).all()
+
+
+def test_factory_uses_relative_gain_for_renewables_and_family_planning():
+    f = IndicatorScorerFactory()
+    assert f.for_series("EG_FEC_RNEW").benchmark == 20.0
+    assert f.for_series("SH_FPL_MTMM").benchmark == 77.2
+    assert isinstance(f.for_series("EG_FEC_RNEW"), RelativeGainScorer)

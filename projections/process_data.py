@@ -27,7 +27,7 @@ from src.pipeline.utils import project_root
 from src.forecasting import forecast_series
 from src.projections.validate import validate_payload
 
-# §8 contract fields published to dashboard-public (see docs/data-contract.md).
+# §8 contract fields published to the public payload container (see docs/data-contract.md).
 PROJECTION_CONTRACT_FIELDS: tuple[str, ...] = (
     "iso3",
     "indicator_code",

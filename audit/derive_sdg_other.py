@@ -26,7 +26,7 @@ SPEC = {
     "washmort": ("SH_STA_WASHARI", "ratio", 10.0, "yaml 10; factory agrees"),
     "elec": ("EG_ACS_ELEC", "inverse", 9.8, "yaml 9.8; factory agrees"),
     "clean": ("EG_EGY_CLEAN", "inverse", 30.4, "yaml 30.4; factory agrees"),
-    "renew": ("EG_FEC_RNEW", "inverse", 20.0, "yaml goal 20; factory agrees"),
+    "renew": ("EG_FEC_RNEW", "relative", 20.0, "framework 2026-10-16: goal 20%; factory agrees"),
     "finc": ("FB_BNK_ACCSS", "inverse", 45.0, "yaml 45; factory agrees"),
     "pov": ("SI_POV_NAHC", "ratio", 10.0, "yaml 10; factory agrees"),
 }
@@ -41,6 +41,10 @@ def need(kind, v, c):
         return 100 - v
     if kind == "ratio":
         return np.where(v <= c, 0.0, 100 * (1 - c / np.where(v == 0, np.nan, v)))
+    if kind == "relative":
+        # 2026-10-16 framework: 1 - c/v, 0 below c, best value in the batch = 100.
+        gain = np.where(v < c, 0.0, np.clip(1 - c / np.where(v == 0, np.nan, v), 0, None))
+        return 100 - 100 * gain / np.nanmax(gain)
     if kind == "inverse":
         gap = 100 - v
         return np.where(gap <= c, 0.0, 100 * (1 - c / np.where(gap == 0, np.nan, gap)))
@@ -130,7 +134,7 @@ L = ["# SDG non-health audit findings", "",
      "## Per indicator", "",
      "| key | series | formula | constant | constant source | raw | after dims | null value | non-country dropped | emitted | conflict drops | identical dups collapsed | need=0 rows |",
      "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-names = {"ratio": "need=0 if v<=t else 100*(1-t/v)", "inverse": "gap=100-v; need=0 if gap<=b else 100*(1-b/gap)",
+names = {"relative": "gain=0 if v<c else 1-c/v; need=100-100*gain/max(gain)", "ratio": "need=0 if v<=t else 100*(1-t/v)", "inverse": "gap=100-v; need=0 if gap<=b else 100*(1-b/gap)",
          "simple": "need=100-v (score=v)", "goal": "share=value*1e6/GDP; need=max(0,100*(1-share/0.02))"}
 for key, series, kind, c, src, st, g in md:
     L.append(f"| {key} | {series} | {names[kind]} | {c} | {src} | {st['raw']} | {st['dims']} | {st['null_value']} | "

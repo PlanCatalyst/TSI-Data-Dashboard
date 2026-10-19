@@ -32,17 +32,12 @@ PlanCatalyst's subscription. Pipeline service principal issued at container scop
 
 ## Remaining
 
-- **Rescore 7.2.1 `renew` and 3.7.1 `contra` to their target benchmarks.** Due by 2026-10-19.
-  `renew` (`EG_FEC_RNEW`) scores against a 20% renewable-share goal, `1 - (20 / value)`;
-  `contra` (`SH_FPL_MTMM`) scores against the 77.2% global average, `1 - (77.2 / value)`.
-  Both are higher-is-better, values below the benchmark harmonize to 0, and scores
-  normalize to 0-100 with the top country at 100. Today `src/calculating/factory.py` runs
-  both through `InverseRatioScorer` (20.0 and 11.5) as gap benchmarks, which means an 80%
-  share and 88.5% coverage. Keep the single inversion at publish (invariant 4): the need
-  scorer emits `100 - target_score` so the publish flip yields the target. No scorer
-  max-normalizes yet, which overlaps the open `scoring.below_benchmark` setting. Then
-  update `SCORING_AUDIT.md` rows 9 and 20 and the About methodology copy
-  (`npm run check:about`), bump `index_version`, add tests, rerun and republish.
+- **Republish with the 7.2.1 `renew` and 3.7.1 `contra` rescore.** Scoring,
+  tests, docs, About copy and local `/v1/` fixtures are done (2026-10-19,
+  `RelativeGainScorer`; see `indicators/SCORING_AUDIT.md`). Left: review, merge,
+  `python -m src.upload.publish_dashboard --azure`, redeploy the frontend so the
+  About page ships with it. There is no global `index_version` field in
+  `meta.json` to bump; the change is recorded in `docs/data-contract.md` §5.
 - About wiki follow-ups (deferred from the 2026-10-15 frontend-only release,
   `docs/requirements-v2.md` §9): fix the `sanit`, `susag` and `u5mr` labels
   and units in `indicators/indicators.yaml` so they reach `meta.json`; write
