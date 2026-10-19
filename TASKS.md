@@ -32,12 +32,12 @@ PlanCatalyst's subscription. Pipeline service principal issued at container scop
 
 ## Remaining
 
-- **Republish with the 7.2.1 `renew` and 3.7.1 `contra` rescore.** Scoring,
-  tests, docs, About copy and local `/v1/` fixtures are done (2026-10-19,
-  `RelativeGainScorer`; see `indicators/SCORING_AUDIT.md`). Left: review, merge,
-  `python -m src.upload.publish_dashboard --azure`, redeploy the frontend so the
-  About page ships with it. There is no global `index_version` field in
-  `meta.json` to bump; the change is recorded in `docs/data-contract.md` §5.
+- ~~Republish with the 7.2.1 `renew` and 3.7.1 `contra` rescore.~~ **Done
+  2026-10-19**, run id `refresh-20261019` (`RelativeGainScorer`; see
+  `indicators/SCORING_AUDIT.md`). Live timeseries verified identical to the
+  bundled fixtures; frontend redeployed with the About page. There is no global
+  `index_version` field in `meta.json` to bump; the change is recorded in
+  `docs/data-contract.md` §5.
 - About wiki follow-ups (deferred from the 2026-10-15 frontend-only release,
   `docs/requirements-v2.md` §9): fix the `sanit`, `susag` and `u5mr` labels
   and units in `indicators/indicators.yaml` so they reach `meta.json`; write
