@@ -14,7 +14,7 @@ Raw store: data/store/20261015T001106Z (unsdg, worldbank). Scoring mode clamp. e
 | washmort | SH_STA_WASHARI | need=0 if v<=t else 100*(1-t/v) | 10.0 | yaml 10; factory agrees | 183 | 183 | 0 | 0 rows / 0 codes | 183 | 0 | 0 | 111 |
 | elec | EG_ACS_ELEC | gap=100-v; need=0 if gap<=b else 100*(1-b/gap) | 9.8 | yaml 9.8; factory agrees | 16350 | 5450 | 50 | 75 rows / 3 codes | 5325 | 0 | 0 | 3489 |
 | clean | EG_EGY_CLEAN | gap=100-v; need=0 if gap<=b else 100*(1-b/gap) | 30.4 | yaml 30.4; factory agrees | 14550 | 4850 | 0 | 50 rows / 2 codes | 4800 | 0 | 0 | 2758 |
-| renew | EG_FEC_RNEW | gap=100-v; need=0 if gap<=b else 100*(1-b/gap) | 20.0 | yaml goal 20; factory agrees | 7943 | 7943 | 246 | 506 rows / 18 codes | 7191 | 0 | 0 | 782 |
+| renew | EG_FEC_RNEW | gain=0 if v<c else 1-c/v; need=100-100*gain/max(gain) | 20.0 | framework 2026-10-16: goal 20%; factory agrees | 7943 | 7943 | 246 | 506 rows / 18 codes | 7191 | 0 | 0 | 1 |
 | finc | FB_BNK_ACCSS | gap=100-v; need=0 if gap<=b else 100*(1-b/gap) | 45.0 | yaml 45; factory agrees | 6648 | 711 | 0 | 10 rows / 2 codes | 701 | 0 | 0 | 379 |
 | pov | SI_POV_NAHC | need=0 if v<=t else 100*(1-t/v) | 10.0 | yaml 10; factory agrees | 1156 | 1147 | 0 | 0 rows / 0 codes | 1147 | 0 | 0 | 114 |
 

@@ -80,7 +80,7 @@ def write_section(markdown: str, mode: str) -> None:
         f"Generated {date.today().isoformat()} by `scripts/clamp_audit.py` with "
         f"`scoring.below_benchmark: {mode}`. A pinned row is a real source value "
         f"scored at the floor (need 0, dashboard 100) because the country is "
-        f"already better than the client benchmark. The last column counts "
+        f"already better than the benchmark. The last column counts "
         f"countries whose score sits unchanged for ten or more consecutive years "
         f"while the source value moves (requirements v2, AC1.1). Re-run after "
         f"any scorer change.\n\n{markdown}\n"

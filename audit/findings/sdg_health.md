@@ -14,7 +14,7 @@ Raw: data/store/20261015T001106Z/unsdg/records.csv. Mode: clamp. Script: audit/d
 | stunt | SH_STA_STNT | need = 0 if v <= t else 100*(1-t/v) | 12.0 (yaml text and factory agree) | 12150 | 0 | 4050 | 4050 | 4050 | 0 | 2000-2024 | 162 |
 | maln | SN_STA_OVWGT | need = 0 if v <= t else 100*(1-t/v) | 2.5 (yaml text and factory agree) | 12225 | 0 | 4075 | 4075 | 4075 | 0 | 2000-2024 | 163 |
 | anaem | SH_STA_ANEM | need = 0 if v <= t else 100*(1-t/v) | 25.0 (yaml text and factory agree) | 4656 | 0 | 4656 | 4608 | 4608 | 0 | 2000-2023 | 192 |
-| contra | SH_FPL_MTMM | gap=100-v; need = 0 if gap <= b else 100*(1-b/gap) | 11.5 (yaml text and factory agree) | 482 | 0 | 482 | 480 | 480 | 0 | 2000-2023 | 142 |
+| contra | SH_FPL_MTMM | gain = 0 if v < b else 1-b/v; score = 100*gain/max(gain) | 77.2 (yaml text and factory agree) | 482 | 0 | 482 | 480 | 480 | 0 | 2000-2023 | 142 |
 | abr | SP_DYN_ADKL | need = 0 if v <= t else 100*(1-t/v) | 20.0 (yaml text and factory agree) | 7289 | 0 | 3784 | 3541 | 3541 | 0 | 2000-2023 | 212 |
 | ihr | SH_IHR_CAPS | need = 100 - v (score = v) | none (yaml: 100 - index) | 15041 | 0 | 15041 | 14924 | 1148 | 0 | 2010-2017 | 193 |
 
@@ -62,12 +62,12 @@ See audit/findings/sdg_health_diag.csv. Per key: uhc=0, tb=0, mal=0, mmr=0, u5mr
 
 ## Sanity
 
-- Rows: 39897; duplicate (iso3,year,key): 0; score range 1.3 to 100.0.
+- Rows: 39897; duplicate (iso3,year,key): 0; score range 0.0 to 100.0.
 
 ## Ambiguities and observations
 
 - yaml says values below the global average are harmonized to 0; no global average numbers are given, so the threshold/benchmark is used as the clamp point (factory sets global_average = threshold). Same result as clamp.
-- contra yaml text: 100 - indicator, then 1 - 11.5/gap (the gap of unmet need), implemented as InverseRatio.
+- contra: framework clarified 2026-10-16, 1 - 77.2/value against the 77.2% global average, 0 below it, best country-year = 100, no inversion.
 - yaml 3.2.1 u5mr definition text is a copy of skilled birth attendance; scoring text (target 25) and series SH_DYN_MORT used.
 - yaml says stunt result is a continuous 0-1 scale; scored 0-100 as the other ratio indicators.
 - Series with only FEMALE sex (mmr, anaem, contra, abr) have no BOTHSEX row; the sole value is used.

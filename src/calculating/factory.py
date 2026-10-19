@@ -1,7 +1,8 @@
 from src.calculating.scorers import (
     SimpleDirectionalScorer, RatioThresholdScorer,
     InverseRatioScorer, RatioGoalInverseScorer,
-    DensityScorer, GoalRatioScorer, InverseIndexScorer
+    DensityScorer, GoalRatioScorer, InverseIndexScorer,
+    RelativeGainScorer,
 )
 
 class IndicatorScorerFactory:
@@ -21,7 +22,9 @@ class IndicatorScorerFactory:
             "SH_STA_STNT": RatioThresholdScorer(threshold=12.0, global_average=12.0, below_benchmark=bb),  # 2.2.1
             "SN_STA_OVWGT": RatioThresholdScorer(threshold=2.5, global_average=2.5, below_benchmark=bb),  # 2.2.2
             "SH_STA_ANEM": RatioThresholdScorer(threshold=25.0, global_average=25.0, below_benchmark=bb),  # 2.2.3
-            "SH_FPL_MTMM": InverseRatioScorer(global_avg_val=11.5, below_benchmark=bb),  # 3.7.1
+            # 3.7.1: 77.2% global average (2025, UN Population Division) is the
+            # floor; the best country scores 100. Framework clarified 2026-10-16.
+            "SH_FPL_MTMM": RelativeGainScorer(benchmark=77.2),            # 3.7.1
             "SP_DYN_ADKL": RatioThresholdScorer(threshold=20.0, below_benchmark=bb),     # 3.7.2
             "SH_IHR_CAPS": SimpleDirectionalScorer(),                # 3.d.1
             
@@ -47,7 +50,9 @@ class IndicatorScorerFactory:
             "SH_STA_WASHARI": RatioThresholdScorer(threshold=10.0, global_average=10.0, below_benchmark=bb),  # 3.9.2
             "EG_ACS_ELEC": InverseRatioScorer(global_avg_val=9.8, below_benchmark=bb),   # 7.1.1
             "EG_EGY_CLEAN": InverseRatioScorer(global_avg_val=30.4, below_benchmark=bb), # 7.1.2
-            "EG_FEC_RNEW": InverseRatioScorer(global_avg_val=20.0, below_benchmark=bb),  # 7.2.1
+            # 7.2.1: a 20% renewable share is the goal and the floor (previously
+            # read as a gap of 20, i.e. an 80% benchmark). Clarified 2026-10-16.
+            "EG_FEC_RNEW": RelativeGainScorer(benchmark=20.0),            # 7.2.1
             "FB_BNK_ACCSS": InverseRatioScorer(global_avg_val=45.0, below_benchmark=bb), # 8.10.2
 
             # --- CROSS-CUTTING & CONTEXT ---

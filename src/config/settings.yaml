@@ -229,14 +229,14 @@ wb_wgi: # name must match fetch_factory.py
 # Scoring
 # ====================================================================
 scoring:
-  # How a value already better than the client's benchmark is scored.
+  # How a value already better than its benchmark is scored.
   #   clamp      v1 rule. Need floors at 0, so every better-than-benchmark
   #              country shows 100 on the dashboard with no trend.
   #   soft_floor requirements v2 option B. Benchmark maps to need 25; better
   #              values spread over 0 to 25, worse values over 25 to 100.
   # Changing this changes every published score: bump index_version and
   # update docs/data-contract.md and indicators/SCORING_AUDIT.md first.
-  # Awaiting the client's decision (requirements v2, section 1.4).
+  # Mode not decided yet (requirements v2, section 1.4).
   below_benchmark: clamp
 
 # ====================================================================
