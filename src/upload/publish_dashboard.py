@@ -10,7 +10,7 @@ Run order:
        uploads to the dashboard-public Azure container under /v1/.
     4. Uploads payload files first (countries.json, timeseries.json, optional
        projections.json), then meta.json LAST. Frontend readiness is keyed off
-       meta.json — a mid-payload failure never writes meta, so the previous
+       meta.json, so a mid-payload failure never writes meta and the previous
        live snapshot stays marked ready. Optional manifest.json is bookkeeping
        after meta.
 
@@ -62,7 +62,11 @@ MetaPayload = Json
 CountriesPayload = list[Json]
 TimeseriesPayload = dict[str, dict[str, list[Optional[float]]]]
 
-CONTRACT_VERSION = "1.0.0"
+# 1.1.0 (2026-11-03): additive. Four mspi component indicators
+# (mspi_inc, mspi_frag, mspi_debt, mspi_conc) and the indicator-level
+# `aggregate` flag. 28 -> 32 indicators; existing consumers that ignore new
+# indicator keys and the new field keep reading valid payloads.
+CONTRACT_VERSION = "1.1.0"
 PUBLISH_PREFIX_DEFAULT = "v1/"
 DASHBOARD_CONTAINER_DEFAULT = "dashboard-public"
 SCORING_DIRECTION = "higher_is_better"
@@ -120,6 +124,10 @@ _RAW_DIRECTIONS: dict[str, str] = {
     "mpi":      "lower_is_better",
     "popdens":  "lower_is_better",
     "mspi":     "higher_is_better",
+    "mspi_inc":  "higher_is_better",
+    "mspi_frag": "higher_is_better",
+    "mspi_debt": "higher_is_better",
+    "mspi_conc": "higher_is_better",
 }
 
 _PILLAR_KEYS = ["health", "ag", "si", "women", "climate", "ctx", "pri"]
@@ -267,6 +275,11 @@ def build_meta(inputs: PublishInputs) -> MetaPayload:
                 isubdomain = skey
                 irawDir = _RAW_DIRECTIONS.get(ikey, "lower_is_better")
                 iscoredDir = SCORING_DIRECTION
+                # Additive (schemaVersion 1.1.0). False means the indicator
+                # displays on its own card but its score is excluded from
+                # subdomain/pillar aggregation (the mspi components; see
+                # src/calculating/pillar_aggregate.py). Absent is true.
+                iaggregate = bool(indicator.get("aggregate", True))
 
                 indicators.append({
                     "key": ikey,
@@ -278,6 +291,7 @@ def build_meta(inputs: PublishInputs) -> MetaPayload:
                     "subdomain": isubdomain,
                     "rawDirection": irawDir,
                     "scoredDirection": iscoredDir,
+                    "aggregate": iaggregate,
                 })
 
     return {
@@ -493,7 +507,7 @@ def build_timeseries(inputs: PublishInputs) -> TimeseriesPayload:
 
 
 # ---------------------------------------------------------------------------
-# Projections (§8) — wire PR B emit into the publish path
+# Projections (§8): wire PR B emit into the publish path
 # ---------------------------------------------------------------------------
 
 
@@ -517,7 +531,7 @@ def apply_projections_meta(
     *,
     enable: bool = True,
 ) -> MetaPayload:
-    """Optionally flip ``meta.projections.enabled`` only — note copy unchanged."""
+    """Optionally flip ``meta.projections.enabled`` only. Note copy unchanged."""
     years = [
         int(r["year"])
         for r in projection_rows
@@ -528,7 +542,7 @@ def apply_projections_meta(
         years = [int(r["year"]) for r in projection_rows if r.get("year") is not None]
     first = min(years) if years else None
     projections = dict(meta.get("projections") or {})
-    # Do not invent new note copy — keep whatever build_meta already set.
+    # Do not invent new note copy. Keep whatever build_meta already set.
     if enable:
         projections["enabled"] = True
         projections["firstProjectedYear"] = first
@@ -551,8 +565,10 @@ def validate_payload(
     expected_indicators = {ind["key"] for ind in meta["indicators"]}
     num_years = len(meta["years"])
 
-    # Check meta has 8 regions, 7 pillars, 17 subdomains, 28 indicators
-    for field, expected in [("regions", 8), ("pillars", 7), ("subdomains", 17), ("indicators", 28)]:
+    # Check meta has 8 regions, 7 pillars, 17 subdomains, 32 indicators
+    # (28 scored/aggregated + 4 mspi components published for display only,
+    # schemaVersion 1.1.0).
+    for field, expected in [("regions", 8), ("pillars", 7), ("subdomains", 17), ("indicators", 32)]:
         if len(meta[field]) != expected:
             raise ValueError(f"meta.{field}: expected {expected}, got {len(meta[field])}")
 
@@ -665,8 +681,8 @@ def publish(
     to prove meta-last ordering (and that meta is skipped on mid-payload fail).
 
     Projection rows come from PR B's emit (forecasts CSV or an explicit list).
-    Every published projection row is gated by ``src.projections.validate_payload``
-    — no re-implementation of gates here.
+    Every published projection row is gated by ``src.projections.validate_payload``,
+    with no re-implementation of gates here.
     """
     load_dotenv()
     inputs = load_inputs(repo_root, pipeline_run_id)
@@ -683,7 +699,7 @@ def publish(
 
     published_projections: Optional[list[dict]] = None
     if projection_rows is not None:
-        # Import A's validator — do not invent / re-gate thresholds here.
+        # Import A's validator. Do not invent or re-gate thresholds here.
         from src.projections import (
             GATE_REASONS,
             UX_UNAVAILABLE_COPY,
@@ -705,7 +721,7 @@ def publish(
         flip = True if enable_projections is None else bool(enable_projections)
         meta = apply_projections_meta(meta, published_projections, enable=flip)
 
-    # Payload files first — meta.json is readiness and goes last.
+    # Payload files first. meta.json is the readiness marker and goes last.
     payload_pairs: list[tuple[str, Any]] = [
         ("countries.json", countries),
         ("timeseries.json", timeseries),
@@ -729,7 +745,7 @@ def publish(
         print(f"Dry run complete. Files written to {output_dir} (meta.json last)")
         return
 
-    # Azure upload — validate credentials before attempting any upload,
+    # Azure upload. Validate credentials before attempting any upload,
     # unless a test injects upload_fn.
     if upload_fn is None:
         # Service principal when the AZURE_* triple is set, otherwise the
@@ -776,8 +792,7 @@ def publish(
             cache_control="no-cache",
         ),
     )
-    print(f"Uploaded {prefix}manifest.json — publish complete (meta was readiness marker)")
-
+    print(f"Uploaded {prefix}manifest.json, publish complete (meta was readiness marker)")
 
 
 if __name__ == "__main__":

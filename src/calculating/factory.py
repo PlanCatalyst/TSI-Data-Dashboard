@@ -30,7 +30,7 @@ class IndicatorScorerFactory:
             
             # --- SECTOR 2: AGRICULTURE ---
             "AG_PRD_FIESMS": RatioThresholdScorer(threshold=20.0, global_average=20.0, below_benchmark=bb),  # 2.1.2
-            # 2.4.1 — UN SDG returns AG_LND_SUST as a 0-100 proportion of
+            # 2.4.1: UN SDG returns AG_LND_SUST as a 0-100 proportion of
             # agricultural area under sustainable practices (NOT the 1-5 band
             # the metadata describes). Higher proportion = better = less need,
             # so 100 - value gives vulnerability orientation directly. The old
@@ -38,10 +38,11 @@ class IndicatorScorerFactory:
             # 1-5 scale and saturated every 0-100 value to 0. See SCORING_AUDIT
             # issue #4. NOTE: confirm the true UN SDG return scale.
             "AG_LND_SUST": SimpleDirectionalScorer(),                # 2.4.1
-            # 2.a.2 — value must be normalized to ag-flow/GDP BEFORE scoring
-            # (done in pipeline.score_indicators). GoalRatioScorer then applies
-            # 1 - ratio/0.02 against the 2%-of-GDP goal. Raw USD-millions input
-            # saturated everyone to 0; see SCORING_AUDIT issue #3.
+            # 2.a.2: value must be normalized to ag-flow/GDP BEFORE scoring
+            # (done in pipeline.score_indicators, on GDP rebased to 2022
+            # dollars). GoalRatioScorer then applies 1 - ratio/0.02 against the
+            # 2%-of-GDP goal. Raw USD-millions input saturated everyone to 0;
+            # see SCORING_AUDIT issue #3.
             "DC_TOF_AGRL": GoalRatioScorer(goal=0.02, below_benchmark=bb),               # 2.a.2
             
             # --- SECTOR 3: SOCIAL INFRASTRUCTURE ---
@@ -64,6 +65,12 @@ class IndicatorScorerFactory:
             "MPI_INDEX": RatioThresholdScorer(threshold=0.089, below_benchmark=bb),      # MPI
             "HDI_INDEX": InverseIndexScorer(),                       # verification baseline; slot is MSPI_INDEX
             "MSPI_INDEX": SimpleDirectionalScorer(),                 # pri/macrosec composite (higher-is-better value)
+            # mspi components: display-only (indicators.yaml aggregate: false),
+            # already 0-100 higher-is-better. Same flip as MSPI_INDEX.
+            "MSPI_INC": SimpleDirectionalScorer(),
+            "MSPI_FRAG": SimpleDirectionalScorer(),
+            "MSPI_DEBT": SimpleDirectionalScorer(),
+            "MSPI_CONC": SimpleDirectionalScorer(),
 
             # State capacity proxy: World Bank WGI Government Effectiveness.
             # WGI publishes a pre-normalized 0-100 score where higher = better

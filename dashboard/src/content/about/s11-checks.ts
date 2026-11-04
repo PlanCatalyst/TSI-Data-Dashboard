@@ -30,11 +30,11 @@ export const section: SectionContent = {
       id: "what-it-found",
       heading: "What the check found",
       body: [
-        "The independent check found no scoring errors. Five problems were in what got published: values shown with no valid source behind them, and valid values that were never published. Four are fixed. The fifth, debt risk scored from a partial input, has a decision pending.",
+        "The independent check found no scoring errors. Five problems were in what got published: values shown with no valid source behind them, and valid values that were never published. All five are fixed, including the debt-risk index, which now requires all three input ratios and shows no score when one is missing.",
         "After the fixes, 97,038 of 97,038 expected values match, and no row is unaccounted for.",
       ],
     },
   ],
   dashboardLink: undefined,
-  provenance: { updated: "2026-10-15", decisionIds: ["no-invented-scores", "debt-risk-input"] },
+  provenance: { updated: "2026-11-03", decisionIds: ["no-invented-scores", "debt-risk-input"] },
 };

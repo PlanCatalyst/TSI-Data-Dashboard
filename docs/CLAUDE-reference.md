@@ -1,4 +1,4 @@
-# CLAUDE.md reference — detail moved from CLAUDE.md on 2026-10-14
+# CLAUDE.md reference , detail moved from CLAUDE.md on 2026-10-14
 
 These sections were moved verbatim from `CLAUDE.md` to keep it under 5 KB. CLAUDE.md points here; rules below still apply.
 
@@ -7,10 +7,10 @@ These sections were moved verbatim from `CLAUDE.md` to keep it under 5 KB. CLAUD
 Two top-level deliverables in one repo:
 
 - **`src/`** - Python data pipeline (the backend). Stages: `fetch/`, `archive/` (raw store), `clean/`, `calculating/`, `validation/`, `upload/`, optional `forecasting/` and `projections/`, orchestrated by `pipeline/`; shared helpers in `utils/`. Config lives in `src/config/settings.yaml`.
-- **`dashboard/`** — React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs. Page routes live in `dashboard/src/app/routes/` (`AboutPage`, `ComparePage`, `ExplorePage`, `MapPage`, `TrendsPanel`); shared UI in `dashboard/src/components/` (`charts/`, `map/`, `panels/`, `states/`, `tables/`); contract loaders in `dashboard/src/data/`.
-- **`indicators/`** — taxonomy source of truth: `indicators.yaml` (pillar/subdomain/indicator hierarchy), `country_codes.csv` (canonical name + iso3 + numeric id), `SCORING_AUDIT.md` (scoring direction + known gaps).
-- **`docs/`** — `data-contract.md` (authoritative payload schema), `PRINCIPLES.md`, `repo-architecture.md`.
-- **`scripts/`** — ad-hoc utilities (one-off conversions, debugging helpers). Not part of the production pipeline; safe to edit without contract concerns.
+- **`dashboard/`** , React + TypeScript + Vite frontend. Reads only the published contract JSON; never reads pipeline CSVs. Page routes live in `dashboard/src/app/routes/` (`AboutPage`, `ComparePage`, `ExplorePage`, `MapPage`, `TrendsPanel`); shared UI in `dashboard/src/components/` (`charts/`, `map/`, `panels/`, `states/`, `tables/`); contract loaders in `dashboard/src/data/`.
+- **`indicators/`** , taxonomy source of truth: `indicators.yaml` (pillar/subdomain/indicator hierarchy), `country_codes.csv` (canonical name + iso3 + numeric id), `SCORING_AUDIT.md` (scoring direction + known gaps).
+- **`docs/`** , `data-contract.md` (authoritative payload schema), `PRINCIPLES.md`, `repo-architecture.md`.
+- **`scripts/`** , ad-hoc utilities (one-off conversions, debugging helpers). Not part of the production pipeline; safe to edit without contract concerns.
 - **`data/`** - local-only artifacts: `raw/` (per-source raw payloads), `store/<run_id>/` (immutable raw store per run), `clean/` (per-source cleaned CSVs), `interim/validated/` (scored), `organized/` (local pre-publish JSON in `dry_run`), `processed/`.
 
 ## Pipeline Architecture
@@ -46,10 +46,10 @@ SDG indicators bridge automatically through `SDG_ID_TO_SERIES_CODE`; non-SDG ind
 
 ## Key Dev-Loop Knobs (`src/config/settings.yaml`)
 
-- `runtime.fetch_raw: false` — skip API calls, reuse existing `data/raw/` files. **Default in this repo; set to `true` only when fetching fresh upstream data.** UN SDG fetch is slow and rate-limited; avoid unnecessary re-fetches.
-- `runtime.upload_azure: false` — disable Azure upload for local dry runs.
-- `runtime.save_raw` / `runtime.save_cleaned` — control whether raw/clean CSVs persist to disk between stages.
-- `runtime.interim_data.<source>` — paths to cleaned CSVs that downstream stages consume.
+- `runtime.fetch_raw: false` , skip API calls, reuse existing `data/raw/` files. **Default in this repo; set to `true` only when fetching fresh upstream data.** UN SDG fetch is slow and rate-limited; avoid unnecessary re-fetches.
+- `runtime.upload_azure: false` , disable Azure upload for local dry runs.
+- `runtime.save_raw` / `runtime.save_cleaned` , control whether raw/clean CSVs persist to disk between stages.
+- `runtime.interim_data.<source>` , paths to cleaned CSVs that downstream stages consume.
 - `azure.container_name` vs `publish.dashboard_container_name` (both in `src/config/settings.yaml`) - backend artifacts vs frontend payloads. They are different containers with different access policies.
 
 Azure auth: `.env` at repo root with `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_STORAGE_ACCOUNT_URL`. Never commit `.env`.
@@ -64,7 +64,7 @@ Azure auth: `.env` at repo root with `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZUR
 
 ## Current Known Gaps
 
-From `indicators/SCORING_AUDIT.md`, and the vault context (as of 2026-09-19):
+From `indicators/SCORING_AUDIT.md` and `TASKS.md` (as of 2026-09-19):
 
 - **Coverage: 28/28 indicators flow end-to-end.** `gii`, `mpi`, `ndgain`, `state` live since
   2026-05-17. `pri/macrosec` contract key is `mspi` as of 2026-09-19, backed by
@@ -104,7 +104,7 @@ From `indicators/SCORING_AUDIT.md`, and the vault context (as of 2026-09-19):
   `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the GitHub `production`
   environment (set 2026-09-29; recovery steps in `docs/runbook-refresh.md`). The SWA is in
   PlanCatalyst's subscription.
-- **Storage account ownership (2026-09-29).** The storage account sits in
+- **Storage account ownership (2026-09-29).** The storage account is in
   PlanCatalyst's subscription. No
   migration. The public payload container is the only anonymous container (level Blob);
   the backend artifacts container, the other data containers and `$logs` are private. The pipeline principal

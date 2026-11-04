@@ -84,7 +84,7 @@ PlanCatalyst's subscription. Pipeline service principal issued at container scop
   numeric). No re-run needed.
 - ~~Confirm which subscription owns the storage account.~~ **Resolved
   2026-09-29:** PlanCatalyst's. No migration, no frontend URL change.
-- Pre-handoff hardening: CORS allow-list on the public payload container limited to
+- Release hardening: CORS allow-list on the public payload container limited to
   the Wix/plancatalyst origins plus local dev; verify `Cache-Control` on the
   live payloads; scan git history for secrets.
 - ~~Republish the public payload container.~~ **Done 2026-09-29**, run id `refresh-20260929`,
@@ -115,15 +115,15 @@ PlanCatalyst's subscription. Pipeline service principal issued at container scop
   in the same column as true 7-pillar averages. That is the same bias the
   documented `partial_scores: false` rule rejects: the pillars that are
   missing are not missing at random. Deliberate (it keeps the map from going
-  grey) but now inconsistent with the documented methodology. Needs a product
-  call: either mark partial averages visually, or stop computing them.
+  grey) but now inconsistent with the documented methodology. Not yet decided:
+  either mark partial averages visually, or stop computing them.
 
 ## Resolved inputs
 
-- ~~`conces` composite spec document.~~ Spec in place 2026-09-17. Contract key
+- ~~`conces` composite design.~~ Design in place 2026-09-17. Contract key
   `mspi` landed 2026-09-19. ~~Coverage 117 vs HDI 193, confirm before live
   swap.~~ Rule 2026-09-24: exclude non-covered countries.
-- ~~Revised index document.~~ Applied 2026-09-24. Three follow-up
+- ~~Revised index design.~~ Applied 2026-09-24. Three follow-up
   points (scope count, `mrnev=1`, version bump) closed 2026-09-29.
 - ~~Service principal.~~ **Issued 2026-09-29:** the pipeline service principal, Storage Blob Data
   Contributor on the public payload container only, in PlanCatalyst's subscription

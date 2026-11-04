@@ -83,11 +83,14 @@ class UNDPHDRCleaner(DataCleaner):
             fmt = entry.get("format") or "wide_year_suffix"
             alias = entry.get("alias")
             for ind_spec in entry.get("indicators", []) or []:
+                sheet = ind_spec.get("sheet", "")
                 if fmt == "wide_year_suffix":
                     raw = self._read(local_path)
                     tidy = self._melt_indicator(raw, ind_spec, alias=alias)
                 elif fmt == "ophi_mpi_table":
                     tidy = self._parse_ophi_mpi_table(local_path, ind_spec, alias=alias)
+                    if not tidy.empty:
+                        tidy = tidy.assign(_table_priority=0 if sheet == "gMPI_Table2" else 1)
                 else:
                     TerminalOutput.info(f"  unknown format '{fmt}' for {alias}", indent=1)
                     tidy = pd.DataFrame()
@@ -99,6 +102,18 @@ class UNDPHDRCleaner(DataCleaner):
             return pd.DataFrame()
 
         df = pd.concat(frames, ignore_index=True)
+
+        # OPHI MPI gMPI_Table1 (latest wave only) and gMPI_Table2
+        # (changes-over-time) can both report the same (country, survey end
+        # year) wave. Keep the Table 2 row in that case: it carries the
+        # longitudinal series this pipeline tracks over time, Table 1 fills
+        # in only the waves Table 2 has not reached yet.
+        if "_table_priority" in df.columns:
+            df = (
+                df.sort_values("_table_priority", kind="mergesort")
+                .drop_duplicates(subset=["country_code", "series_code", "year"], keep="first")
+                .drop(columns=["_table_priority"])
+            )
 
         # Canonicalize country names against indicators/country_codes.csv.
         df["country_name"] = df.apply(

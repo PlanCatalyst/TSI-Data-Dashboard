@@ -1,4 +1,5 @@
 import { useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "../../state/dashboard-context";
 import type { CountryPayload } from "../../data/contract/types";
 import { displayOverall } from "../../data/contract/selectors";
@@ -23,14 +24,14 @@ function trendDelta(trend: Array<number | null>): number | null {
 
 function TrendLabel({ trend }: { trend: Array<number | null> }) {
   const d = trendDelta(trend);
-  if (d == null) return <span className="trend-fl">—</span>;
+  if (d == null) return <span className="trend-fl">–</span>;
   if (d > 3)  return <span className="trend-up">▲ Improving</span>;
   if (d < -3) return <span className="trend-dn">↓ Declining</span>;
   return <span className="trend-fl">→ Stable</span>;
 }
 
 function DomainBar({ val, color }: { val: number | null; color: string }) {
-  if (val == null) return <span style={{ color: "var(--n-600)" }}>—</span>;
+  if (val == null) return <span style={{ color: "var(--n-600)" }}>–</span>;
   return (
     <div className="spark-wrap">
       <div className="spark-bg">
@@ -63,6 +64,7 @@ const MIN_COL_W = 60;
 
 export function ExplorePage() {
   const { countries, meta, timeseries } = useDashboardData();
+  const navigate = useNavigate();
   const [activeRegion, setActiveRegion] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [sortCol, setSortCol] = useState<string>("health");
@@ -199,7 +201,17 @@ export function ExplorePage() {
                 <tbody>
                   {sorted.map(c => (
                     <tr key={c.iso3}>
-                      <td className="country-link">{c.name}</td>
+                      <td
+                        className="country-link"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/map?country=${c.iso3}`)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" || e.key === " ") navigate(`/map?country=${c.iso3}`);
+                        }}
+                      >
+                        {c.name}
+                      </td>
                       <td>{regionLabel[c.region] ?? c.region}</td>
                       <td><TrendLabel trend={c.trend} /></td>
                       <td>

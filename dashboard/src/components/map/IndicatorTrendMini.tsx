@@ -1,5 +1,5 @@
 import type { Indicator, IndicatorStatus } from "../../data/contract/types";
-import { describeIndicatorStatus } from "../../content/data-notes";
+import { BENCHMARK_RULE_NOTE, describeIndicatorStatus } from "../../content/data-notes";
 import { WhyLink } from "../scores/WhyLink";
 import { trendBucket, trendDelta } from "../../data/contract/selectors";
 import {
@@ -37,6 +37,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
     for (let i = histForTrend.length - 1; i >= 0; i--) if (histForTrend[i] != null) return i;
     return -1;
   })();
+  const firstObservedIdx = histForTrend.findIndex((v) => v != null);
   const latest = latestIdx >= 0 ? histForTrend[latestIdx] : null;
   const delta = trendDelta(histForTrend);
   const bucket = trendBucket(delta);
@@ -123,20 +124,23 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
   const forecastThrough = chartYears[chartYears.length - 1] ?? firstProjectedYear;
 
   const deltaCol = bucket === "up" ? "var(--need-low-ink)" : bucket === "down" ? "var(--need-severe-ink)" : "var(--n-600)";
+  const deltaStartYear = firstObservedIdx >= 0 ? years[firstObservedIdx] : years[0];
   const deltaStr =
     delta == null
-      ? "—"
-      : `${delta > 0 ? "+" : ""}${Math.round(delta)} since ${years[0]}`;
+      ? "–"
+      : Math.round(delta) === 0
+        ? `No change since ${deltaStartYear}`
+        : `${delta > 0 ? "+" : ""}${Math.round(delta)} since ${deltaStartYear}`;
 
   const chipClass =
     bucket === "up" ? "chip-up" : bucket === "flat" ? "chip-fl" : bucket === "down" ? "chip-em" : "chip-em";
   const chipText =
-    bucket === "up" ? "▲ Improving" : bucket === "down" ? "↓ Declining" : bucket === "flat" ? "→ Stable" : "—";
+    bucket === "up" ? "▲ Improving" : bucket === "down" ? "↓ Declining" : bucket === "flat" ? "→ Stable" : "–";
 
   return (
     <div className="ind-row-dp">
       <div className="ind-name">
-        {indicator.sdg !== "—" && `${indicator.sdg} · `}
+        {indicator.sdg != null && `${indicator.sdg} · `}
         {indicator.label}
       </div>
       <div className="ind-meta">{indicator.unit}</div>
@@ -159,7 +163,7 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
       <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "flex-start" }}>
         <div style={{ flexShrink: 0, width: 70 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>
-            {latest != null ? latest : "—"}
+            {latest != null ? latest : "–"}
           </div>
           <div style={{ fontSize: 9.5, color: "var(--n-600)", marginTop: 3, lineHeight: 1.3 }}>
             {latest != null && latestIdx >= 0
@@ -335,6 +339,16 @@ export function IndicatorTrendMini({ indicator, series, years, color, projection
                   {UX_UNAVAILABLE_COPY} <WhyLink to="projections" />
                 </div>
               )}
+              <div
+                style={{
+                  fontSize: 10.5,
+                  color: "var(--n-600)",
+                  marginTop: 6,
+                  lineHeight: 1.35,
+                }}
+              >
+                {BENCHMARK_RULE_NOTE} <WhyLink to="flat-at-100" />
+              </div>
             </>
           )}
         </div>

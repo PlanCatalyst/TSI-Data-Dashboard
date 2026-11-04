@@ -1,4 +1,4 @@
-# Dashboard Data Contract — v1
+# Dashboard Data Contract: v1
 
 **Status:** authoritative. The pipeline's publish step emits three JSON files that
 conform exactly to the shapes below. The frontend reads *only* these files. Any
@@ -6,16 +6,30 @@ change here is a versioned contract change (bump `/v1/` → `/v2/` and keep both
 
 **2026-09-19:** `pri.repIndicator` and the `pri/macrosec` indicator key are `mspi`
 (Country Macro Socio-Economic Performance Index), replacing the interim `hdi`
-stopgap. Same slot, still 28 indicators, still `/v1/` — same class of in-place
-replacement as `conces` → `hdi` (2026-06-01). Spec: `docs/spec-macrosec-index.md`.
-Composer is wired (`src/calculating/mspi.py` → `MSPI_INDEX`). Local score
-2026-09-19 (historical): 117 countries / 1,693 country-years (2010–2024) vs HDI 193 / 2,688.
+stopgap. Same slot, still 28 indicators, still `/v1/`, the same class of in-place
+replacement as `conces` to `hdi` (2026-06-01). Spec: `docs/spec-macrosec-index.md`.
+Composer is wired (`src/calculating/mspi.py` to `MSPI_INDEX`). Local score
+2026-09-19 (historical): 117 countries / 1,693 country-years (2010-2024) vs HDI 193 / 2,688.
 The coverage was accepted on 2026-09-24 and `mspi` was published live on
-2026-09-29. The live snapshot covers 216 countries and 35 years (1990–2024). HDI stays
+2026-09-29. The live snapshot covers 216 countries and 35 years (1990-2024). HDI stays
 fetched as a verification baseline and no longer occupies this slot.
 
+**2026-11-03 (schemaVersion 1.1.0, additive):** `mspi`'s four input components
+(`mspi_inc`, `mspi_frag`, `mspi_debt`, `mspi_conc`) are now also published as
+their own indicators under `pri/macrosec`, so a reader can see which input is
+missing when `mspi` itself is null. They carry a new `meta.indicators[*]`
+field, `aggregate: false` (§2 field notes): the `pri/macrosec` subdomain score
+is still carried by `mspi` alone, these four do not enter that average. 28
+scored/aggregated indicators plus 4 display-only components make 32. Existing
+consumers that ignore new indicator keys and the new field keep reading valid
+payloads, so this is a minor bump, not a path change. Also as of this date,
+`below_benchmark: soft_floor` (`src/config/settings.yaml`) is the active
+scoring rule for indicators with a defined benchmark (replacing `clamp`):
+values below the benchmark are spread across the low end of the range instead
+of all clamping to the same floor score. See `indicators/SCORING_AUDIT.md`.
+
 **Illustrative examples:** sample payloads below (for example the 185-country and
-2014–2024 year lists) are shapes, not current counts. Authoritative current values come
+2014-2024 year lists) are shapes, not current counts. Authoritative current values come
 from the published `meta.json`.
 
 **Publish location:** `$AZURE_STORAGE_ACCOUNT_URL/<publish.dashboard_container_name>/v1/`
@@ -67,7 +81,7 @@ bootstrap, caches in React context.
 
 ```jsonc
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "generatedAt": "2026-04-23T12:00:00Z",
   "pipelineRunId": "2026H1-abcdef01",
   "scoringDirection": "higher_is_better",
@@ -125,9 +139,22 @@ bootstrap, caches in React context.
       "pillar": "health",
       "subdomain": "phc",
       "rawDirection": "higher_is_better",
-      "scoredDirection": "higher_is_better"
+      "scoredDirection": "higher_is_better",
+      "aggregate": true
+    },
+    {
+      "key": "mspi_inc",
+      "label": "Per capita income",
+      "sdg": null,
+      "source": "World Bank WDI",
+      "unit": "Index 0-100 (higher is better)",
+      "pillar": "pri",
+      "subdomain": "macrosec",
+      "rawDirection": "higher_is_better",
+      "scoredDirection": "higher_is_better",
+      "aggregate": false
     }
-    // ... 27 more; one per indicator, in stable display order ...
+    // ... 30 more; one per indicator, in stable display order ...
   ]
 }
 ```
@@ -151,6 +178,16 @@ bootstrap, caches in React context.
   score when a pillar has exactly one indicator (women, climate, pri). Also
   lets the frontend draw a "headline indicator" badge per pillar.
 - `indicators[*].rawDirection` / `scoredDirection`: see §5.
+- `indicators[*].aggregate`: **optional, added 2026-11-03 (schemaVersion
+  1.1.0)**. `true` (default, implied when the key is absent on an older
+  payload) means the indicator's score feeds its subdomain and pillar
+  averages. `false` means the indicator is display-only: it still has its own
+  card and `timeseries.json` row, but is excluded from the subdomain/pillar
+  basket its `indicators/indicators.yaml` entry would otherwise belong to.
+  The four `mspi_*` component indicators are the first `aggregate: false`
+  entries; `pri/macrosec` is carried by `mspi` alone. Consumers that do not
+  read this field keep aggregating every indicator, which is still correct
+  for every indicator published before this date.
 
 ---
 
@@ -227,7 +264,7 @@ This was introduced by the 2026-09-23 revision of the `mspi`
 specification (`docs/spec-macrosec-index.md`), which requires every country to appear in
 the output labelled with the reason it does or does not carry a score.
 
-**Shape.** Additive and optional. Absent for the 27 indicators that have no
+**Shape.** Additive and optional. Absent for the 31 indicators that have no
 status model.
 
 ```jsonc
@@ -323,17 +360,17 @@ client-side (matching `subVal` in the original mock).
 
 - Top-level keys: every `iso3` from `countries.json`. A country missing here is
   a bug.
-- Second-level keys: every indicator `key` from `meta.indicators`. A country
-  with no data for a given indicator still lists the key with an all-null array.
+- Second-level keys: every indicator `key` from `meta.indicators`, including
+  `aggregate: false` indicators. A country with no data for a given indicator
+  still lists the key with an all-null array.
 - Array length: ALWAYS `meta.years.length`. Position `i` corresponds to
   `meta.years[i]`.
 - Values: the SCORED value in `[0, 100]` (higher = better), not the raw
   measurement. Raw source measurements remain internal pipeline artifacts and
   are not part of the frontend contract. `null` for missing observations.
 
-**Size budget**: 216 countries × 28 indicators × 35 years × ~5 bytes/number
-≈ 1.1 MB. The current `timeseries.json` is about 1.1 MB (1,144,891 bytes in the local
-fixtures, 2026-10-15), about 125 KB gzipped. Within target.
+**Size budget**: 216 countries × 32 indicators × 35 years × ~5 bytes/number
+≈ 1.3 MB gzipped to roughly 140 KB. Within target.
 
 ---
 
@@ -363,6 +400,15 @@ higher is better, so the pipeline carries `100 - score` and the publish flip
 returns it unchanged. Keys, types and ranges are unchanged; stays on `/v1/`.
 Details: `indicators/SCORING_AUDIT.md`.
 
+**Scoring change, 2026-11-03 (values only, no schema impact).** Every
+benchmark-based indicator now uses `below_benchmark: soft_floor`
+(`src/config/settings.yaml`) instead of `clamp`: values below the benchmark
+are spread proportionally across the low end of the score range rather than
+all pinned to the same floor value. A country that is far below its benchmark
+now scores lower than one that is close to it, where both previously scored
+identically. Keys, types and ranges are unchanged; stays on `/v1/`. Details:
+`indicators/SCORING_AUDIT.md`.
+
 ---
 
 ## 6. Frontend-side derivations (NOT in the contract)
@@ -372,7 +418,8 @@ trend from indicators, overall from pillars, regional "Overall" from
 representative indicators) it uses `basketSeries` in `selectors.ts`, the same
 rule as the pipeline's `pillar_aggregate.py`: basket = members with a value in
 the last five years, a year is averaged only when 75% of the basket is
-present, else null. See `docs/data-quality-issues.md` DQ-03.
+present, else null. `aggregate: false` indicators are never basket members
+(§2 field notes). See `docs/data-quality-issues.md` DQ-03.
 
 These are computed in the browser from the published JSON and are listed here
 only so backend engineers understand what NOT to ship:
@@ -393,11 +440,11 @@ only so backend engineers understand what NOT to ship:
 The publish step MUST verify before upload:
 
 1. `meta.regions`, `meta.pillars`, `meta.subdomains`, `meta.indicators` all
-   non-empty; counts `8 / 7 / 17 / 28`.
+   non-empty; counts `8 / 7 / 17 / 32`.
 2. Every country in `countries.json` has a `region` in `meta.regions[].code`.
 3. Every `iso3` in `timeseries.json` appears in `countries.json`, and vice
    versa.
-4. Every `timeseries.json[iso3]` has exactly the 28 indicator keys from
+4. Every `timeseries.json[iso3]` has exactly the 32 indicator keys from
    `meta.indicators`, each an array of length `meta.years.length`.
 5. All non-null numeric scores fall in `[0, 100]`.
 6. Where `indicatorStatus` is present (§3.1): every `status` is one of
@@ -413,10 +460,10 @@ A validation failure aborts the upload; the existing `/v1/` remains live.
 ## 8. Interval forecast rows (projections extension)
 
 **Status:** preparatory for when `meta.projections.enabled` flips to `true`.
-The historical `/v1/{meta,countries,timeseries}.json` shapes in §2–§4 are
+The historical `/v1/{meta,countries,timeseries}.json` shapes in §2-§4 are
 unchanged by this section. When published, interval rows are written to
 `/v1/projections.json` (array of the row shape below) **before** `meta.json`.
-Publish is atomic: payload files first, `meta.json` last — a mid-payload
+Publish is atomic: payload files first, `meta.json` last, so a mid-payload
 failure never writes meta, so the previous live snapshot stays marked ready.
 Forecast rows are validated by `src.projections.validate.validate_payload`
 **before** any publish that would ship them; a validation failure aborts
@@ -456,7 +503,7 @@ of which gate fired:
 
 > Forecast unavailable due to insufficient information.
 
-`unavailable_reason` is for logs / support only — do not invent per-reason user copy.
+`unavailable_reason` is for logs / support only; do not invent per-reason user copy.
 
 ### Example rows
 
@@ -473,7 +520,7 @@ of which gate fired:
   "unavailable_reason": null
 }
 
-// Gate failure — no numeric estimate
+// Gate failure, no numeric estimate
 {
   "iso3": "SSD",
   "indicator_code": "uhc",
@@ -485,4 +532,3 @@ of which gate fired:
   "unavailable_reason": "insufficient_observations"
 }
 ```
-

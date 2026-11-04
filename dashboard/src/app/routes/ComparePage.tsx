@@ -8,6 +8,12 @@ import {
   pillarScoreContext,
 } from "../../data/contract/score-context";
 import {
+  computePillarTimeseries,
+  computeSubdomainScores,
+  groupIndicatorKeysByPillar,
+  groupIndicatorKeysBySubdomain,
+} from "../../data/contract/selectors";
+import {
   CoverageNote,
   DerivationBadge,
   NeedBadge,
@@ -32,7 +38,7 @@ function PillarTrendChart({
   const [dotTip, setDotTip] = useState<{ x: number; y: number; yearIdx: number } | null>(null);
 
   // No country in the current selection has a single non-null point for this
-  // pillar — render an explicit, honest empty state instead of a bare grid that
+  // pillar, so this renders an explicit, honest empty state instead of a bare grid that
   // reads as "all zero".
   const hasData = series.some(s => s.data.some(v => v != null));
   if (!hasData) {
@@ -115,7 +121,7 @@ function PillarTrendChart({
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, display: "inline-block", flexShrink: 0 }} />
               <span>{s.name}:</span>
               <span style={{ fontWeight: 700, marginLeft: "auto" }}>
-                {s.data[dotTip.yearIdx] != null ? s.data[dotTip.yearIdx] : "—"}
+                {s.data[dotTip.yearIdx] != null ? s.data[dotTip.yearIdx] : "–"}
               </span>
             </div>
           ))}
@@ -126,7 +132,7 @@ function PillarTrendChart({
 }
 
 function DomainBar({ val, color }: { val: number | null; color: string }) {
-  if (val == null) return <span style={{ color: "var(--n-600)", fontSize: 11 }}>—</span>;
+  if (val == null) return <span style={{ color: "var(--n-600)", fontSize: 11 }}>–</span>;
   return (
     <div className="spark-wrap">
       <div className="spark-bg">
@@ -142,7 +148,6 @@ function DomainBar({ val, color }: { val: number | null; color: string }) {
 export function ComparePage() {
   const { countries, meta, timeseries } = useDashboardData();
   const [activeRegion, setActiveRegion] = useState("all");
-  const [activeDomain, setActiveDomain] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedISOs, setSelectedISOs] = useState<string[]>([]);
@@ -163,70 +168,34 @@ export function ComparePage() {
 
   // Indicator-key lookups used to attach data-honesty notes (deferred vs. simply
   // absent from this snapshot) to pillars/subdomains that come back empty.
-  const indKeysByPillar = useMemo(() => {
-    const out: Record<string, string[]> = {};
-    for (const ind of meta?.indicators ?? []) (out[ind.pillar] ??= []).push(ind.key);
-    return out;
-  }, [meta]);
-  const indKeysBySubdomain = useMemo(() => {
-    const out: Record<string, string[]> = {};
-    for (const ind of meta?.indicators ?? []) (out[ind.subdomain] ??= []).push(ind.key);
-    return out;
-  }, [meta]);
+  // aggregate: false indicators (the mspi_* components) are excluded, same as
+  // the basket average below; they publish their own card elsewhere, not a
+  // vote in a pillar/subdomain mean.
+  const indKeysByPillar = useMemo(() => (meta ? groupIndicatorKeysByPillar(meta) : {}), [meta]);
+  const indKeysBySubdomain = useMemo(() => (meta ? groupIndicatorKeysBySubdomain(meta) : {}), [meta]);
 
-  // Per-year pillar averages computed from all that pillar's indicator timeseries.
-  // Used for trend charts to show year-by-year progression.
+  // Per-year pillar averages (basket rule, docs/data-contract.md §6) and
+  // latest-value subdomain scores, computed per country so a selected
+  // country outside the active region filter still gets a result; nothing
+  // here depends on `filtered`.
   const pillarTimeseries = useMemo(() => {
     if (!meta) return {} as Record<string, Record<string, Array<number | null>>>;
-    const indsByPillar: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsByPillar[ind.pillar] ??= []).push(ind.key);
-    }
     const result: Record<string, Record<string, Array<number | null>>> = {};
-    for (const c of countries) {
-      result[c.iso3] = {};
-      for (const p of meta.pillars) {
-        const keys = indsByPillar[p.key] ?? [];
-        result[c.iso3][p.key] = meta.years.map((_, yi) => {
-          const vals = keys
-            .map(k => (timeseries[c.iso3]?.[k] ?? [])[yi] ?? null)
-            .filter((v): v is number => v != null);
-          return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-        });
-      }
-    }
+    for (const c of countries) result[c.iso3] = computePillarTimeseries(c, timeseries, meta);
     return result;
   }, [countries, meta, timeseries]);
 
-  // Subdomain scores derived from latest non-null timeseries value per indicator, averaged per subdomain
   const sdScores = useMemo(() => {
     if (!meta) return {} as Record<string, Record<string, number | null>>;
-    const indsBySubdomain: Record<string, string[]> = {};
-    for (const ind of meta.indicators) {
-      (indsBySubdomain[ind.subdomain] ??= []).push(ind.key);
-    }
     const result: Record<string, Record<string, number | null>> = {};
-    for (const c of filtered) {
-      result[c.iso3] = {};
-      for (const sd of meta.subdomains) {
-        const keys = indsBySubdomain[sd.key] ?? [];
-        const vals = keys
-          .map(k => (timeseries[c.iso3]?.[k] ?? []).reduceRight<number | null>((acc, v) => acc ?? v, null))
-          .filter((v): v is number => v != null);
-        result[c.iso3][sd.key] = vals.length
-          ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
-          : null;
-      }
-    }
+    for (const c of countries) result[c.iso3] = computeSubdomainScores(c, timeseries, meta);
     return result;
-  }, [filtered, meta, timeseries]);
+  }, [countries, meta, timeseries]);
 
   if (!meta) return null;
 
   const regionLabel = Object.fromEntries(meta.regions.map(r => [r.code, r.label]));
-  const displayedPillars = activeDomain === "all"
-    ? meta.pillars
-    : meta.pillars.filter(p => p.key === activeDomain);
+  const displayedPillars = meta.pillars;
 
   const needle = searchQuery.toLowerCase();
   const dropdownItems = needle.length >= 1
@@ -267,17 +236,6 @@ export function ComparePage() {
           value={activeRegion}
           onChange={setActiveRegion}
           options={[{ value: "all", label: "All" }, ...meta.regions.map(r => ({ value: r.code, label: r.label }))]}
-        />
-      </div>
-
-      {/* Pillar filter */}
-      <div className="fbar" data-reveal="2">
-        <span className="fbar-lbl">Pillar</span>
-        <Segmented
-          label="Pillar"
-          value={activeDomain}
-          onChange={setActiveDomain}
-          options={[{ value: "all", label: "All" }, ...meta.pillars.map(p => ({ value: p.key, label: p.label }))]}
         />
       </div>
 
@@ -485,7 +443,7 @@ export function ComparePage() {
                                 )}
                               </div>
                               <span style={{ fontSize: 11, fontWeight: 700, color: val != null ? col : "var(--n-600)", minWidth: 22, textAlign: "right" }}>
-                                {val != null ? val : "—"}
+                                {val != null ? val : "–"}
                               </span>
                             </div>
                           );

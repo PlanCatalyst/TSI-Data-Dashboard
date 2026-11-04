@@ -291,6 +291,20 @@
 .btn--sm.btn--icon { width: 28px; }
 .btn svg { width: 16px; height: 16px; display: block; }
 
+/* Wix embed: the host page's own button styling can leak in with higher
+   specificity than .btn--ghost and paint the panel's expand/close icon
+   buttons white on white, so they look invisible without hover. Force the
+   icon color explicitly on the detail panel's buttons regardless of host
+   page rules (reported 2026-11-03). */
+.panel-head .actions .btn--ghost,
+.panel-head .actions .btn--ghost svg {
+  color: var(--n-800) !important;
+  stroke: var(--n-800) !important;
+}
+.panel-head .actions .btn--ghost:hover {
+  background: var(--n-100) !important;
+}
+
 /* Chip (need band) and Badge (status) */
 .chip {
   display: inline-flex; align-items: center; gap: var(--sp-2);

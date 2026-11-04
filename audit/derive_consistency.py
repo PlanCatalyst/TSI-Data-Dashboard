@@ -39,7 +39,7 @@ from src.calculating.pipeline import (  # noqa: E402
 )
 from src.utils.country_identity import m49_to_iso3, name_to_iso3, resolve  # noqa: E402
 
-RUN_ID = "20261015T001106Z"
+RUN_ID = "20261103T231536Z"
 STORE = ROOT / "data" / "store" / RUN_ID
 PUB = ROOT / "dashboard" / "public" / "v1"
 OUT_CSV = ROOT / "audit" / "results" / "consistency_accounting.csv"
@@ -437,7 +437,7 @@ _same_raw = meta["pipelineRunId"] == RUN_ID or (
     )
 )
 chk("meta.pipelineRunId is the audited store or a byte-identical copy", _same_raw, str(meta["pipelineRunId"]))
-chk("meta counts 8 / 7 / 17 / 28", (len(meta["regions"]), len(meta["pillars"]), len(meta["subdomains"]), len(meta["indicators"])) == (8, 7, 17, 28),
+chk("meta counts 8 / 7 / 17 / 32", (len(meta["regions"]), len(meta["pillars"]), len(meta["subdomains"]), len(meta["indicators"])) == (8, 7, 17, 32),
     str((len(meta["regions"]), len(meta["pillars"]), len(meta["subdomains"]), len(meta["indicators"]))))
 # countries.json
 region_codes = {r["code"] for r in meta["regions"]}
@@ -519,6 +519,11 @@ def basket(wide):
 sub_members = defaultdict(list)
 pil_members = defaultdict(list)
 for t in tax:
+    # Match pillar_aggregate.py's _drop_display_only: an indicator with
+    # aggregate: false (the mspi_* components, 2026-11-03) has its own card
+    # and timeseries row but is not a basket member.
+    if not t.aggregate:
+        continue
     sub_members[(t.pillar_key, t.subdomain_key)].append(t.frontend_key)
 for (p, s) in sub_members:
     pil_members[p].append(s)

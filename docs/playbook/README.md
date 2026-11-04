@@ -1,6 +1,6 @@
 # Six-month refresh playbook
 
-Audience: PlanCatalyst staff, no engineering background (requirements v2,
+Audience: a non-engineer operator, no engineering background (requirements v2,
 section 4). The deliverable is a Word document; `playbook.md` is its source
 text and `screenshots/` holds one PNG per numbered step so they can be
 retaken without rewriting.

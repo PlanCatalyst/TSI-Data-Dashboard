@@ -49,6 +49,12 @@ NON_SDG_FRONTEND_KEY_TO_SERIES_CODE: Dict[str, Optional[str]] = {
     "state": "WGI_GOVEFF",
     # `pri` / macrosec: Country Macro Socio-Economic Performance Index.
     "mspi": "MSPI_INDEX",
+    # The four inputs behind MSPI_INDEX, published as their own display-only
+    # indicators (indicators.yaml aggregate: false). See src/calculating/mspi.py.
+    "mspi_inc": "MSPI_INC",
+    "mspi_frag": "MSPI_FRAG",
+    "mspi_debt": "MSPI_DEBT",
+    "mspi_conc": "MSPI_CONC",
 }
 
 SDG_ID_TO_SERIES_CODE: Dict[str, str] = {
@@ -84,6 +90,11 @@ class IndicatorTaxonomy:
     subdomain_key: str
     sdg_id: Optional[str]
     series_code: Optional[str]
+    # indicators.yaml `aggregate` (default True). False means the indicator
+    # displays on its own card but is excluded from subdomain/pillar_key
+    # basket aggregation (src/calculating/pillar_aggregate.py). Added for the
+    # mspi components, which show their own series alongside MSPI_INDEX.
+    aggregate: bool = True
 
 
 @dataclass(frozen=True)
@@ -123,6 +134,7 @@ def load_taxonomy() -> List[IndicatorTaxonomy]:
                         subdomain_key=subdomain_key,
                         sdg_id=sdg_id,
                         series_code=series_code,
+                        aggregate=bool(ind.get("aggregate", True)),
                     )
                 )
     return records
@@ -150,6 +162,16 @@ def series_code_to_pillar_subdomain() -> Dict[str, tuple[str, str]]:
     for t in load_taxonomy():
         if t.series_code:
             out[t.series_code] = (t.pillar_key, t.subdomain_key)
+    return out
+
+
+@lru_cache(maxsize=1)
+def series_code_to_aggregate() -> Dict[str, bool]:
+    """Map series_code -> indicators.yaml `aggregate` flag (default True)."""
+    out: Dict[str, bool] = {}
+    for t in load_taxonomy():
+        if t.series_code:
+            out[t.series_code] = t.aggregate
     return out
 
 

@@ -1,6 +1,6 @@
 # Runbook: data refresh (engineer path)
 
-**Routine six-month refresh:** PlanCatalyst staff run it from the Azure portal
+**Routine six-month refresh:** a non-engineer operator runs it from the Azure portal
 using the playbook in `docs/playbook/`. No terminal. This runbook covers only
 what the playbook does not: provisioning the job, running the pipeline from a
 laptop, rollback by hand, forecast publish, and frontend deploys.
@@ -117,7 +117,7 @@ done
 
 To roll back, re-upload the payload files, then `meta.json` **last** (same
 atomic order as publish). The playbook section 6 describes the same steps
-through the portal for staff. A contract-breaking change bumps the path to
+through the portal for the operator. A contract-breaking change bumps the path to
 `/v2/` instead: `docs/data-contract.md` first, then the publisher, then the
 frontend.
 
@@ -126,10 +126,10 @@ frontend.
 ## Scoring rule switch
 
 `scoring.below_benchmark` in `settings.yaml` selects `clamp` (v1) or
-`soft_floor` (requirements v2 option B). Changing it changes every score:
-bump `index_version`, record it in `docs/data-contract.md` and
-`indicators/SCORING_AUDIT.md`, run `scripts/clamp_audit.py --write-audit`,
-then publish. Awaiting the scoring decision.
+`soft_floor` (requirements v2 option B, active as of 2026-11-03). Changing it
+changes every score: bump `index_version`, record it in `docs/data-contract.md`
+and `indicators/SCORING_AUDIT.md`, run `scripts/clamp_audit.py --write-audit`,
+then publish.
 
 ---
 
@@ -179,7 +179,7 @@ dashboard (`plancatalyst.org`, `*.plancatalyst.org`, Wix editor and preview).
 
 ## Related
 
-- `docs/playbook/` - the staff-facing refresh document and its screenshots
+- `docs/playbook/` - the operator-facing refresh document and its screenshots
 - `infra/container-apps-job.sh` - job provisioning, roles, alert
 - `docs/requirements-v2.md` - the v2 scope this runbook serves
 - `docs/data-contract.md` - payload schema; authority when anything disagrees

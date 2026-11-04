@@ -10,7 +10,7 @@ from src.upload.publish_dashboard import build_indicator_status, validate_payloa
 
 
 def _meta() -> dict:
-    keys = [f"k{i}" for i in range(27)] + ["mspi"]
+    keys = [f"k{i}" for i in range(27)] + ["mspi", "mspi_inc", "mspi_frag", "mspi_debt", "mspi_conc"]
     return {
         "regions": [{"code": f"r{i}"} for i in range(8)],
         "pillars": [{"key": f"p{i}"} for i in range(7)],

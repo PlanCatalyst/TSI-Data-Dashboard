@@ -4,27 +4,27 @@ Every defect seen on the dashboard gets an entry here before it gets a fix.
 Each entry names the validation rule in `src/validation/rules.py` that catches
 it, or says why it cannot be caught in data. New bug: new entry, then a rule
 where one is possible, then the fix. The validation stage runs between score
-and publish and blocks the run on any `block` finding; the report lands in
+and publish and blocks the run on any `block` finding; the report is written to
 `data/interim/validated/data_quality_report.md`.
 
 Status values: open, fixed (date, commit), decision (waits on a scoring decision).
 
 | ID | Symptom | Rule | Status |
 |----|---------|------|--------|
-| DQ-01 | Country scores 100 on most pillars with no trend (Russia, Brazil climate) | R4 warn, R5 warn | decision |
+| DQ-01 | Country scores 100 on most pillars with no trend (Russia, Brazil climate) | R4 warn, R5 warn | fixed 2026-11-03 |
 | DQ-02 | Series alternates between two levels every other year (adolescent births in 81 countries, IHR capacity in 4) | R1 block, R3 block | fixed 2026-10-14 |
 | DQ-03 | Every country's overall line zigzags 1995 to 2002; regional averages too | R6 block | fixed 2026-10-14 |
 | DQ-04 | Regional average ramps to 100 in early years then drops | none (frontend rule) | fixed 2026-10-14 |
-| DQ-05 | Pillar score swings on a single indicator (Brazil agriculture 0.7 from 1 of 3) | R7 warn | partly fixed |
+| DQ-05 | Pillar score swings on a single indicator (Brazil agriculture 0.7 from 1 of 3) | R7 warn | fixed 2026-11-03 |
 | DQ-06 | A score with no source value, or outside 0 to 100 (93 ghost zeros found) | R2 block | fixed 2026-10-14 |
 | DQ-07 | Row with a non-ISO3 country code or an impossible year | R8, R9 block | guarded |
-| DQ-08 | Agriculture aid flows sawtooth in 6 countries | R3 warn | open, likely real |
-| DQ-09 | Sawtooth in one country only (Niue TB incidence) | R3 warn | open, likely real |
+| DQ-08 | Agriculture aid flows sawtooth in 6 countries | R3 warn | accepted 2026-11-03 |
+| DQ-09 | Sawtooth in one country only (Niue TB incidence) | R3 warn | accepted 2026-11-03 |
 | DQ-10 | Agriculture aid scored 100 where GDP is missing (60 country-years, North Korea, Eritrea, South Sudan, Yemen, Cuba, Syria, Turks and Caicos) | R10 block | fixed 2026-10-15 |
 | DQ-11 | Water, sanitation and poverty scored from urban-only rows (482 country-years in 22 countries, among them China, Australia, Saudi Arabia and Argentina) | R11 block | fixed 2026-10-15 |
 | DQ-12 | Andorra has no state capacity series (WGI legacy code ADO) | none (R8 checks shape only) | fixed 2026-10-15 |
 | DQ-13 | One MPI survey wave never published (Senegal 2010-11) | none (row never enters the pipeline); cleaner logs rejected labels | fixed 2026-10-15 |
-| DQ-14 | Macro security index scored from a partial debt-risk input (15 country-years) | none yet; R12 once decided | decision |
+| DQ-14 | Macro security index scored from a partial debt-risk input (15 country-years) | none yet; R12 once decided | fixed 2026-11-03 |
 
 ---
 
@@ -41,8 +41,8 @@ below the benchmark (`docs/requirements-v2.md` section 1). Not a data error.
 **Rule:** R4 warns on a score flat for 10+ years while the source moves
 (AC1.1); R5 warns when more than half an indicator's country-years are
 pinned. Both become `block` once the scoring decision is made.
-**Fix:** built as `scoring.below_benchmark: soft_floor`, default off.
-Waits on the scoring decision (requirements section 1.4).
+**Fix:** `scoring.below_benchmark: soft_floor` is the active mode as of
+2026-11-03 (requirements section 1.4). R4 and R5 remain warn-level checks.
 
 ## DQ-02 Disaggregated rows collapse to an arbitrary one per year
 
@@ -102,7 +102,8 @@ jumping between about 50 and 0.
 basket of three or more.
 **Fix:** the detail panel shows an "n of m" badge on low-confidence rows; the
 basket rule removes single-member years that were outside the basket. A
-minimum-coverage rule that hides the score entirely is an open scoring decision
+minimum-coverage rule that hides the score entirely was considered and not
+adopted 2026-11-03: the badge is the chosen way to show coverage
 (requirements section 1.6).
 
 ## DQ-06 Score shape: a missing value became a score
@@ -129,8 +130,8 @@ after harmonisation; R9 blocks an impossible year.
 **Evidence:** no duplicate rows; aid disbursements are lumpy by nature.
 **Rule:** R3 reports it as a warning (series listed in
 `src/validation/run.py` `LUMPY_SERIES`), not a block.
-**Status:** open. Candidate treatment: a three-year rolling mean before
-scoring, still to be decided.
+**Status:** accepted 2026-11-03. The data is shown as published, with no
+smoothing.
 
 ## DQ-09 Sawtooth in a single country
 
@@ -141,8 +142,8 @@ account ownership in Georgia, Serbia and Venezuela did the same before the
 hundreds per 100,000. Real data, not processing.
 **Rule:** R3 blocks a sawtooth only when it appears in three or more
 countries of one series; a lone country warns under this entry.
-**Status:** open. Candidate treatment: a minimum-population rule for
-rate-based indicators, still to be decided.
+**Status:** accepted 2026-11-03. The data is shown as published, with no
+minimum-population rule.
 
 ## DQ-10 Agriculture aid scored as a ratio while still in USD millions
 
@@ -215,13 +216,13 @@ Nigeria 1996 to 2007 (9), Ethiopia 2023 to 2024, Eritrea 1996, Lebanon, Bhutan
 and Tonga 2024.
 **Evidence:** 14 rows have neither GNI-based debt stock series, so
 `debt_basis` is null; Eritrea 1996 lacks debt service.
-**Cause:** `norm_debt_risk` in `src/calculating/mspi.py` takes the maximum over
-whichever ratios exist. Dropping a term from a maximum can only lower it, so
-missing data biases debt risk toward Low. `docs/spec-macrosec-index.md` does
-not say what to do with a missing ratio.
-**Rule:** R12 once decided: block an mspi row with null `debt_basis` or an
-incomplete ratio set.
-**Status:** decision pending. Recommended: require all three ratios and
-publish null otherwise, matching the spec's own `partial_scores: false`
-principle. Write the choice into the spec first.
+**Cause:** `norm_debt_risk` in `src/calculating/mspi.py` took the maximum over
+whichever ratios existed. Dropping a term from a maximum can only lower it, so
+missing data biased debt risk toward Low.
+**Rule:** fixed. `norm_debt_risk` now requires all three LIC-DSF ratios
+(external debt to GNI, external debt to exports, debt service to exports)
+before producing a score, matching the index's existing `partial_scores: false`
+principle.
+**Status:** fixed 2026-11-03. A country-year with only one or two ratios
+scores null instead of a partial result.
 

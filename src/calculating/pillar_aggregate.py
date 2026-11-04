@@ -31,6 +31,7 @@ import math
 import pandas as pd
 
 from src.calculating.pillar_taxonomy import (
+    series_code_to_aggregate,
     series_code_to_pillar_subdomain,
     subdomain_to_pillar,
 )
@@ -43,16 +44,32 @@ def _attach_pillar_subdomain(scored_df: pd.DataFrame) -> pd.DataFrame:
     """Annotate scored indicator rows with their pillar + subdomain keys."""
     mapping = series_code_to_pillar_subdomain()
     if not mapping:
-        return scored_df.assign(pillar_key=pd.NA, subdomain_key=pd.NA)
+        return scored_df.assign(pillar_key=pd.NA, subdomain_key=pd.NA, aggregate=True)
 
+    agg_map = series_code_to_aggregate()
     lookup = pd.DataFrame.from_records(
         [
-            {"series_code": sc, "pillar_key": pk, "subdomain_key": sd}
+            {"series_code": sc, "pillar_key": pk, "subdomain_key": sd, "aggregate": agg_map.get(sc, True)}
             for sc, (pk, sd) in mapping.items()
         ]
     ).set_index("series_code")
 
     return scored_df.join(lookup, on="series_code", how="left")
+
+
+def _drop_display_only(df: pd.DataFrame) -> pd.DataFrame:
+    """Exclude indicators.yaml `aggregate: false` series from the basket.
+
+    Components published for their own display (the four mspi inputs) carry
+    pillar_key/subdomain_key like any other series, so without this filter
+    they would enter the subdomain basket even though MSPI_INDEX already
+    stands in for all four. aggregate is absent only for rows whose series
+    had no pillar_key/subdomain_key match, which the dropna call above this
+    in each caller already removes.
+    """
+    if "aggregate" not in df.columns:
+        return df
+    return df[df["aggregate"].fillna(True).astype(bool)]
 
 
 def basket_mean(wide: pd.DataFrame) -> pd.DataFrame:
@@ -103,6 +120,7 @@ def compute_subdomain_scores(scored_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = _attach_pillar_subdomain(scored_df)
     df = df.dropna(subset=["pillar_key", "subdomain_key"])
+    df = _drop_display_only(df)
     group_cols = ["country_code", "country_name", "pillar_key", "subdomain_key"]
     out = _aggregate(df, group_cols, "series_code", "score", "subdomain_score", "indicator_count")
     return out[["country_code", "country_name", "year", "pillar_key", "subdomain_key", "subdomain_score", "indicator_count", "basket_size"]]

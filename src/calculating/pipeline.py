@@ -16,6 +16,8 @@ from src.utils.country_identity import resolve as _resolve_iso3
 
 # World Bank series used only as a join helper for SDG 2.a.2 (agoda) scoring.
 _GDP_SERIES_CODE = "NY.GDP.MKTP.CD"
+_GDP_CONSTANT_SERIES_CODE = "NY.GDP.MKTP.KD"
+_GDP_CONSTANT_ANCHOR_YEAR = 2022
 _AGODA_SERIES_CODE = "DC_TOF_AGRL"
 
 # settings.yaml runtime.interim_data key for the World Bank country metadata
@@ -45,22 +47,73 @@ def _load_interim_frames(paths: Iterable[Path]) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True, sort=False)
 
 
+def _rebased_gdp(df: pd.DataFrame) -> pd.DataFrame:
+    """GDP at every available year, expressed in anchor-year (2022) dollars.
+
+    Aid (DC_TOF_AGRL) is reported in constant 2022 dollars; GDP in current
+    dollars mixes price levels across years, so the ratio moved with
+    inflation rather than with the real aid share. This rebases GDP onto the
+    same constant-dollar basis: take the constant-dollar GDP series
+    (NY.GDP.MKTP.KD) for every year, scale it by the country's current-dollar
+    to constant-dollar ratio in the anchor year, so the anchor year matches
+    its own current-dollar GDP and every other year inherits the same price
+    basis. A country missing either series in the anchor year gets no rebased
+    GDP for any year (decided: income on a constant-dollar basis, 2026-11-03).
+    """
+    needed = {_GDP_SERIES_CODE, _GDP_CONSTANT_SERIES_CODE}
+    if "series_code" not in df.columns or not needed.issubset(set(df["series_code"].unique())):
+        return pd.DataFrame(columns=["country_code", "year", "_gdp"])
+
+    kd = (
+        df.loc[df["series_code"] == _GDP_CONSTANT_SERIES_CODE, ["country_code", "year", "value"]]
+        .dropna(subset=["value"])
+        .drop_duplicates(["country_code", "year"])
+        .rename(columns={"value": "_kd"})
+    )
+    anchor_kd = (
+        kd.loc[kd["year"] == _GDP_CONSTANT_ANCHOR_YEAR, ["country_code", "_kd"]]
+        .rename(columns={"_kd": "_kd_anchor"})
+    )
+    anchor_cd = (
+        df.loc[
+            (df["series_code"] == _GDP_SERIES_CODE) & (df["year"] == _GDP_CONSTANT_ANCHOR_YEAR),
+            ["country_code", "value"],
+        ]
+        .dropna(subset=["value"])
+        .drop_duplicates(["country_code"])
+        .rename(columns={"value": "_cd_anchor"})
+    )
+
+    basis = kd.merge(anchor_kd, on="country_code", how="left").merge(
+        anchor_cd, on="country_code", how="left"
+    )
+    valid = (
+        basis["_kd_anchor"].notna()
+        & basis["_cd_anchor"].notna()
+        & (basis["_kd_anchor"].astype(float) > 0)
+    )
+    basis["_gdp"] = np.nan
+    basis.loc[valid, "_gdp"] = (
+        basis.loc[valid, "_kd"].astype(float)
+        / basis.loc[valid, "_kd_anchor"].astype(float)
+        * basis.loc[valid, "_cd_anchor"].astype(float)
+    )
+    return basis.loc[basis["_gdp"].notna(), ["country_code", "year", "_gdp"]]
+
+
 def _apply_agoda_gdp_normalization(df: pd.DataFrame) -> pd.DataFrame:
     """Convert SDG 2.a.2 ag flows (millions USD) to ag-flow/GDP ratio.
 
     GoalRatioScorer(goal=0.02) expects the 2%-of-GDP target on a unitless ratio.
-    Raw USD millions saturated every country to score 0 (issue #3).
-    Rows with no usable GDP for the country-year become NaN, never raw USD.
+    Raw USD millions saturated every country to score 0 (issue #3). GDP is
+    rebased onto aid's constant 2022-dollar basis before dividing (see
+    _rebased_gdp). Rows with no usable GDP for the country-year become NaN,
+    never raw USD.
     """
     if "series_code" not in df.columns or _AGODA_SERIES_CODE not in df["series_code"].values:
         return df
 
-    gdp = (
-        df.loc[df["series_code"] == _GDP_SERIES_CODE, ["country_code", "year", "value"]]
-        .dropna(subset=["value"])
-        .drop_duplicates(["country_code", "year"])
-        .rename(columns={"value": "_gdp"})
-    )
+    gdp = _rebased_gdp(df)
     work = df.copy()
     agoda_mask = work["series_code"] == _AGODA_SERIES_CODE
     if gdp.empty:
@@ -120,7 +173,7 @@ def load_harmonized_interim(
     # Harmonize the join key to ISO3 across all sources BEFORE aggregation.
     # UN SDG cleaned rows carry UN M49 numeric codes (e.g. "4"); UNDP HDR /
     # ND-GAIN / WGI carry ISO3 ("AFG"). Pillar aggregation groups by
-    # country_code and the publisher joins on ISO3 — so without this, the
+    # country_code and the publisher joins on ISO3, so without this, the
     # SDG-derived pillars (health/ag/si) never match the ISO3-keyed
     # country_codes.csv and silently drop out of the published payload.
     # resolve() passes ISO3 through and maps M49/name -> ISO3; unresolvable

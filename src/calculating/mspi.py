@@ -72,6 +72,27 @@ _COMPONENT_NAMES = {
     "n_conc": "concessionality",
 }
 _COMPONENT_COLS = tuple(_COMPONENT_NAMES)
+
+# Each component also publishes as its own display-only indicator, additive
+# to the contract (docs/data-contract.md, schemaVersion 1.1.0). indicators.yaml
+# marks each with aggregate: false, so it shows on its own card under
+# pri/macrosec but is excluded from basket aggregation at every level of
+# src/calculating/pillar_aggregate.py; MSPI_INDEX stays the only series that
+# feeds subdomain and top-level scoring. A component with no input in a given
+# country-year is absent, not zero.
+_COMPONENT_SERIES_CODES = {
+    "n_inc": "MSPI_INC",
+    "n_frag": "MSPI_FRAG",
+    "n_debt": "MSPI_DEBT",
+    "n_conc": "MSPI_CONC",
+}
+_COMPONENT_INDICATOR_NAMES = {
+    "MSPI_INC": "Per capita income",
+    "MSPI_FRAG": "Vulnerability and fragility",
+    "MSPI_DEBT": "Risk of debt distress",
+    "MSPI_CONC": "Non-concessional external debt",
+}
+
 # Raw IDS (Debtor Reporting System) inputs. A country that never reports any
 # of these has no IDS history and is out of scope even if its lending type
 # says otherwise (scope refinement 2026-09-29).
@@ -140,15 +161,23 @@ def norm_debt_risk(
     v_exp: pd.Series,
     ds_exp: pd.Series,
 ) -> pd.Series:
-    """Worst available ratio vs LIC-DSF thresholds → 1.0 / 0.5 / 0.0."""
+    """Worst available ratio vs LIC-DSF thresholds, 1.0 / 0.5 / 0.0.
+
+    Requires all three ratios (debt/GNI, debt/exports, debt service/exports).
+    A partial set can only push the worst-of-three ratio down, which reads as
+    lower risk than a complete set would show, so a country-year with one
+    ratio missing scores null rather than a falsely favourable 1.0 or 0.5
+    (decided: all three ratios required, 2026-11-03).
+    """
     r_gni = pd.to_numeric(v_gni, errors="coerce") / _threshold_col(tier, "debt_gdp")
     r_exp = pd.to_numeric(v_exp, errors="coerce") / _threshold_col(tier, "debt_exports")
     r_ds = pd.to_numeric(ds_exp, errors="coerce") / _threshold_col(tier, "ds_exports")
+    complete = r_gni.notna() & r_exp.notna() & r_ds.notna()
     max_ratio = pd.concat([r_gni, r_exp, r_ds], axis=1).max(axis=1, skipna=True)
     out = pd.Series(np.nan, index=tier.index, dtype="float64")
-    out.loc[max_ratio < 0.75] = 1.0
-    out.loc[(max_ratio >= 0.75) & (max_ratio < 1.0)] = 0.5
-    out.loc[max_ratio >= 1.0] = 0.0
+    out.loc[complete & (max_ratio < 0.75)] = 1.0
+    out.loc[complete & (max_ratio >= 0.75) & (max_ratio < 1.0)] = 0.5
+    out.loc[complete & (max_ratio >= 1.0)] = 0.0
     out.loc[tier.isna()] = np.nan
     return out
 
@@ -341,9 +370,50 @@ def mspi_country_status(
     return pd.DataFrame(rows, columns=STATUS_COLS)
 
 
+def compose_mspi_component_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """One row per country-year per mspi component, scaled to 0-100.
+
+    Published alongside MSPI_INDEX so the four inputs behind the composite
+    (income, fragility, debt risk, concessionality) are visible on their own,
+    including for a country where the composite itself is null because one
+    input is missing. A component with no input in a country-year is left out
+    of its own series rather than published as zero.
+    """
+    empty = pd.DataFrame(columns=_OUTPUT_COLS)
+    panel = _component_panel(df)
+    if panel.empty:
+        return empty
+
+    frames = []
+    for col, series_code in _COMPONENT_SERIES_CODES.items():
+        sub = panel[["country_code", "country_name", "year", col, "debt_basis"]].dropna(subset=[col])
+        if sub.empty:
+            continue
+        frames.append(
+            pd.DataFrame(
+                {
+                    "country_code": sub["country_code"].values,
+                    "country_name": sub["country_name"].values,
+                    "year": sub["year"].values,
+                    "value": (sub[col].astype(float) * 100.0).to_numpy(),
+                    "indicator": _COMPONENT_INDICATOR_NAMES[series_code],
+                    "series_code": series_code,
+                    "debt_basis": sub["debt_basis"].values,
+                }
+            )
+        )
+    if not frames:
+        return empty
+    return pd.concat(frames, ignore_index=True)[_OUTPUT_COLS]
+
+
 def append_mspi_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Concat composed rows onto the interim frame. No-op if none compose."""
-    extra = compose_mspi_rows(df)
+    extra = pd.concat(
+        [compose_mspi_rows(df), compose_mspi_component_rows(df)],
+        ignore_index=True,
+        sort=False,
+    )
     if extra.empty:
         return df
     return pd.concat([df, extra], ignore_index=True, sort=False)

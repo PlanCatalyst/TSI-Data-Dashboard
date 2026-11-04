@@ -75,7 +75,7 @@ These cannot change without a contract version bump and a recorded review in `TA
 4. `TASKS.md` (current ownership and delivery plan)
 5. `HANDOFF.md` (project context and historical decisions)
 6. `README.md` (purpose, quickstart)
-7. This file (`docs/PRINCIPLES.md`) — synthesis only, not new authority.
+7. This file (`docs/PRINCIPLES.md`) , synthesis only, not new authority.
 
 If two of the above disagree, the higher-numbered one defers.
 
@@ -119,7 +119,7 @@ and does not change what crosses the publish boundary.
 primary contract shape. Compatibility CSVs may exist transitionally; the
 contract is 7 pillars × 17 subdomains × 28 indicators.
 - Hardcode country lists. Use `indicators/country_codes.csv`.
-- Re-fetch UN SDG data unnecessarily — it is slow and rate-limited.
+- Re-fetch UN SDG data unnecessarily , it is slow and rate-limited.
 
 ## 7. Quality Standards
 
@@ -142,8 +142,8 @@ indicator, which year) over silently emitting a degraded payload.
 - Hosted frontend reads Blob payloads with no local hacks or fallbacks.
 - All 28 indicators are either live or explicitly exception-tracked with
 owner + ETA.
-- The team can operate without daily PM decision calls because runbooks and
-this principles file cover the recurring questions.
+- The project can operate without recurring status meetings because runbooks
+and this principles file cover the recurring questions.
 
 ## 9. When This File Is Wrong
 

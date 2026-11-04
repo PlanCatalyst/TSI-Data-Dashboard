@@ -82,8 +82,8 @@ agoda,DC_TOF_AGRL,cleaned,3602,16,geoAreaCode not mapped to ISO3 (world/region/a
 agoda,DC_TOF_AGRL,iso3_harmonized,3602,0,
 agoda,DC_TOF_AGRL,gdp_normalised (check),3602,0,"no rows dropped; 189 non-null rows have no GDP>0 for the same country-year and are left in raw USD millions, then scored against a 0.02 ratio goal"
 agoda,DC_TOF_AGRL,dimension_selected,3602,0,
-agoda,DC_TOF_AGRL,scored_nonnull,3413,189,null observation value (score stays null): 189
-agoda,DC_TOF_AGRL,published_nonnull,3413,0,
+agoda,DC_TOF_AGRL,scored_nonnull,3343,259,null observation value (score stays null): 259
+agoda,DC_TOF_AGRL,published_nonnull,3343,0,
 water,SH_H2O_SAFE,raw_store,8726,,
 water,SH_H2O_SAFE,cleaned,8726,0,
 water,SH_H2O_SAFE,iso3_harmonized,8726,0,
@@ -162,6 +162,30 @@ popdens,EN.POP.DNST,iso3_harmonized,9135,175,country_code empty: 175
 popdens,EN.POP.DNST,dimension_selected,9135,0,
 popdens,EN.POP.DNST,scored_nonnull,8839,296,null observation value (score stays null): 296
 popdens,EN.POP.DNST,published_nonnull,7311,1528,aggregate / region / territory code not in country_codes.csv: 1496; WB economy not in the 216-row country_codes.csv: 32
+mspi_inc,MSPI_INC,raw_store,0,,
+mspi_inc,MSPI_INC,cleaned,0,,
+mspi_inc,MSPI_INC,iso3_harmonized,0,0,
+mspi_inc,MSPI_INC,dimension_selected,8755,0,
+mspi_inc,MSPI_INC,scored_nonnull,8755,0,
+mspi_inc,MSPI_INC,published_nonnull,7190,1565,aggregate / region / territory code not in country_codes.csv: 1540; WB economy not in the 216-row country_codes.csv: 25
+mspi_frag,MSPI_FRAG,raw_store,0,,
+mspi_frag,MSPI_FRAG,cleaned,0,,
+mspi_frag,MSPI_FRAG,iso3_harmonized,0,0,
+mspi_frag,MSPI_FRAG,dimension_selected,5481,0,
+mspi_frag,MSPI_FRAG,scored_nonnull,5481,0,
+mspi_frag,MSPI_FRAG,published_nonnull,5301,180,aggregate / region / territory code not in country_codes.csv: 180
+mspi_debt,MSPI_DEBT,raw_store,0,,
+mspi_debt,MSPI_DEBT,cleaned,0,,
+mspi_debt,MSPI_DEBT,iso3_harmonized,0,0,
+mspi_debt,MSPI_DEBT,dimension_selected,2773,0,
+mspi_debt,MSPI_DEBT,scored_nonnull,2773,0,
+mspi_debt,MSPI_DEBT,published_nonnull,2773,0,
+mspi_conc,MSPI_CONC,raw_store,0,,
+mspi_conc,MSPI_CONC,cleaned,0,,
+mspi_conc,MSPI_CONC,iso3_harmonized,0,0,
+mspi_conc,MSPI_CONC,dimension_selected,4512,0,
+mspi_conc,MSPI_CONC,scored_nonnull,4512,0,
+mspi_conc,MSPI_CONC,published_nonnull,4022,490,aggregate / region / territory code not in country_codes.csv: 490
 mspi,NY.GDP.PCAP.CD,raw_store,9310,,
 mspi,NY.GDP.PCAP.CD,cleaned,9310,0,
 mspi,NY.GDP.PCAP.CD,iso3_harmonized,9135,175,country_code empty: 175
@@ -202,7 +226,7 @@ mspi,DT.DOD.ALLC.ZS,raw_store,4690,,
 mspi,DT.DOD.ALLC.ZS,cleaned,4690,0,
 mspi,DT.DOD.ALLC.ZS,iso3_harmonized,4690,0,
 mspi,MSPI_INDEX,composed (component panel country-years),9420,,
-mspi,MSPI_INDEX,composed_complete,2788,6632,one or more of income/fragility/debt_risk/concessionality missing (null if any component null): 6632
-mspi,MSPI_INDEX,dimension_selected,2788,0,
-mspi,MSPI_INDEX,scored_nonnull,2788,0,
-mspi,MSPI_INDEX,published_nonnull,2788,0,
+mspi,MSPI_INDEX,composed_complete,2773,6647,one or more of income/fragility/debt_risk/concessionality missing (null if any component null): 6647
+mspi,MSPI_INDEX,dimension_selected,2773,0,
+mspi,MSPI_INDEX,scored_nonnull,2773,0,
+mspi,MSPI_INDEX,published_nonnull,2773,0,

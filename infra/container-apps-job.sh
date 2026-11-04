@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Client-operable refresh: one manual Azure Container Apps Job
+# Operator-triggered refresh: one manual Azure Container Apps Job
 # (docs/requirements-v2.md section 3). Creates billable resources. Review every
 # variable, then run once from a shell that is logged in with `az login` on the
 # PlanCatalyst subscription with Owner or User Access Administrator on the
@@ -27,7 +27,7 @@ SOURCES_CONTAINER="pipeline-sources"          # private; ND-GAIN ZIPs go under s
 LAW_NAME="tsi-dashboard-logs"
 CAE_NAME="tsi-dashboard-env"
 JOB_NAME="tsi-pipeline-refresh"
-ALERT_EMAIL="${ALERT_EMAIL:?set ALERT_EMAIL to the client-owned address that receives failure alerts}"
+ALERT_EMAIL="${ALERT_EMAIL:?set ALERT_EMAIL to the PlanCatalyst-owned address that receives failure alerts}"
 ACTION_GROUP="tsi-pipeline-alerts"
 
 az account set --subscription "$SUBSCRIPTION"

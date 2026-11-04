@@ -24,13 +24,18 @@ worldbank: # name must match client_factory.py
     # Population density (people per sq. km of land area)
     # See: https://data.worldbank.org/indicator/EN.POP.DNST
     - { code: "EN.POP.DNST", alias: "population_density_per_sq_km" }
-    # GDP (current US$) — used only to normalize SDG 2.a.2 ag flows before scoring.
+    # GDP (current US$), the 2022 anchor value for rebasing SDG 2.a.2 ag
+    # flows to constant dollars before scoring (src/calculating/pipeline.py).
     # Not a dashboard indicator; rows are stripped in score_indicators before scoring.
     - { code: "NY.GDP.MKTP.CD", alias: "gdp_current_usd" }
-    # GDP per capita (current US$) — mspi income component. Not NY.GDP.MKTP.CD.
+    # GDP (constant 2015 US$), used with the anchor above to express a
+    # country's GDP in 2022 dollars at every year before dividing aid into it.
+    # Not a dashboard indicator; rows are stripped in score_indicators before scoring.
+    - { code: "NY.GDP.MKTP.KD", alias: "gdp_constant_usd" }
+    # GDP per capita (current US$): mspi income component. Not NY.GDP.MKTP.CD.
     # See: https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
     - { code: "NY.GDP.PCAP.CD", alias: "gdp_per_capita_usd" }
-    # International Debt Statistics — mspi debt-risk + non-concessional components.
+    # International Debt Statistics: mspi debt-risk and non-concessional components.
     # Present-value external debt preferred; face-value is the per-country fallback.
     - { code: "DT.DOD.PVLX.GN.ZS", alias: "pv_ext_debt_pct_gni" }
     - { code: "DT.DOD.PVLX.EX.ZS", alias: "pv_ext_debt_pct_exports" }
@@ -168,7 +173,7 @@ undp_hdr: # name must match fetch_factory.py
         - { series_code: "GII_INDEX", column_prefix: "gii_" }
         # Human Development Index. Keep until the mspi composer is verified
         # live after the WDI/IDS fetch (docs/spec-macrosec-index.md). Taxonomy
-        # now maps mspi → MSPI_INDEX; this series is a verification baseline.
+        # now maps mspi to MSPI_INDEX; this series is a verification baseline.
         # Same file as GII; column prefix "hdi_".
         - { series_code: "HDI_INDEX", column_prefix: "hdi_" }
 
@@ -183,6 +188,12 @@ undp_hdr: # name must match fetch_factory.py
         # Multidimensional Poverty Index. Raw scale 0-1; higher = more poverty.
         # Country names need name->iso3 resolution (HDR uses UN long forms).
         - { series_code: "MPI_INDEX", sheet: "gMPI_Table2", country_col: 0, year_col: 2, value_col: 4, data_start_row: 5 }
+        # Table 1 carries one row per country at its latest survey wave only
+        # (no changes-over-time history). Read alongside Table 2 so a country
+        # whose latest wave has not yet reached Table 2 still gets a value;
+        # the cleaner dedupes on (country, survey end year) and keeps the
+        # Table 2 row when both tables report the same wave.
+        - { series_code: "MPI_INDEX", sheet: "gMPI_Table1", country_col: 0, year_col: 2, value_col: 4, data_start_row: 5 }
 
   settings:
     request_timeout: 60
@@ -194,8 +205,8 @@ undp_hdr: # name must match fetch_factory.py
 # ====================================================================
 # WGI is published as a per-release bulk XLSX (not in the regular World
 # Bank API). Six dimension sheets: va, pv, ge, rq, rl, cc.
-# `state` uses the 0-100 "Governance score" on `ge` → WGI_GOVEFF.
-# `mspi` fragility uses native EST estimates (−2.5 to +2.5) across all
+# `state` uses the 0-100 "Governance score" on `ge` to WGI_GOVEFF.
+# `mspi` fragility uses native EST estimates (-2.5 to +2.5) across all
 # six dimensions. Do not reuse WGI_GOVEFF for that component.
 # Cleaner reads these indicator rows from this yaml (not the on-disk
 # fetch manifest), so adding a series does not require re-downloading
@@ -212,7 +223,7 @@ wb_wgi: # name must match fetch_factory.py
         # Government Effectiveness 0-100. State-capacity proxy. Unchanged.
         - { series_code: "WGI_GOVEFF", sheet: "ge" }
         # Native EST estimates for the mspi fragility mean. score_col
-        # "estimate" is the cleaner's alias for the −2.5 to +2.5 column.
+        # "estimate" is the cleaner's alias for the -2.5 to +2.5 column.
         - { series_code: "VA.EST", sheet: "va", score_col: "estimate" }
         - { series_code: "PV.EST", sheet: "pv", score_col: "estimate" }
         - { series_code: "GE.EST", sheet: "ge", score_col: "estimate" }
@@ -236,8 +247,8 @@ scoring:
   #              values spread over 0 to 25, worse values over 25 to 100.
   # Changing this changes every published score: bump index_version and
   # update docs/data-contract.md and indicators/SCORING_AUDIT.md first.
-  # Mode not decided yet (requirements v2, section 1.4).
-  below_benchmark: clamp
+  # Decided (requirements v2, section 1.4): soft_floor is active.
+  below_benchmark: soft_floor
 
 # ====================================================================
 # General Settings
@@ -285,7 +296,7 @@ runtime:
   forecast_horizon_years: 5
   # Gate thresholds live in src.projections.quality_gates (assess_series);
   # do not use a local min_observations stand-in.
-  # forecast_min_observations: 5  # removed — use PR A MIN_OBSERVATIONS=8
+  # forecast_min_observations: 5  # removed, use PR A MIN_OBSERVATIONS=8
 
   # Copy every fetched raw file into paths.data_store/<run_id>/ with an
   # inventory, right after fetch. Env override PIPELINE_ARCHIVE_RAW.

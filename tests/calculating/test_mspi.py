@@ -12,6 +12,7 @@ from src.calculating.mspi import (
     WGI_EST_SERIES,
     append_mspi_rows,
     avg_wgi,
+    compose_mspi_component_rows,
     compose_mspi_rows,
     debt_stock_basis,
     debt_tier,
@@ -93,22 +94,39 @@ def test_pv_preferred_over_face_value():
     assert (v_gni.iloc[0], v_exp.iloc[0]) == (10.0, 20.0)
     assert basis.iloc[1] == "face_value"
     assert (v_gni.iloc[1], v_exp.iloc[1]) == (40.0, 70.0)
-    # one PV series is not enough — fall back rather than mix
+    # one PV series is not enough, so it falls back rather than mixing bases
     assert basis.iloc[2] == "face_value"
     assert (v_gni.iloc[2], v_exp.iloc[2]) == (50.0, 80.0)
 
 
 def test_debt_risk_bins_and_worst_ratio():
     # strong thresholds: gdp 55, exports 240, ds 21
-    # ratio 0.74 → Low (1.0); 0.75 → Moderate; 1.0 → High
+    # ratio 0.74 -> Low (1.0); 0.75 -> Moderate; 1.0 -> High. All three ratios
+    # present and well below their own thresholds, so the gdp ratio is the
+    # binding (worst) one in every row.
     tier = pd.Series(["strong", "strong", "strong"])
     n = norm_debt_risk(
         tier,
         pd.Series([55 * 0.74, 55 * 0.75, 55.0]),
-        pd.Series([None, None, None]),
-        pd.Series([None, None, None]),
+        pd.Series([1.0, 1.0, 1.0]),
+        pd.Series([1.0, 1.0, 1.0]),
     )
     assert list(n) == [1.0, 0.5, 0.0]
+
+
+def test_debt_risk_null_when_any_one_ratio_is_missing():
+    """Decided 2026-11-03: all three ratios required, no partial score."""
+    tier = pd.Series(["strong", "strong", "strong", "strong"])
+    n = norm_debt_risk(
+        tier,
+        pd.Series([55 * 0.1, None, 55 * 0.1, 55 * 0.1]),
+        pd.Series([240 * 0.1, 240 * 0.1, None, 240 * 0.1]),
+        pd.Series([21 * 0.1, 21 * 0.1, 21 * 0.1, None]),
+    )
+    assert n.iloc[0] == 1.0
+    assert pd.isna(n.iloc[1])
+    assert pd.isna(n.iloc[2])
+    assert pd.isna(n.iloc[3])
 
 
 def test_all_or_nothing_null_if_concessional_missing():
@@ -146,6 +164,39 @@ def test_weighted_sum_and_pipeline_invert():
 def test_taxonomy_and_factory_point_at_mspi():
     assert NON_SDG_FRONTEND_KEY_TO_SERIES_CODE["mspi"] == MSPI_SERIES_CODE
     assert MSPI_SERIES_CODE in IndicatorScorerFactory()._scorers
+    for key, code in (
+        ("mspi_inc", "MSPI_INC"),
+        ("mspi_frag", "MSPI_FRAG"),
+        ("mspi_debt", "MSPI_DEBT"),
+        ("mspi_conc", "MSPI_CONC"),
+    ):
+        assert NON_SDG_FRONTEND_KEY_TO_SERIES_CODE[key] == code
+        assert code in IndicatorScorerFactory()._scorers
+
+
+def test_component_rows_scale_to_0_100_and_skip_missing_inputs():
+    mid = math.exp(0.5 * (math.log(200) + math.log(150_000)))
+    df = _complete_components(gdp=mid, wgi=0.0, pv_gni=1.0, pv_exp=1.0, ds=1.0, conces=100.0)
+    rows = compose_mspi_component_rows(df)
+    by_code = {r["series_code"]: r["value"] for _, r in rows.iterrows()}
+    assert by_code["MSPI_INC"] == pytest.approx(50.0)
+    assert by_code["MSPI_FRAG"] == pytest.approx(50.0)
+    assert by_code["MSPI_DEBT"] == pytest.approx(100.0)
+    assert by_code["MSPI_CONC"] == pytest.approx(100.0)
+
+    # Drop concessionality: the other three components still publish, but
+    # MSPI_CONC does not, and the composite (which needs all four) is empty.
+    partial = df[df["series_code"] != "DT.DOD.ALLC.ZS"]
+    assert compose_mspi_rows(partial).empty
+    partial_rows = compose_mspi_component_rows(partial)
+    assert set(partial_rows["series_code"]) == {"MSPI_INC", "MSPI_FRAG", "MSPI_DEBT"}
+
+
+def test_append_mspi_rows_includes_components():
+    df = _complete_components()
+    work = append_mspi_rows(df)
+    for code in ("MSPI_INDEX", "MSPI_INC", "MSPI_FRAG", "MSPI_DEBT", "MSPI_CONC"):
+        assert (work["series_code"] == code).any()
 
 
 def test_norm_nonconcessional_inverts_share():

@@ -19,13 +19,21 @@ export type Subdomain = {
 export type Indicator = {
   key: string;
   label: string;
-  sdg: string;
+  sdg: string | null;
   source: string;
   unit: string;
   pillar: string;
   subdomain: string;
   rawDirection: string;
   scoredDirection: string;
+  /**
+   * Optional, added schemaVersion 1.1.0 (2026-11-03). false means the
+   * indicator has its own card and timeseries row but is excluded from its
+   * subdomain/pillar basket average (the mspi_* components). Absent, or
+   * true, means it is a basket member; treat a missing key as true for
+   * payloads published before this field existed.
+   */
+  aggregate?: boolean;
 };
 
 export type MetaPayload = {
@@ -47,7 +55,7 @@ export type MetaPayload = {
 
 export type CountryScores = Record<string, number | null>;
 
-/** docs/data-contract.md §3.1 — why an indicator is null, not just that it is. */
+/** docs/data-contract.md §3.1: why an indicator is null, not just that it is. */
 export type IndicatorStatusValue = "scored" | "out_of_scope" | "incomplete_data";
 
 export type IndicatorStatus = {
@@ -72,7 +80,7 @@ export type CountriesPayload = CountryPayload[];
 
 export type TimeseriesPayload = Record<string, Record<string, Array<number | null>>>;
 
-/** docs/data-contract.md §8 — join only on iso3 × indicator_code × year. */
+/** docs/data-contract.md §8: join only on iso3 x indicator_code x year. */
 export type ProjectionStatus = "forecast" | "unavailable";
 
 export type ProjectionRow = {

@@ -21,9 +21,14 @@ from src.validation.rules import RULES, Finding, Inputs
 REPORT_JSON = "data_quality_report.json"
 REPORT_MD = "data_quality_report.md"
 
-# Series whose source is genuinely lumpy year to year (aid disbursements),
-# where a sawtooth is real and reported as a warning instead of a block.
-LUMPY_SERIES = ("DC_TOF_AGRL",)
+# Series whose source is genuinely lumpy year to year, where a sawtooth is
+# real and reported as a warning instead of a block.
+# - DC_TOF_AGRL: aid disbursements.
+# - MSPI_DEBT: discrete tier/bin scorer (src/calculating/mspi.py
+#   norm_debt_risk); a ratio hovering near a strong/medium/weak threshold
+#   genuinely flips the bin year to year. Published standalone since
+#   2026-11-03 (previously only visible blended into MSPI_INDEX's average).
+LUMPY_SERIES = ("DC_TOF_AGRL", "MSPI_DEBT")
 
 
 class DataQualityError(RuntimeError):

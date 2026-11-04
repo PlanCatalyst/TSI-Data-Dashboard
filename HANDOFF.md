@@ -1,4 +1,4 @@
-# Handoff and Execution Context — PlanCatalyst Data Dashboard
+# Execution Context: PlanCatalyst Data Dashboard
 
 > Active onboarding and execution guide. Last updated **2026-10-17**.
 
@@ -22,7 +22,7 @@ Three things define the current state:
 (completion line, managed-identity credential, Blob-sourced ND-GAIN, env
 overrides). The Azure Container Apps Job is defined in
 `infra/container-apps-job.sh` (manual trigger, 3h timeout, failure email alert) but is
-**not yet provisioned**. Refresh is manual either way; there is no cron. Staff procedure: `docs/playbook/`. Engineer path:
+**not yet provisioned**. Refresh is manual either way; there is no cron. Operating procedure: `docs/playbook/`. Engineer path:
 `docs/runbook-refresh.md`. Scope and status: `docs/requirements-v2.md`.
 
 ## 1) Project at a glance
@@ -50,7 +50,7 @@ Contract source of truth: `docs/data-contract.md`
 
 **Publish is now wired:** `orchestrator.py` calls `publish_dashboard` at the end of the run (`622e3bf`). The full chain - fetch → clean → score → upload → publish - executes in one command. Dry-run mode (`upload_azure: false`) writes JSON to `data/organized/v1/`; live mode (`upload_azure: true`) pushes to the public payload container under `publish.dashboard_prefix`.
 
-## 3) Load-bearing invariants
+## 3) Required invariants
 
 1. Frontend-facing scores are `higher_is_better`.
 2. `iso3` is canonical key across all contract files.
@@ -62,22 +62,22 @@ Contract source of truth: `docs/data-contract.md`
 
 From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 
-- ~~`gii`~~ — **Closed 2026-05-17** (`UNDPHDRFetcher`).
-- ~~`mpi`~~ — **Closed 2026-05-17** (`UNDPHDRFetcher`).
-- ~~`ndgain` composite~~ — **Closed 2026-05-17** (published `vulnerability.csv`).
-- ~~`state`~~ — **Closed 2026-05-17** (WGI Government Effectiveness).
-- ~~`conces`~~ — Replaced by `hdi` (2026-06-01), then by contract key **`mspi`**
-  (2026-09-19) after the `mspi` spec arrived. Composer wired; taxonomy maps
+- ~~`gii`~~ , **Closed 2026-05-17** (`UNDPHDRFetcher`).
+- ~~`mpi`~~ , **Closed 2026-05-17** (`UNDPHDRFetcher`).
+- ~~`ndgain` composite~~ , **Closed 2026-05-17** (published `vulnerability.csv`).
+- ~~`state`~~ , **Closed 2026-05-17** (WGI Government Effectiveness).
+- ~~`conces`~~ , Replaced by `hdi` (2026-06-01), then by contract key **`mspi`**
+  (2026-09-19) once the `mspi` design was finalized. Composer wired; taxonomy maps
   `mspi` → `MSPI_INDEX`. See `docs/spec-macrosec-index.md`. Scored 2026-09-19
   at 117 countries vs HDI 193; since 2026-09-24 non-covered
   countries are excluded rather than substituted, so `mspi` is cleared for the
   live snapshot.
-- ~~Orchestrator → publish wiring~~ — **Closed 2026-07-03** (`622e3bf`). Full pipeline runs in one command.
-- ~~`popdens` series_code missing~~ — **Closed** (`622e3bf`). WB cleaner now emits `EN.POP.DNST`.
+- ~~Orchestrator → publish wiring~~ , **Closed 2026-07-03** (`622e3bf`). Full pipeline runs in one command.
+- ~~`popdens` series_code missing~~ , **Closed** (`622e3bf`). WB cleaner now emits `EN.POP.DNST`.
 - ~~`popdens` scorer formula saturating~~ - **Closed 2026-07-03** (`b19f1a8`). Banded 0/25/50/75/100 formula adopted from `indicators.yaml`. Display direction decision (2026-09-17): keep scored + inverted; dense countries display low.
-- ~~Production `npm run build`~~ — **Closed** (`b88f74a`).
+- ~~Production `npm run build`~~ , **Closed** (`b88f74a`).
 - ~~Frontend hosting~~ - **Closed 2026-07-03** (`08d96e1`). Deployed to Azure Static Web Apps.
-- `VITE_CONTRACT_BASE_URL` — **set** in `dashboard/.env.production` and the Blob endpoint returns
+- `VITE_CONTRACT_BASE_URL` , **set** in `dashboard/.env.production` and the Blob endpoint returns
   200. The file is gitignored, so a fresh clone silently falls back to bundled fixtures. See
   `docs/runbook-refresh.md`.
 - ~~**Storage account ownership unconfirmed.**~~ **Resolved 2026-09-29:** the storage account is in
@@ -87,7 +87,7 @@ From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 - ~~**No `.env` at repo root.**~~ **Closed 2026-09-29.** The pipeline service principal exists;
   `.env` holds the four `AZURE_*` values locally and is gitignored. The service principal secret
   expires, so a refresh after its expiry needs a rotated secret.
-- ~~Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3)~~ — **Closed 2026-09-24.**
+- ~~Stale `data/clean/unsdg/un_sdg_clean.csv` (M49 codes vs ISO3)~~ , **Closed 2026-09-24.**
   Verified: 234 distinct country codes on disk, all ISO3, none numeric.
 - ~~Stale local fixtures `dashboard/public/v1/` (May 17)~~ - **Regenerated 2026-10-15.**
 - ~~ACR push rights blocked~~ - **Superseded.** The 2026-09-04 descope of containerised refresh was
@@ -98,16 +98,16 @@ From `indicators/SCORING_AUDIT.md` and git history (as of 2026-07-04):
 
 **✅ Scoring bugs from the 2026-06-28 output: all closed 2026-07-07 (GitHub issues #3–#6).**
 Verified again 2026-09-04 against `data/interim/validated/`.
-- `agoda` (#3) — **Fixed.** `GoalRatioScorer(goal=0.02)` now applied after normalising raw
+- `agoda` (#3) , **Fixed.** `GoalRatioScorer(goal=0.02)` now applied after normalising raw
   USD-millions to ag-flow/GDP. 152 countries, 0% of rows at 100. Previously pinned the `ag` pillar
   to 100 for 182/216.
-- `susag` (#4) — **Fixed.** `SimpleDirectionalScorer` on the 0–100 proportion scale, replacing a
+- `susag` (#4) , **Fixed.** `SimpleDirectionalScorer` on the 0–100 proportion scale, replacing a
   scorer built for a 1–5 band. Scores now vary; sparse coverage (~10 countries) is inherent to the
   source, not a defect.
-- `clean` (#5) — **Fixed.** `EG_EGY_CLEAN` rows were absent from a stale on-disk snapshot. Re-fetch
+- `clean` (#5) , **Fixed.** `EG_EGY_CLEAN` rows were absent from a stale on-disk snapshot. Re-fetch
   and clean restored 8,730 rows across 194 countries. `clean.csv` is produced. 28/28 indicators
   reach scoring.
-- `popdens` (#6) — **Verified.** The banded fix produces 0/25/50/75/100 in a fresh run.
+- `popdens` (#6) , **Verified.** The banded fix produces 0/25/50/75/100 in a fresh run.
 - **Live as of 2026-09-29** (`refresh-20260929`). The pre-fix snapshot lag is closed.
 
 - Automation / alerting - **coded, not provisioned.** `infra/container-apps-job.sh` defines the
@@ -157,14 +157,14 @@ See `TASKS.md` for deliverables and milestones.
 9. `mspi` coverage rule applied 2026-09-24 and `mspi` is live. Open: About-page copy naming the excluded set.
 10. Container Apps Job provisioning (service principal and role assignments) is pending.
 
-### Phase 2 — QA / validation
+### Phase 2 , QA / validation
 
 5. Cleaning validation and data sanity checks.
-6. CI hardening — **Done 2026-09-16.** Backend tests, Python/npm dependency
+6. CI hardening , **Done 2026-09-16.** Backend tests, Python/npm dependency
    audits, frontend production build, container build, and CodeQL run on
    `main` and pull requests.
 
-### Phase 3 — Ops
+### Phase 3 , Ops
 
 7. PlanCatalyst-operable refresh: **code complete 2026-10-14, Azure provisioning
    pending.** Manual Container Apps Job with managed identity, newest ND-GAIN

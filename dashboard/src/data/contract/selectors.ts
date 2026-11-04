@@ -25,9 +25,18 @@ export function sortCountriesByName(countries: CountriesPayload): CountriesPaylo
 
 // ── Indicator grouping helpers ───────────────────────────────────────────────
 
+// aggregate: false (schemaVersion 1.1.0, 2026-11-03) marks an indicator that
+// publishes its own card and timeseries row but does not enter a subdomain
+// or pillar basket average. Absent/true means "basket member" so payloads
+// published before this field existed still group every indicator.
+function isBasketMember(ind: { aggregate?: boolean }): boolean {
+  return ind.aggregate !== false;
+}
+
 export function groupIndicatorKeysByPillar(meta: MetaPayload): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const ind of meta.indicators) {
+    if (!isBasketMember(ind)) continue;
     (out[ind.pillar] ??= []).push(ind.key);
   }
   return out;
@@ -36,6 +45,7 @@ export function groupIndicatorKeysByPillar(meta: MetaPayload): Record<string, st
 export function groupIndicatorKeysBySubdomain(meta: MetaPayload): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const ind of meta.indicators) {
+    if (!isBasketMember(ind)) continue;
     (out[ind.subdomain] ??= []).push(ind.key);
   }
   return out;

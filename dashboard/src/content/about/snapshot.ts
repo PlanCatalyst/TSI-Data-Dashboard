@@ -6,7 +6,7 @@
  * <id>" instead of presenting these as current (REQ9.13).
  */
 
-export const SNAPSHOT_ID = "20261015T235428Z";
+export const SNAPSHOT_ID = "20261103T233908Z";
 
 // ── Brazil, adolescent births (section 6) ───────────────────────────────────
 // Score for each year when the pipeline took the first row it met in the
@@ -26,10 +26,11 @@ export const BRAZIL_ABR = {
 } as const;
 
 // ── Brazil, climate vulnerability (section 5) ───────────────────────────────
-// Raw ND-GAIN vulnerability (0 to 1; lower is better) and the score under the
-// current clamp versus the proposed soft floor. The soft floor maps the 0.46
-// benchmark to 75 and spreads better values over 75 to 100 down to the best
-// value in the data (Norway, 0.261).
+// Raw ND-GAIN vulnerability (0 to 1; lower is better), and the score under the
+// retired clamp rule versus the soft floor now in effect. The soft floor maps
+// the 0.46 benchmark to 75 and spreads better values over 75 to 100 down to
+// the best value in the data (Norway, 0.261). softFloor below matches the
+// published score for BRA/ndgain in the 2026-11-03 snapshot exactly.
 
 export const BRAZIL_CLIMATE = {
   iso3: "BRA",
@@ -60,25 +61,26 @@ export const TB_RECORD = {
 
 export const AUDIT = {
   /** Fetch the audit ran against. */
-  fetchRun: "20261015T001106Z",
+  fetchRun: "20261103T231536Z",
   rawRecords: 365000,
   before: { expected: 97070, match: 97011, mismatch: 0, missing: 59, extra: 557 },
   after: { expected: 97038, match: 97038, mismatch: 0, missing: 0, extra: 15 },
   tolerance: 0.15,
   unexplainedDrops: 0,
-  /** Defects the audit found, all fixed except the one with a decision pending. */
+  /** Defects the audit found. All are fixed and locked. */
   defects: [
     { id: "aid-needs-gdp", label: "Agriculture aid scored without national income", rows: 60, status: "locked" },
     { id: "national-totals-only", label: "City-only rows shown as national", rows: 482, status: "locked" },
     { id: "country-codes", label: "Andorra governance series lost to an old country code", rows: 26, status: "locked" },
     { id: "survey-years", label: "One poverty survey wave dropped", rows: 1, status: "locked" },
-    { id: "debt-risk-input", label: "Debt risk scored from a partial input", rows: 15, status: "pending" },
+    { id: "debt-risk-input", label: "Debt risk scored from a partial input", rows: 15, status: "locked" },
   ],
 } as const;
 
 // ── What changed since the last release (section 14) ────────────────────────
 
 export const CHANGELOG: { date: string; text: string }[] = [
+  { date: "2026-11-03", text: "Every benchmark-based indicator now scores on a soft floor: 75 at the benchmark, rising to 100 for the best country on record, instead of 100 for every country past the benchmark. Four macro-security components (income, fragility, debt risk, concentration) are now published on their own, alongside the combined index. Agriculture aid is measured against national income in constant 2022 dollars on both sides of the ratio. Debt risk now requires all three input ratios; a partial set shows no score." },
   { date: "2026-10-19", text: "Renewable energy and family planning now score against a floor: 0 at or below the benchmark (a 20% share; the 77.2% global average), rising to 100 for the best country on record." },
   { date: "2026-10-15", text: "Independent check: we rebuilt every published score from the raw source files. 97,038 of 97,038 match." },
   { date: "2026-10-15", text: "We fixed four publishing problems: aid without national income, city-only rows, a retired country code and a dropped survey year." },

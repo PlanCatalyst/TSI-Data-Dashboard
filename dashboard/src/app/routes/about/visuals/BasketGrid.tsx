@@ -4,11 +4,8 @@ import { seriesColor } from "../../../../components/scores/series-color";
 import { BASKET_MIN_PRESENCE, BASKET_WINDOW_YEARS, computePillarTimeseries, getCountryByIso3 } from "../../../../data/contract/selectors";
 import { useDashboardData } from "../../../../state/dashboard-context";
 import { LineChart, type Series } from "../charts";
-import { Segmented } from "../../../../components/controls/Segmented";
 import { ShowAsTable } from "../ShowAsTable";
-import { basketMembers, fmt1, indicatorLabel, plainMeanSeries, scoredYears, seriesOf, shortLabel } from "./data";
-
-type Rule = "basket" | "old";
+import { basketMembers, fmt1, indicatorLabel, scoredYears, seriesOf, shortLabel } from "./data";
 
 const round1 = (v: number | null) => (v == null ? null : Math.round(v * 10) / 10);
 
@@ -16,14 +13,12 @@ const round1 = (v: number | null) => (v == null ? null : Math.round(v * 10) / 10
  * Pick a country and a pillar. Each row is an indicator and each column a
  * year; a filled cell means a value exists. Indicators outside the basket are
  * pale. The bottom row marks the years the basket rule scores. The chart
- * compares the overall line under the basket rule with the retired rule that
- * averaged whatever reported each year.
+ * shows the overall line under the locked basket rule.
  */
 export function BasketGrid() {
   const { meta, countries, timeseries } = useDashboardData();
   const [iso3, setIso3] = useState("BRA");
   const [pillarKey, setPillarKey] = useState("ctx");
-  const [rule, setRule] = useState<Rule>("old");
 
   const sorted = useMemo(() => countries.slice().sort((a, b) => a.name.localeCompare(b.name)), [countries]);
   const country = getCountryByIso3(countries, iso3) ?? sorted[0];
@@ -37,12 +32,6 @@ export function BasketGrid() {
     const scored = scoredYears(members, n);
 
     const basketPillars = computePillarTimeseries(country, timeseries, meta);
-    const plainPillars = meta.pillars.map((p) =>
-      plainMeanSeries(
-        meta.indicators.filter((i) => i.pillar === p.key).map((i) => seriesOf(timeseries, country.iso3, i.key, n)),
-        n,
-      ),
-    );
     const overallNew = Array.from({ length: n }, (_, i) => {
       // Overall needs the six core pillars; socio-economic performance (pri) joins the mean when present.
       const core = meta.pillars.filter((p) => p.key !== "pri").map((p) => basketPillars[p.key][i]);
@@ -51,23 +40,14 @@ export function BasketGrid() {
       const vals = extra != null ? [...(core as number[]), extra] : (core as number[]);
       return vals.reduce((a, b) => a + b, 0) / vals.length;
     });
-    const overallOld = Array.from({ length: n }, (_, i) => {
-      const vals = plainPillars.map((s) => s[i]).filter((v): v is number => v != null);
-      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-    });
-    return { n, inds, members, inBasket, scored, overallNew, overallOld };
+    return { n, inds, members, inBasket, scored, overallNew };
   }, [meta, country, timeseries, pillarKey]);
 
   if (!meta || !country || !calc) return null;
 
   const years = meta.years;
   const series: Series[] =
-    rule === "basket"
-      ? [{ id: "new", label: "Basket rule", color: "var(--pc-blue)", values: calc.overallNew.map(round1), dots: true }]
-      : [
-          { id: "old", label: "Retired rule: whatever reported", color: "var(--need-severe)", values: calc.overallOld.map(round1), dots: true },
-          { id: "new", label: "Basket rule", color: "var(--pc-blue)", values: calc.overallNew.map(round1), dots: true },
-        ];
+    [{ id: "new", label: "Basket rule", color: "var(--pc-blue)", values: calc.overallNew.map(round1), dots: true }];
   const pillarLabel = meta.pillars.find((p) => p.key === pillarKey)?.label ?? pillarKey;
 
   return (
@@ -135,37 +115,24 @@ export function BasketGrid() {
         means the indicator is outside the basket; a solid green cell means the year is scored.
       </p>
 
-      <div className="wiki-viz-bar">
-        <Segmented
-          label="Overall line rule"
-          value={rule}
-          onChange={setRule}
-          options={[
-            { value: "basket", label: "Basket rule" },
-            { value: "old", label: "Show retired rule" },
-          ]}
-        />
-      </div>
       <LineChart
         years={years}
         series={series}
-        ariaLabel={`Overall score for ${country.name} by year under the basket rule${rule === "old" ? " and the retired rule" : ""}`}
+        ariaLabel={`Overall score for ${country.name} by year under the basket rule`}
         format={(v) => fmt1(v)}
       />
       <p className="small">
-        Overall score for {country.name}. Under the basket rule the overall score appears only when the six core pillars
-        have a score. The retired rule averaged whichever pillars reported, so a change in which data was published
-        looked like a change in the country.
+        Overall score for {country.name}. Under the basket rule, locked since 2026-10-14, the overall score appears
+        only when the six core pillars have a score.
       </p>
       <ShowAsTable
         caption={`${country.name}: ${pillarLabel} basket and overall score by year`}
-        columns={["Year", "Indicators with a value", "Scored", "Overall (basket rule)", "Overall (retired rule)"]}
+        columns={["Year", "Indicators with a value", "Scored", "Overall (basket rule)"]}
         rows={years.map((y, i) => [
           y,
           calc.members.filter((m) => m[i] != null).length,
           calc.scored[i] ? "yes" : "no",
           round1(calc.overallNew[i]),
-          round1(calc.overallOld[i]),
         ])}
       />
     </div>

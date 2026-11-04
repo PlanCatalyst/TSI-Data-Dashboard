@@ -23,7 +23,7 @@ export const section: SectionContent = {
       heading: "What it fixes",
       body: [
         "If we averaged whatever reported each year, the set of indicators in the average would change from year to year. Governance data was published only every other year before 2002, so a plain average swung between two different sets and drew a zigzag through almost every country. No single value was wrong.",
-        "The cost is that some countries lose early years, because too few indicators reported then. Use the toggle in the chart to see the old way.",
+        "The cost is that some countries lose early years, because too few indicators reported then.",
       ],
     },
     {
@@ -31,7 +31,7 @@ export const section: SectionContent = {
       heading: "The \"n of m\" badge",
       body: [
         "In the country panel, a pillar row shows how many of its indicators have a value in the year the score comes from. A score resting on one indicator out of three can swing a lot when that one source changes, so the badge lets you judge how much weight it deserves.",
-        "We could hide thin scores entirely, but that would remove whole pillars for many countries. We have not decided to do that.",
+        "We will not hide thin scores with a minimum-coverage rule, because that would remove whole pillars for many countries. The badge is the chosen way to show coverage instead.",
       ],
     },
     {
@@ -45,7 +45,7 @@ export const section: SectionContent = {
   ],
   dashboardLink: { label: "See Brazil on the map", to: "/map?country=BRA" },
   provenance: {
-    updated: "2026-10-15",
+    updated: "2026-11-03",
     decisionIds: ["basket-rule", "indicator-count-badge", "overall-core-pillars"],
   },
 };

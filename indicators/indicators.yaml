@@ -11,8 +11,8 @@ description: >
   mortality) are inverted during scoring. See each indicator's `scoring` note.
 
   Previous structure (Domain 1: Impact / Domain 2: Feasibility / Domain 3: Priority
-  Alignment) was collapsed into this pillar layout after reconciling with the
-  client-provided frontend mock.
+  Alignment) was collapsed into this pillar layout to match the frontend's
+  display structure.
 
 pillars:
 
@@ -653,12 +653,12 @@ pillars:
               PlanCatalyst composite (index_version 1.1) of four equally weighted
               World Bank components: log GDP per capita (NY.GDP.PCAP.CD), mean of
               six WGI EST dimensions, an LIC-DSF debt-risk proxy from IDS, and
-              inverted concessional-debt share (DT.DOD.ALLC.ZS). Client spec:
+              inverted concessional-debt share (DT.DOD.ALLC.ZS). Spec:
               docs/spec-macrosec-index.md. Replaces the interim Human Development
               Index occupant of this slot (frontend_key `hdi`, 2026-06-01 to
               2026-09-19) and the original Concessionality Index (`conces`).
             available_for_all_countries: >
-              No — IDS components cover Debtor Reporting System reporters
+              No. IDS components cover Debtor Reporting System reporters
               (mostly low- and middle-income). Any missing component nulls the
               whole composite.
             unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
@@ -671,3 +671,81 @@ pillars:
               inverts once. HDI_INDEX is still fetched as a verification
               baseline and is no longer the taxonomy target. See
               docs/spec-macrosec-index.md.
+
+          - frontend_key: mspi_inc
+            id: null
+            aggregate: false
+            name: "Per capita income"
+            definition: >
+              One of the four inputs to the Country Macro Socio-Economic
+              Performance Index (mspi), published on its own so the input is
+              visible even where the composite itself is null. Log-scaled GDP
+              per capita (NY.GDP.PCAP.CD) between $200 and $150,000, 0-100
+              higher-is-better. Not an aggregation member: indicators.yaml
+              `aggregate: false` keeps this out of the pri/macrosec subdomain
+              score, which is carried by mspi alone. Spec:
+              docs/spec-macrosec-index.md.
+            available_for_all_countries: "No. Null wherever NY.GDP.PCAP.CD is null."
+            unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
+            data_source: "World Bank WDI"
+            scoring: >
+              src/calculating/mspi.py norm_income, scaled to 0-100.
+              SimpleDirectionalScorer flips to pipeline vulnerability
+              orientation; publish inverts once, the same as MSPI_INDEX.
+
+          - frontend_key: mspi_frag
+            id: null
+            aggregate: false
+            name: "Vulnerability and fragility"
+            definition: >
+              One of the four inputs to mspi, published on its own. Mean of
+              six World Bank WGI EST dimensions (-2.5 to +2.5), 0-100
+              higher-is-better. Not an aggregation member: see mspi_inc.
+              Spec: docs/spec-macrosec-index.md.
+            available_for_all_countries: "No. Null wherever every WGI EST dimension is null."
+            unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
+            data_source: "World Bank WGI"
+            scoring: >
+              src/calculating/mspi.py norm_fragility, scaled to 0-100.
+              SimpleDirectionalScorer flips to pipeline vulnerability
+              orientation; publish inverts once, the same as MSPI_INDEX.
+
+          - frontend_key: mspi_debt
+            id: null
+            aggregate: false
+            name: "Risk of debt distress"
+            definition: >
+              One of the four inputs to mspi, published on its own. LIC-DSF
+              carrying-capacity proxy against three ratios (external debt to
+              GNI, external debt to exports, debt service to exports),
+              0-100 higher-is-better. Requires all three ratios: a
+              country-year missing one scores null rather than a falsely
+              favourable partial result (decided 2026-11-03). Not an
+              aggregation member: see mspi_inc. Spec:
+              docs/spec-macrosec-index.md.
+            available_for_all_countries: >
+              No. Null unless all three debt ratios and the WGI tier are
+              present for that country-year.
+            unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
+            data_source: "World Bank International Debt Statistics and WGI"
+            scoring: >
+              src/calculating/mspi.py norm_debt_risk, scaled to 0-100.
+              SimpleDirectionalScorer flips to pipeline vulnerability
+              orientation; publish inverts once, the same as MSPI_INDEX.
+
+          - frontend_key: mspi_conc
+            id: null
+            aggregate: false
+            name: "Non-concessional external debt"
+            definition: >
+              One of the four inputs to mspi, published on its own. Inverted
+              concessional-debt share (DT.DOD.ALLC.ZS), 0-100
+              higher-is-better. Not an aggregation member: see mspi_inc.
+              Spec: docs/spec-macrosec-index.md.
+            available_for_all_countries: "No. Null wherever DT.DOD.ALLC.ZS is null."
+            unit_or_measure: "Index 0-100 (higher = better before pipeline invert)"
+            data_source: "World Bank International Debt Statistics"
+            scoring: >
+              src/calculating/mspi.py norm_nonconcessional, scaled to 0-100.
+              SimpleDirectionalScorer flips to pipeline vulnerability
+              orientation; publish inverts once, the same as MSPI_INDEX.

@@ -1,6 +1,6 @@
 """Country reference table used to resolve IDS scope for the mspi index.
 
-Scope rule source: client spec revision 2026-09-23, docs/spec-macrosec-index.md.
+Scope rule source: spec revision 2026-09-23, docs/spec-macrosec-index.md.
 """
 
 import pandas as pd

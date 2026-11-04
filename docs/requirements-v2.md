@@ -28,7 +28,7 @@ non-engineer every six months**.
 |---|-----|------|----------------------------|
 | R1 | Brazil climate adaptation shows a flat 100 across the whole time span; is the data right? | Data faithfulness | Data is correct. The scoring rule pins every country better than the global benchmark to a flat 100. See §1. |
 | R2 | Side panel is too crowded when you click a country | UX | Confirmed from review screenshots. See §2. |
-| R3 | A playbook document staff can follow every six months, written for non-engineers | Documentation | Does not exist. The runbook is engineer-facing. See §4. |
+| R3 | A playbook document a non-engineer operator can follow every six months | Documentation | Does not exist. The runbook is engineer-facing. See §4. |
 | R4 | Refresh the data themselves from Azure, without a laptop or a terminal | Operations | Status 2026-10-17: coded, not yet provisioned (manual Container Apps Job in `infra/container-apps-job.sh`). Until provisioned, publishing is a manual Python run. See §3. |
 | R5 | Account housekeeping: project contact moves to the maintainer; the PlanCatalyst account is retired later | Admin | No engineering work. See §5. |
 | R6 | Make the UI modern, intuitive and smooth; the original spec was a single clogged HTML mock | UX / design system | Confirmed drift in the codebase. See §7. |
@@ -222,7 +222,7 @@ once, which is too much data at once.
 
 ### 3.1 Requirement
 
-PlanCatalyst staff run the six-month refresh themselves, from Azure, so they
+A non-engineer operator runs the six-month refresh from Azure, so they
 understand how the backend works. Sketch: drop a new ND-GAIN ZIP into
 Blob, press a run button or restart a container, and see "Pipeline Run
 Complete" in the logs. The exact mechanism is open; pick
@@ -268,14 +268,14 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
 
 ### 3.5 Non-requirements
 
-- No scheduled trigger. Manual only, so staff decide when a refresh
+- No scheduled trigger. Manual only, so the operator decides when a refresh
   happens and nothing runs unattended.
 - No web UI beyond the Azure portal.
 - No change to the frontend contract.
 
 ### 3.6 Acceptance criteria
 
-- AC3.1 A PlanCatalyst staff member with Contributor on the resource group can
+- AC3.1 A non-engineer operator with Contributor access on the resource group can
   complete a refresh end to end using only the playbook and the portal.
 - AC3.2 Dropping a ZIP with a new year into `sources/ndgain/` and running the
   job produces a `/v1/` snapshot whose `meta.json` shows the new source
@@ -302,7 +302,7 @@ no terminal.** Any step that needs `az`, Python or git fails this requirement.
 
 ### 4.1 Audience
 
-PlanCatalyst staff. No engineering background assumed. The document must let
+A non-engineer operator. No engineering background assumed. The document must let
 them understand how the application works in the backend.
 
 ### 4.2 Required contents
@@ -327,7 +327,7 @@ them understand how the application works in the backend.
 
 - AC4.1 Delivered as `.docx` and kept in the repo under `docs/playbook/`
   with the screenshots as separate image files so they can be refreshed.
-- AC4.2 A dry run: a PlanCatalyst staff member follows the document once with the maintainer
+- AC4.2 A dry run: a non-engineer operator follows the document once with the maintainer
   observing but not helping. Any step they stall on gets rewritten.
 - AC4.3 No command-line instruction anywhere in the document.
 
@@ -412,8 +412,8 @@ C1. Container Apps Job + Blob-sourced ND-GAIN + completion line + alert (§3)
         execution, AC3.2 and AC3.3 checks against the real job.
 C2. Playbook draft (§4) ............ text drafted in docs/playbook/playbook.md;
         screenshots and .docx wait on C1 execution
-C3. Playbook dry run with PlanCatalyst staff (§4, AC4.2) ... open
-C4. Vault and HANDOFF updates, close out ... running
+C3. Playbook dry run with a non-engineer operator (§4, AC4.2) ... open
+C4. HANDOFF updates, close out ... running
 ```
 AC3.5 runbook reduced to the engineer path ... done
 
@@ -571,7 +571,7 @@ rules separate content. Generous whitespace, photography-led, no shadows.
 
 ## 8. Out of scope for v2
 
-- Any analytics or usage tracking (out of scope by decision, see vault).
+- Any analytics or usage tracking (out of scope by decision).
 - Projection bands. Remove the placeholder or ship separately.
 - Changes to the pillar taxonomy or indicator list.
 - Scheduled or automatic refreshes.

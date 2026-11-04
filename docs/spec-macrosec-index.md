@@ -1,32 +1,30 @@
 # Country Macro Socio-Economic Performance Index
 
-Indicator specification for the `mspi` composite in the `pri/macrosec` slot, as implemented in
-`src/calculating/mspi.py`. There are two revisions:
+Design reference for the `mspi` composite in the `pri/macrosec` slot, as implemented in
+`src/calculating/mspi.py`. The design has gone through two iterations:
 
-| Revision | Date |
+| Iteration | Date |
 |---|---|
-| Original | 2026-09-17 |
-| **Updated (current)** | **2026-09-24** |
+| First | 2026-09-17 |
+| **Current** | **2026-09-24** |
 
-Both revisions carry `index_version: "1.0"`. **That is not mirrored here.** The updated revision adds a scope rule and a three-value status
-field, which changes output semantics, so this document tracks
-`source_doc_revision: 2026-09-23` alongside it. The source version string
-should be bumped. See "Delta against the original revision" below for what actually
-changed and what it costs us.
+Both carry `index_version: "1.0"` internally; that string has not been bumped to reflect the
+added scope rule and status field below, which change output semantics. See "Changes from the
+first iteration" below for what changed and its cost.
 
-The formula, weights, bounds, series list and debt-risk logic are **byte-for-byte
-unchanged** between revisions. Everything new is about which countries appear in
-the output and how a null is labelled.
+The formula, weights, bounds, series list and debt-risk logic are **unchanged** between
+iterations. Everything new is about which countries appear in the output and how a null is
+labelled.
 
-This composite **replaces the interim `hdi` stopgap** in the `pri / macrosec`
-slot. `hdi` stays live until the composite is wired, scored, and published.
+This composite **replaces the interim `hdi` stopgap** in the `pri / macrosec` slot. `hdi` stayed
+live until the composite was wired, scored, and published.
 
-**Status (2026-10-17):** that condition is met. `mspi` is live (republished 2026-09-29) and `hdi`
-no longer occupies the slot; the updated-revision scope rule and status model are implemented in
-`src/calculating/mspi.py` and carried to the frontend as the additive `indicatorStatus` field.
+**Status (2026-10-17):** `mspi` is live (published 2026-09-29) and `hdi` no longer occupies the
+slot; the current-iteration scope rule and status model are implemented in `src/calculating/mspi.py`
+and carried to the frontend as the additive `indicatorStatus` field.
 
 The pipeline still emits vulnerability-oriented scores (`higher = more need`).
-This spec is `higher_is_better`. Invert once at scoring
+This index is `higher_is_better`. Invert once at scoring
 (`pipeline_score = 100 - composite`) and nowhere else; the publish boundary
 then restores dashboard orientation.
 
@@ -53,9 +51,9 @@ re-baselining of the historical series.
 | Component | Lower | Upper |
 |---|---|---|
 | Income (log) | ln(200) | ln(150,000) |
-| Fragility (WGI avg) | −2.5 | +2.5 |
+| Fragility (WGI avg) | -2.5 | +2.5 |
 | Non-concessional debt | 0% | 100% |
-| Debt risk | categorical (0 / 0.5 / 1.0) | — |
+| Debt risk | categorical (0 / 0.5 / 1.0) | n/a |
 
 Refresh cadence: WGI and IDS are published annually, so roughly every other
 six-month refresh will show no change in those components. Surface the
@@ -66,7 +64,7 @@ progress.
 
 - **Measures:** economic output per person.
 - **Source:** World Bank WDI.
-- **Series:** `NY.GDP.PCAP.CD` — GDP per capita, current US$.
+- **Series:** `NY.GDP.PCAP.CD`, GDP per capita, current US$.
 - **Already in repo:** commented out in `src/config/settings.yaml`. Uncomment;
   do not confuse with `NY.GDP.MKTP.CD` (total GDP, used only to normalize
   `agoda`).
@@ -75,16 +73,16 @@ progress.
 norm_income = clip( (ln(gdp_pc) - ln(200)) / (ln(150000) - ln(200)), 0, 1 )
 ```
 
-## 2. Vulnerability & fragility (25%)
+## 2. Vulnerability and fragility (25%)
 
 - **Measures:** institutional quality, governance strength, political stability.
 - **Source:** World Bank Worldwide Governance Indicators (WGI).
 - **Series:** average of `VA.EST`, `PV.EST`, `GE.EST`, `RQ.EST`, `RL.EST`,
-  `CC.EST` (each approx. −2.5 to +2.5, higher = better). Skip missing
+  `CC.EST` (each approx. -2.5 to +2.5, higher = better). Skip missing
   dimensions, then average what is present.
-- **Do not reuse `WGI_GOVEFF`.** That series is the 0–100 percentile column
+- **Do not reuse `WGI_GOVEFF`.** That series is the 0-100 percentile column
   from the `ge` sheet only, used by `state`. This component needs the **EST
-  estimate** on the native −2.5 to +2.5 scale, across all six dimensions.
+  estimate** on the native -2.5 to +2.5 scale, across all six dimensions.
   The existing WGI XLSX already contains those sheets.
 
 ```
@@ -92,7 +90,7 @@ avg_wgi = mean(available dimension scores)   # skip missing dimensions
 norm_fragility = clip( (avg_wgi + 2.5) / 5.0, 0, 1 )
 ```
 
-`avg_wgi` is reused by component 3 for debt-capacity tiering — compute once.
+`avg_wgi` is reused by component 3 for debt-capacity tiering; compute once.
 
 If fetching via the WB API instead of the XLSX, `source=3` is required. Do
 not mix source 3 codes with source 75 prefixed codes (`GOV_WGI_PV.EST` etc.).
@@ -112,20 +110,20 @@ Record which basis was used in an output column `debt_basis`
 (`present_value` | `face_value`).
 
 ```
-# Step 1 — debt-carrying-capacity tier
+# Step 1 - debt-carrying-capacity tier
 tier = "strong"  if avg_wgi >= -0.20
        "medium"  if -0.80 <= avg_wgi < -0.20
        "weak"    if avg_wgi < -0.80
        null      if avg_wgi unavailable
 
-# Step 2 — LIC-DSF thresholds by tier
+# Step 2 - LIC-DSF thresholds by tier
 THRESHOLDS = {
   weak:   { debt_gdp: 30, debt_exports: 140, ds_exports: 10 },
   medium: { debt_gdp: 40, debt_exports: 180, ds_exports: 15 },
   strong: { debt_gdp: 55, debt_exports: 240, ds_exports: 21 },
 }
 
-# Step 3 — PV preferred, face-value fallback
+# Step 3 - PV preferred, face-value fallback
 if PV series available:
     v_gdp, v_exp = PV_pct_GNI, PV_pct_exports          # "present_value"
 else:
@@ -135,7 +133,7 @@ r_gdp = v_gdp / THRESHOLDS[tier].debt_gdp
 r_exp = v_exp / THRESHOLDS[tier].debt_exports
 r_ds  = debt_service_pct_exports / THRESHOLDS[tier].ds_exports
 
-# Step 4–6
+# Step 4-6
 max_ratio = max(r_gdp, r_exp, r_ds)
 category  = "Low"      if max_ratio < 0.75
             "Moderate" if 0.75 <= max_ratio < 1.0
@@ -154,7 +152,7 @@ norm_debt_risk = 1.0 (Low) | 0.5 (Moderate) | 0.0 (High)
 - Omits the official debt-service-to-revenue ratio (no clean API series).
 - No forward-looking stress tests; cannot detect an actual "in distress"
   event, so the scale caps at High rather than the official 4th category.
-- WGI tier cutoffs (−0.20 / −0.80) are a calibration judgment, not published
+- WGI tier cutoffs (-0.20 / -0.80) are a calibration judgment, not published
   IMF values.
 - Thresholds were calibrated for concessional-borrower LICs. For upper-middle
   / high-income economies (IMF SRDSF) this is a rough directional read;
@@ -163,7 +161,7 @@ norm_debt_risk = 1.0 (Low) | 0.5 (Moderate) | 0.0 (High)
 ## 4. Non-concessional external debt (25%)
 
 - **Source:** World Bank IDS.
-- **Series:** `DT.DOD.ALLC.ZS` — concessional debt, % of total external debt.
+- **Series:** `DT.DOD.ALLC.ZS`, concessional debt, % of total external debt.
 
 ```
 raw = 100 - concessional_debt_pct
@@ -172,7 +170,7 @@ norm_nonconcessional = 1 - clip( raw / 100, 0, 1 )
 
 After inversion, a higher concessional share scores better.
 
-## Scope (updated revision, 2026-09-23)
+## Scope (current iteration, 2026-09-23)
 
 The index covers the World Bank **International Debt Statistics (IDS)** set,
 roughly 120 low- and middle-income economies (119 plus Guyana at the most
@@ -213,7 +211,7 @@ A country that was IDA in 1994 and is `LNX` today will be marked `out_of_scope`
 for its entire history. That is a defensible simplification, but it must be
 stated in the About copy rather than discovered by a reader.
 
-## Status and null handling (updated revision)
+## Status and null handling (current iteration)
 
 Every requested country appears in the output carrying a status. A null value
 alone is not sufficient, because two different conditions produce one.
@@ -225,23 +223,23 @@ alone is not sufficient, because two different conditions produce one.
 | `incomplete_data` | in scope, one or more components missing (see `missing_components`) | `null` |
 
 **The dashboard filters on `status`, never on `null`.** The distinction is a
-scope decision versus a data gap worth investigating, and collapsing them hides
+scope condition versus a data gap worth investigating, and collapsing them hides
 pipeline regressions: an in-scope country that silently loses a component would
 look identical to a high-income country that was never meant to be scored.
 
 `partial_scores: false`. An out-of-scope country is **not** given a partial
-score. The reasoning, which is correct and worth preserving: a score
+score. The reasoning, which holds and is worth preserving: a score
 built from only the two available components (income and governance) would be
 systematically inflated, because the two missing components are precisely the
 ones that could have pulled it down. Such a figure would not be a less precise
 version of the full score. It would sit in the same column as fully-computed
 scores while being biased upward.
 
-This supersedes the original revision's coverage warning, and it is the
+This supersedes the first iteration's coverage warning, and it is the
 mechanism that excludes countries without coverage, so that the index does not
 compare unlike countries.
 
-## Scope rule validated against live data (2026-09-24)
+## Scope rule checked against live data (2026-09-24)
 
 Ran the `lendingType` rule against the World Bank country endpoint and
 cross-checked it with the 117 countries `MSPI_INDEX` currently scores.
@@ -255,13 +253,12 @@ cross-checked it with the 117 countries `MSPI_INDEX` currently scores.
 
 Two things follow.
 
-**1. The rule and the specification's own stated count disagree.** The document says
-scope is "roughly 120 low- and middle-income economies (119 plus Guyana)". The
-rule as written yields 145. The 25-country gap is larger than the document's
-"approximates DRS reporting" caveat implies.
+**1. The rule and the documented coverage estimate disagree.** Coverage was estimated at
+roughly 120 low- and middle-income economies (119 plus Guyana). The rule as written yields 145.
+The 25-country gap is larger than the "approximates DRS reporting" caveat implies.
 
 **2. Roughly half the gap is mislabelled by construction.** Of the 28 that would
-land in `incomplete_data`, 15 are High income IBRD graduates:
+be classified `incomplete_data`, 15 are high income IBRD graduates:
 
 ```
 ATG BGR BRB CHL CRI HRV KNA NRU PAN PLW POL ROU SYC TTO URY
@@ -287,26 +284,26 @@ report to IDS, and stays `scored` on its data rather than on its income label.
 A blanket "exclude all high-income" filter would break Guyana, which is why the
 test is on reported data rather than income alone.
 
-## Delta against the original revision
+## Changes from the first iteration
 
 Formula, weights, normalization bounds, series codes, WGI `source=3`, debt
 tiering cutoffs, thresholds, classification bins and the score map are all
 **unchanged**. What is new:
 
 1. **Scope section** with the `lendingType.id` resolution rule and the
-   `IBD` / `IDB` / `IDX` / `LNX` table. Previously there was no positive scope
+   `IBD` / `IDB` / `IDX` / `LNX` table. The first iteration had no positive scope
    test at all; coverage was an emergent property of data availability.
 2. **Three-value `status` field** (`scored` / `out_of_scope` /
    `incomplete_data`) plus a `missing_components` list on the third.
-3. **Every requested country must appear in the output.** The original spec
+3. **Every requested country must appear in the output.** The first iteration
    produced rows only where the composite computed.
 4. **`scope` and `status_values` keys** added to the machine-readable summary.
-5. Retrieval examples now pin `mrnev=1` on the WB API calls (see the warning
+5. Retrieval examples now pin `mrnev=1` on the WB API calls (see the note
    below), and the limitations list gains a `DT.DOD.DPPG.CD` note and an
    instruction to validate the WGI tier cutoffs against published LIC-DSF
    ratings.
 
-### What this costs us
+### Cost of the change
 
 `src/calculating/mspi.py` currently drops every incomplete row:
 
@@ -314,8 +311,8 @@ tiering cutoffs, thresholds, classification bins and the score map are all
 complete = n_inc.notna() & n_frag.notna() & n_debt.notna() & n_conc.notna()
 ```
 
-That single filter implements the old spec and contradicts the new one. To
-satisfy the updated revision the composer needs a scope input it does not have,
+That single filter implements the first-iteration behavior and contradicts the current one. To
+satisfy the current iteration the composer needs a scope input it does not have,
 a status column, a `missing_components` column, and it must stop dropping rows.
 The published contract then needs a way to carry `status` to the frontend, which
 is an additive field rather than a `/v2` bump under invariant 6.
@@ -323,24 +320,24 @@ is an additive field rather than a `/v2` bump under invariant 6.
 **Status (2026-10-17):** done. The composer now takes the scope input, emits `status` and
 `missing_components`, no longer drops rows, and the contract carries `indicatorStatus`.
 
-### `mrnev=1` conflicts with this being a timeseries product
+### `mrnev=1` versus this being a timeseries product
 
-The updated retrieval examples specify `&mrnev=1`, which returns the **most
+An earlier retrieval example specifies `&mrnev=1`, which returns the **most
 recent non-empty value only**, one point per country. Read literally that makes
 `mspi` a snapshot indicator with no history, and `pri/macrosec` would have a
 flat trend line on the Trends panel while the other six pillars move.
 
-The formula itself is year-agnostic and composes fine per year, and we already
-fetch full series. **Recommendation: keep the full series and treat `mrnev=1` as
-a description of a one-off lookup rather than a specification of our retrieval.**
-Confirm before building, because a single latest value would change what the
-Trends panel shows for an entire pillar.
+The formula itself is year-agnostic and composes fine per year, and the full
+series is already fetched. **Resolution: keep the full series and treat `mrnev=1` as
+a description of a one-off lookup rather than a rule for the pipeline's own retrieval.**
+This needs confirmation before any future change to this retrieval, because a single
+latest value would change what the Trends panel shows for an entire pillar.
 
 ## Contract / keying
 
 Contract key is `mspi` (2026-09-19). Pillar `repIndicator` is `mspi`. Do not
 keep calling the composite `hdi`. Do not restore `conces`. Taxonomy maps
-`mspi` → `MSPI_INDEX`. Composer: `src/calculating/mspi.py`.
+`mspi` -> `MSPI_INDEX`. Composer: `src/calculating/mspi.py`.
 
 ## Machine-readable summary
 
@@ -408,14 +405,14 @@ keep calling the composite `hdi`. Do not restore `conces`. Taxonomy maps
 
 Contract key `mspi` is in
 `docs/data-contract.md`, `publish_dashboard.py`, and `indicators.yaml`.
-Composer is wired (`src/calculating/mspi.py`, taxonomy `mspi` → `MSPI_INDEX`).
+Composer is wired (`src/calculating/mspi.py`, taxonomy `mspi` -> `MSPI_INDEX`).
 WDI/IDS fetched and scored 2026-09-19: **117 countries / 1,693 country-years**
-vs HDI **193 / 2,688** (2010–2024). High-income non-reporters are null.
+vs HDI **193 / 2,688** (2010-2024). High-income non-reporters are null.
 Coverage rule since 2026-09-24: non-covered countries are excluded.
-The updated spec revision (2026-09-23) replaces that with an explicit
+The current-iteration design (2026-09-23) replaces that with an explicit
 `lendingType` scope test and a three-value status field.
 
 **Status (2026-10-17):** the scope test and status field are built (see above); only About-page
 copy and tooltip/vintage UI remain. Keep UNDP `HDI_INDEX` fetch as a verification
 baseline. `DT.DOD.ALLC.ZS` and `DT.DOD.DECT.EX.ZS` must be fetched from IDS
-source 6 with `counterpart_area: WLD` — they are archived on WDI.
+source 6 with `counterpart_area: WLD`; they are archived on WDI.
