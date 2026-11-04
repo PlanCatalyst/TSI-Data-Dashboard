@@ -32,6 +32,7 @@
     }
   },
   "legacy": {
+    "country-link": "Explore table row link that opens the country detail panel. Not yet in the design system.",
     "gloss-term": "About glossary term with hover definition. Not yet in the design system.",
     "wiki-rail-toggle": "About contents rail toggle. Not yet in the design system.",
     "wiki-contents-btn": "About per-section Contents button. Should be btn--ghost btn--sm.",

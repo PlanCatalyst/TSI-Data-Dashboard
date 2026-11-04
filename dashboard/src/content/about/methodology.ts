@@ -107,6 +107,10 @@ export const METHODOLOGY: MethodologyRow[] = [
   { key: "mpi", family: "ratio", unit: "Index, 0 to 1", benchmark: 0.089, benchmarkText: "0.089", slider: { min: 0.01, max: 0.7, step: 0.01, start: 0.25 } },
   { key: "popdens", family: "bands", unit: "People per square km", benchmark: null, benchmarkText: "Bands at 25, 75, 100 and 250", slider: { min: 0, max: 500, step: 5, start: 120 } },
   { key: "mspi", family: "index", unit: "Index, 0 to 100", benchmark: null, benchmarkText: "None, value is the score", slider: { min: 0, max: 100, step: 1, start: 50 } },
+  { key: "mspi_inc", family: "index", unit: "Index, 0 to 100", benchmark: null, benchmarkText: "None, value is the score. One of four equally weighted inputs to mspi; excluded from pillar aggregation.", slider: { min: 0, max: 100, step: 1, start: 50 } },
+  { key: "mspi_frag", family: "index", unit: "Index, 0 to 100", benchmark: null, benchmarkText: "None, value is the score. One of four equally weighted inputs to mspi; excluded from pillar aggregation.", slider: { min: 0, max: 100, step: 1, start: 50 } },
+  { key: "mspi_debt", family: "index", unit: "Index, 0 to 100", benchmark: null, benchmarkText: "None, value is the score. One of four equally weighted inputs to mspi; excluded from pillar aggregation.", slider: { min: 0, max: 100, step: 1, start: 50 } },
+  { key: "mspi_conc", family: "index", unit: "Index, 0 to 100", benchmark: null, benchmarkText: "None, value is the score. One of four equally weighted inputs to mspi; excluded from pillar aggregation.", slider: { min: 0, max: 100, step: 1, start: 50 } },
 ];
 
 /**
